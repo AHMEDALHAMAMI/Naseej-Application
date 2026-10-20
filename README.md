@@ -88,22 +88,11 @@ Every AI result is validated by the server before it is stored or used in any pa
 
 ## 🏗️ Architecture
 
-```mermaid
-flowchart LR
-    C[Client] --> SEC[Spring Security / JWT]
-    SEC --> CT[Controller]
-    CT --> S[Service]
-    S --> R[Repository]
-    R --> DB[(MySQL)]
-    S --> AI[Claude AI]
-    S --> GP[Google Places]
-    S --> MY[Moyasar]
-    S -- events --> N8N[n8n]
-    MY -- payment webhook --> N8N
-    N8N -- HTTP --> CT
-    N8N --> WA[WhatsApp]
-    N8N --> GM[Gmail]
-```
+<p align="center">
+  <a href="assets/docs/ArchitectureDiagram.svg">
+    <img src="assets/docs/ArchitectureDiagram.svg" alt="Naseej's Architecture Diagram" width="100%">
+  </a>
+</p>
 
 ## 🔍 How Idea Screening Works
 

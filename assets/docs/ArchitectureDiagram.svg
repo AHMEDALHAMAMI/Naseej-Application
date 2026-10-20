@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 910" width="1420" height="910" role="img" aria-labelledby="t d">
+<title id="t">Naseej system architecture</title>
+<desc id="d">The client calls the Spring Boot backend through Spring Security and JWT. Requests pass Controller, Service and Repository to MySQL. The Service calls Claude AI, Google Places and Nafath, starts payments with Moyasar and sends events to n8n. Moyasar sends payment webhooks to n8n, n8n calls the Controller back and sends WhatsApp alerts and Gmail emails.</desc>
+<defs>
+<style>
+.nm{font:600 15px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#22302A}
+.ar{font:500 12.5px 'IBM Plex Sans Arabic','Noto Sans Arabic','Segoe UI',Tahoma,'DejaVu Sans',sans-serif;fill:#66706A}
+.dt{font:400 11px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#66706A}
+.mono{font-family:'IBM Plex Mono','SFMono-Regular',Menlo,Consolas,monospace}
+.lb{font:500 11px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#3F5843;paint-order:stroke;stroke:#FDFCF8;stroke-width:4px;stroke-linejoin:round}
+.h-en{font:700 26px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#22302A}
+.h-brand{font:600 12px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#577259;letter-spacing:4px}
+.h-ar{font:700 22px 'IBM Plex Sans Arabic','Noto Sans Arabic','Segoe UI',Tahoma,'DejaVu Sans',sans-serif;fill:#22302A}
+.h-sub{font:400 13px 'IBM Plex Sans Arabic','Noto Sans Arabic','Segoe UI',Tahoma,'DejaVu Sans',sans-serif;fill:#66706A}
+.zone{font:700 13px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#3F5843}
+.zone-ar{font:600 13px 'IBM Plex Sans Arabic','Noto Sans Arabic','Segoe UI',Tahoma,'DejaVu Sans',sans-serif;fill:#3F5843}
+.card-t{font:700 13px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#22302A}
+.card-ar{font:600 12.5px 'IBM Plex Sans Arabic','Noto Sans Arabic','Segoe UI',Tahoma,'DejaVu Sans',sans-serif;fill:#66706A}
+.card-x{font:400 11.5px 'IBM Plex Sans','Segoe UI','Helvetica Neue',Arial,sans-serif;fill:#22302A}
+</style>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+<path d="M0,0.8 L9.5,5 L0,9.2 Z" fill="#4A5A50"/>
+</marker>
+<filter id="lift" x="-10%" y="-10%" width="120%" height="130%">
+<feDropShadow dx="0" dy="1.5" stdDeviation="1.6" flood-color="#22302A" flood-opacity="0.08"/>
+</filter>
+<clipPath id="canvasClip"><rect x="0" y="0" width="1420" height="910" rx="18"/></clipPath>
+<pattern id="weaveBand" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="12" height="12" fill="#FDFCF8"/><rect width="6" height="12" fill="#577259"/>
+</pattern>
+</defs>
+<g clip-path="url(#canvasClip)">
+<rect x="0" y="0" width="1420" height="910" fill="#FDFCF8"/>
+<rect x="0" y="0" width="1420" height="8" fill="url(#weaveBand)"/>
+</g>
+<rect x="0.5" y="0.5" width="1419" height="909" rx="18" fill="none" stroke="#DDDFD5"/>
+<clipPath id="wv0"><rect x="40" y="38" width="30" height="30"/></clipPath>
+<g clip-path="url(#wv0)" stroke="#577259" stroke-width="5.5">
+<line x1="10" y1="38" x2="40" y2="68"/>
+<line x1="20" y1="38" x2="50" y2="68"/>
+<line x1="30" y1="38" x2="60" y2="68"/>
+<line x1="40" y1="38" x2="70" y2="68"/>
+<line x1="50" y1="38" x2="80" y2="68"/>
+<line x1="60" y1="38" x2="90" y2="68"/>
+<line x1="70" y1="38" x2="100" y2="68"/>
+</g>
+<clipPath id="wv1"><rect x="72" y="38" width="30" height="30"/></clipPath>
+<g clip-path="url(#wv1)" stroke="#577259" stroke-width="5.5">
+<line x1="72" y1="38" x2="42" y2="68"/>
+<line x1="82" y1="38" x2="52" y2="68"/>
+<line x1="92" y1="38" x2="62" y2="68"/>
+<line x1="102" y1="38" x2="72" y2="68"/>
+<line x1="112" y1="38" x2="82" y2="68"/>
+<line x1="122" y1="38" x2="92" y2="68"/>
+<line x1="132" y1="38" x2="102" y2="68"/>
+</g>
+<clipPath id="wv2"><rect x="40" y="70" width="30" height="30"/></clipPath>
+<g clip-path="url(#wv2)" stroke="#577259" stroke-width="5.5">
+<line x1="40" y1="70" x2="10" y2="100"/>
+<line x1="50" y1="70" x2="20" y2="100"/>
+<line x1="60" y1="70" x2="30" y2="100"/>
+<line x1="70" y1="70" x2="40" y2="100"/>
+<line x1="80" y1="70" x2="50" y2="100"/>
+<line x1="90" y1="70" x2="60" y2="100"/>
+<line x1="100" y1="70" x2="70" y2="100"/>
+</g>
+<clipPath id="wv3"><rect x="72" y="70" width="30" height="30"/></clipPath>
+<g clip-path="url(#wv3)" stroke="#577259" stroke-width="5.5">
+<line x1="42" y1="70" x2="72" y2="100"/>
+<line x1="52" y1="70" x2="82" y2="100"/>
+<line x1="62" y1="70" x2="92" y2="100"/>
+<line x1="72" y1="70" x2="102" y2="100"/>
+<line x1="82" y1="70" x2="112" y2="100"/>
+<line x1="92" y1="70" x2="122" y2="100"/>
+<line x1="102" y1="70" x2="132" y2="100"/>
+</g>
+<text x="116" y="58" class="h-brand">NASEEJ</text>
+<text x="116" y="92" class="h-en">System Architecture</text>
+<text x="1380" y="66" text-anchor="end" class="h-ar">نسيج · معمارية النظام</text>
+<text x="1380" y="92" text-anchor="end" class="h-sub">طبقات الخادم وكيف تتصل بالخدمات الخارجية</text>
+<line x1="40" y1="128" x2="1380" y2="128" stroke="#DDDFD5"/>
+<rect x="270" y="372" width="850" height="200" rx="14" fill="#EEF2EA" stroke="#577259" stroke-width="1.5"/>
+<text x="292" y="556" class="zone">Spring Boot backend</text>
+<text x="1098" y="556" text-anchor="end" class="zone-ar">الخادم</text>
+<polyline points="190,475 298,475" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<text x="230" y="466" text-anchor="middle" class="lb">HTTPS · JWT</text>
+<polyline points="460,475 508,475" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<polyline points="670,475 718,475" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<polyline points="880,475 928,475" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<polyline points="1090,475 1218,475" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<text x="1170" y="466" text-anchor="middle" class="lb">Hibernate</text>
+<polyline points="115,430 115,258" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<text x="123" y="349" text-anchor="start" class="lb">demand map</text>
+<polyline points="380,430 380,258" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-start="url(#arr)" marker-end="url(#arr)"/>
+<text x="388" y="349" text-anchor="start" class="lb">OAuth2 sign-in</text>
+<polyline points="800,430 800,318" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round"/>
+<polyline points="640,318 1040,318" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round"/>
+<polyline points="640,318 640,258" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<polyline points="840,318 840,258" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<polyline points="1040,318 1040,258" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<text x="808" y="353" text-anchor="start" class="lb">HTTPS · JSON</text>
+<polyline points="760,520 760,648" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<text x="768" y="614" text-anchor="start" class="lb">events</text>
+<polyline points="630,650 630,522" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<text x="622" y="614" text-anchor="end" class="lb">HTTP callback</text>
+<polyline points="850,520 850,600 1035,600 1035,648" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<text x="942" y="592" text-anchor="middle" class="lb">create · refund</text>
+<polyline points="950,700 792,700" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<text x="871" y="690" text-anchor="middle" class="lb">payment webhook</text>
+<polyline points="690,734 690,767" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round"/>
+<polyline points="590,767 790,767" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round"/>
+<polyline points="590,767 590,798" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<polyline points="790,767 790,798" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<g filter="url(#lift)"><rect x="40" y="172" width="150" height="84" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="49" y="184" width="4" height="60" rx="2" fill="#9A7431"/>
+<text x="118.0" y="202" text-anchor="middle" class="nm">Google Maps</text>
+<text x="118.0" y="222" text-anchor="middle" class="ar">خريطة الطلب</text>
+<text x="118.0" y="240" text-anchor="middle" class="dt">demand map layer</text>
+<g filter="url(#lift)"><rect x="300" y="172" width="160" height="84" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="309" y="184" width="4" height="60" rx="2" fill="#4D6575"/>
+<text x="383.0" y="202" text-anchor="middle" class="nm">Google OAuth2</text>
+<text x="383.0" y="222" text-anchor="middle" class="ar">تسجيل الدخول</text>
+<text x="383.0" y="240" text-anchor="middle" class="dt mono">oauth2Login()</text>
+<g filter="url(#lift)"><rect x="560" y="172" width="160" height="84" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="569" y="184" width="4" height="60" rx="2" fill="#9A7431"/>
+<text x="643.0" y="202" text-anchor="middle" class="nm">Claude AI</text>
+<text x="643.0" y="222" text-anchor="middle" class="ar">الذكاء الاصطناعي</text>
+<text x="643.0" y="240" text-anchor="middle" class="dt">screening &amp; feasibility</text>
+<g filter="url(#lift)"><rect x="760" y="172" width="160" height="84" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="769" y="184" width="4" height="60" rx="2" fill="#9A7431"/>
+<text x="843.0" y="202" text-anchor="middle" class="nm">Google Places</text>
+<text x="843.0" y="222" text-anchor="middle" class="ar">المنافسون القريبون</text>
+<text x="843.0" y="240" text-anchor="middle" class="dt">nearby competitors</text>
+<g filter="url(#lift)"><rect x="960" y="172" width="160" height="84" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="969" y="184" width="4" height="60" rx="2" fill="#4D6575"/>
+<text x="1043.0" y="202" text-anchor="middle" class="nm">Nafath</text>
+<text x="1043.0" y="222" text-anchor="middle" class="ar">نفاذ · توثيق الهوية</text>
+<text x="1043.0" y="240" text-anchor="middle" class="dt">investor identity</text>
+<g filter="url(#lift)"><rect x="40" y="430" width="150" height="90" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="49" y="442" width="4" height="66" rx="2" fill="#2E3A31"/>
+<text x="118.0" y="462" text-anchor="middle" class="nm">Client</text>
+<text x="118.0" y="483" text-anchor="middle" class="ar">واجهة المستخدم</text>
+<text x="118.0" y="502" text-anchor="middle" class="dt">16 screens</text>
+<g filter="url(#lift)"><rect x="300" y="430" width="160" height="90" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="309" y="442" width="4" height="66" rx="2" fill="#577259"/>
+<text x="383.0" y="462" text-anchor="middle" class="nm">Spring Security</text>
+<text x="383.0" y="483" text-anchor="middle" class="ar">الحماية والصلاحيات</text>
+<text x="383.0" y="502" text-anchor="middle" class="dt">JWT filter · roles</text>
+<g filter="url(#lift)"><rect x="510" y="430" width="160" height="90" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="519" y="442" width="4" height="66" rx="2" fill="#577259"/>
+<text x="593.0" y="462" text-anchor="middle" class="nm">Controller</text>
+<text x="593.0" y="483" text-anchor="middle" class="ar">نقاط الواجهة</text>
+<text x="593.0" y="502" text-anchor="middle" class="dt mono">/v1/api/*</text>
+<g filter="url(#lift)"><rect x="720" y="430" width="160" height="90" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="729" y="442" width="4" height="66" rx="2" fill="#577259"/>
+<text x="803.0" y="462" text-anchor="middle" class="nm">Service</text>
+<text x="803.0" y="483" text-anchor="middle" class="ar">منطق العمل</text>
+<text x="803.0" y="502" text-anchor="middle" class="dt">business rules</text>
+<g filter="url(#lift)"><rect x="930" y="430" width="160" height="90" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="939" y="442" width="4" height="66" rx="2" fill="#577259"/>
+<text x="1013.0" y="462" text-anchor="middle" class="nm">Repository</text>
+<text x="1013.0" y="483" text-anchor="middle" class="ar">الوصول للبيانات</text>
+<text x="1013.0" y="502" text-anchor="middle" class="dt">Spring Data JPA</text>
+<g filter="url(#lift)"><path d="M1220,436 A80.0,12 0 0 1 1380,436 V516 A80.0,12 0 0 1 1220,516 Z" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<ellipse cx="1300.0" cy="436" rx="80.0" ry="12" fill="#EEF2EA" stroke="#DDDFD5" stroke-width="1.2"/>
+<rect x="1229" y="454" width="4" height="56" rx="2" fill="#2E3A31"/>
+<text x="1303.0" y="470" text-anchor="middle" class="nm">MySQL</text>
+<text x="1303.0" y="490" text-anchor="middle" class="ar">قاعدة البيانات</text>
+<text x="1303.0" y="508" text-anchor="middle" class="dt">19 entities</text>
+<g filter="url(#lift)"><rect x="590" y="650" width="200" height="84" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="599" y="662" width="4" height="60" rx="2" fill="#A35F43"/>
+<text x="693.0" y="680" text-anchor="middle" class="nm">n8n</text>
+<text x="693.0" y="700" text-anchor="middle" class="ar">الأتمتة</text>
+<text x="693.0" y="718" text-anchor="middle" class="dt">7 workflows</text>
+<g filter="url(#lift)"><rect x="950" y="650" width="170" height="84" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="959" y="662" width="4" height="60" rx="2" fill="#4D6575"/>
+<text x="1038.0" y="680" text-anchor="middle" class="nm">Moyasar</text>
+<text x="1038.0" y="700" text-anchor="middle" class="ar">ميسّر · بوابة الدفع</text>
+<text x="1038.0" y="718" text-anchor="middle" class="dt">Apple Pay · mada · cards</text>
+<g filter="url(#lift)"><rect x="510" y="800" width="160" height="72" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="519" y="812" width="4" height="48" rx="2" fill="#A35F43"/>
+<text x="593.0" y="826" text-anchor="middle" class="nm">WhatsApp</text>
+<text x="593.0" y="844" text-anchor="middle" class="ar">تنبيهات واتساب</text>
+<text x="593.0" y="860" text-anchor="middle" class="dt">status alerts</text>
+<g filter="url(#lift)"><rect x="710" y="800" width="160" height="72" rx="10" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/></g>
+<rect x="719" y="812" width="4" height="48" rx="2" fill="#A35F43"/>
+<text x="793.0" y="826" text-anchor="middle" class="nm">Gmail</text>
+<text x="793.0" y="844" text-anchor="middle" class="ar">البريد الرسمي</text>
+<text x="793.0" y="860" text-anchor="middle" class="dt">OTP · contract PDF</text>
+<rect x="40" y="650" width="430" height="222" rx="12" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/>
+<text x="60" y="680" class="card-t">Legend</text>
+<text x="450" y="680" text-anchor="end" class="card-ar">مفتاح الرموز</text>
+<line x1="60" y1="694" x2="450" y2="694" stroke="#DDDFD5"/>
+<rect x="60" y="709" width="4" height="14" rx="2" fill="#577259"/>
+<text x="74" y="720" class="card-x">Spring Boot backend</text>
+<rect x="60" y="739" width="4" height="14" rx="2" fill="#9A7431"/>
+<text x="74" y="750" class="card-x">AI &amp; location</text>
+<rect x="60" y="769" width="4" height="14" rx="2" fill="#4D6575"/>
+<text x="74" y="780" class="card-x">Identity &amp; payments</text>
+<rect x="60" y="799" width="4" height="14" rx="2" fill="#A35F43"/>
+<text x="74" y="810" class="card-x">Automation &amp; messaging</text>
+<rect x="60" y="829" width="4" height="14" rx="2" fill="#2E3A31"/>
+<text x="74" y="840" class="card-x">Client &amp; data</text>
+<polyline points="276,716 326,716" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-end="url(#arr)"/>
+<text x="338" y="720" class="card-x">Request or call</text>
+<polyline points="276,746 326,746" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="6 5" marker-end="url(#arr)"/>
+<text x="338" y="750" class="card-x">Event or webhook</text>
+<polyline points="276,776 326,776" fill="none" stroke="#4A5A50" stroke-width="1.5" stroke-linejoin="round" marker-start="url(#arr)" marker-end="url(#arr)"/>
+<text x="338" y="780" class="card-x">Two-way (sign-in)</text>
+<rect x="1150" y="650" width="230" height="222" rx="12" fill="#FFFFFF" stroke="#DDDFD5" stroke-width="1.2"/>
+<text x="1168" y="680" class="card-t">Safeguards</text>
+<text x="1362" y="680" text-anchor="end" class="card-ar">ضمانات</text>
+<line x1="1168" y1="694" x2="1362" y2="694" stroke="#DDDFD5"/>
+<rect x="1168" y="710" width="6" height="6" rx="1" fill="#577259" transform="rotate(45 1171 713)"/>
+<text x="1182" y="718" class="card-x">Card data stays in Moyasar's</text>
+<text x="1182" y="734" class="card-x">hosted form, never our server</text>
+<rect x="1168" y="750" width="6" height="6" rx="1" fill="#577259" transform="rotate(45 1171 753)"/>
+<text x="1182" y="758" class="card-x">Claude replies in JSON, and the</text>
+<text x="1182" y="774" class="card-x">server checks it before saving</text>
+<rect x="1168" y="790" width="6" height="6" rx="1" fill="#577259" transform="rotate(45 1171 793)"/>
+<text x="1182" y="798" class="card-x">An opportunity unlocks only</text>
+<text x="1182" y="814" class="card-x">after Moyasar's webhook</text>
+<rect x="1168" y="830" width="6" height="6" rx="1" fill="#577259" transform="rotate(45 1171 833)"/>
+<text x="1182" y="838" class="card-x">API keys live in environment</text>
+<text x="1182" y="854" class="card-x">variables</text>
+</svg>
