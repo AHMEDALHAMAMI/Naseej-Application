@@ -35,8 +35,9 @@ public class Contract {
     @JoinColumn(name = "idea_owner_id", nullable = false)
     private User ideaOwner;
 
-    @Column(name = "access_id", nullable = false, unique = true)
-    private Integer accessId;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "access_id", nullable = false, unique = true)
+    private OpportunityAccess access;
 
     @Column(name = "founding_member_discount", nullable = false, precision = 5, scale = 2)
     private BigDecimal foundingMemberDiscount;

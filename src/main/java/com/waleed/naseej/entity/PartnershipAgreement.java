@@ -20,8 +20,9 @@ public class PartnershipAgreement {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "access_id", nullable = false, unique = true)
-    private Integer accessId;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "access_id", nullable = false, unique = true)
+    private OpportunityAccess access;
 
     @Column(name = "profit_share_percent", nullable = false, precision = 5, scale = 2)
     private BigDecimal profitSharePercent;

@@ -16,14 +16,14 @@ public class IdeaCheck {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // FK -> Idea.id (one check per idea)
-    @NotNull(message = "Idea id is required")
-    @Column(name = "idea_id", nullable = false, unique = true)
-    private Integer ideaId;
+    @NotNull(message = "Idea is required")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idea_id", nullable = false, unique = true)
+    private Idea idea;
 
-    // FK -> Idea.id of a published idea that looks the same (null if none)
-    @Column(name = "similar_idea_id")
-    private Integer similarIdeaId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "similar_idea_id")
+    private Idea similarIdea;
 
     @NotNull(message = "Score is required")
     @Min(value = 0, message = "Score must be between 0 and 100")
@@ -62,7 +62,7 @@ public class IdeaCheck {
     public String evaluate() {
         if (!Boolean.TRUE.equals(scarcityFound)) {
             decision = "SATURATED";
-        } else if (similarIdeaId != null) {
+        } else if (similarIdea != null) {
             decision = "SIMILAR";
         } else {
             decision = "FIT";
