@@ -16,10 +16,10 @@ public class FeasibilityReport {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // FK -> Idea.id (one report per idea)
-    @NotNull(message = "Idea id is required")
-    @Column(name = "idea_id", nullable = false, unique = true)
-    private Integer ideaId;
+    @NotNull(message = "Idea is required")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idea_id", nullable = false, unique = true)
+    private Idea idea;
 
     @NotNull(message = "Gap score is required")
     @Min(value = 0, message = "Gap score must be between 0 and 100")

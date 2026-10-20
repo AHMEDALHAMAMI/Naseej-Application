@@ -17,10 +17,10 @@ public class NearbyPlace {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // FK -> Idea.id (an idea has many competitors)
-    @NotNull(message = "Idea id is required")
-    @Column(name = "idea_id", nullable = false)
-    private Integer ideaId;
+    @NotNull(message = "Idea is required")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idea_id", nullable = false)
+    private Idea idea;
 
     @NotEmpty(message = "Google place id is required")
     @Column(name = "google_place_id", nullable = false)

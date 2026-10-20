@@ -18,10 +18,10 @@ public class BusinessModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // FK -> Idea.id (one business model per idea)
-    @NotNull(message = "Idea id is required")
-    @Column(name = "idea_id", nullable = false, unique = true)
-    private Integer ideaId;
+    @NotNull(message = "Idea is required")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idea_id", nullable = false, unique = true)
+    private Idea idea;
 
     @NotEmpty(message = "Value proposition is required")
     @Column(columnDefinition = "text not null")
