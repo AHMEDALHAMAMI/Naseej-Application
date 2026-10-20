@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/NaseejLogo.png" width="150" alt="NaseejLogo.png">
+<img src="assets/images/NaseejLogo.png" width="150" alt="NaseejLogo.png">
 
 **Neighborhood demand platform powered by AI**
 
