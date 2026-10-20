@@ -25,8 +25,9 @@ public class Subscription {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "payment_id", unique = true)
-    private Integer paymentId;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "payment_id", nullable = false, unique = true)
+    private Payment payment;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

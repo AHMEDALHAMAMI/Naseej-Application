@@ -1,7 +1,9 @@
 package com.waleed.naseej.entity;
 
+import com.waleed.naseej.enums.AccessType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,30 +21,29 @@ public class OpportunityAccess {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // FK -> User.id (role INVESTOR)
-    @NotNull(message = "Investor id is required")
-    @Column(name = "investor_id", nullable = false)
-    private Integer investorId;
+    @NotNull(message = "Investor is required")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "investor_id", nullable = false)
+    private User investor;
 
-    // FK -> Idea.id
-    @NotNull(message = "Idea id is required")
-    @Column(name = "idea_id", nullable = false)
-    private Integer ideaId;
+    @NotNull(message = "Idea is required")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idea_id", nullable = false)
+    private Idea idea;
 
-    // FK -> Payment.id, only for PAID access (PARTNERSHIP has no payment)
-    @Column(name = "payment_id", unique = true)
-    private Integer paymentId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id", unique = true)
+    private Payment payment;
 
-    // AccessType
-    @NotEmpty(message = "Access type is required")
-    @Pattern(regexp = "^(PAID|PARTNERSHIP)$", message = "Access type must be PAID or PARTNERSHIP")
+    @NotNull(message = "Access type is required")
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String accessType;
+    private AccessType accessType;
 
     private LocalDateTime priorityUntil;
 
     @AssertTrue(message = "PAID access needs a payment, PARTNERSHIP access must not have one")
     private boolean isPaymentConsistent() {
-        return "PAID".equals(accessType) == (paymentId != null);
+        return accessType == AccessType.PAID ? payment != null : payment == null;
     }
 }
