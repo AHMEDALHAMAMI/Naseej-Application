@@ -3,11 +3,7 @@ package com.waleed.naseej.entity;
 import com.waleed.naseej.enums.AuthProvider;
 import com.waleed.naseej.enums.Role;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,6 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class User {
 
     @Id
@@ -43,6 +40,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private Role role = Role.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -50,12 +48,15 @@ public class User {
     private Neighborhood neighborhood;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean emailVerified = false;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean whatsappOptIn = false;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean enabled = false;
 
     @Column(unique = true)
@@ -70,5 +71,6 @@ public class User {
     private LocalDateTime otpExpiresAt;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer otpAttempts = 0;
 }
