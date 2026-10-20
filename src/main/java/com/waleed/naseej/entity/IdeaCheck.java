@@ -31,8 +31,7 @@ public class IdeaCheck {
     @Column(nullable = false)
     private Integer score;
 
-    // ScreeningDecision
-    @NotEmpty(message = "Decision is required")
+    // ScreeningDecision — set by evaluate() in the service, not sent by the client
     @Pattern(regexp = "^(FIT|SIMILAR|SATURATED)$", message = "Decision must be FIT, SIMILAR or SATURATED")
     @Column(nullable = false, length = 20)
     private String decision;
