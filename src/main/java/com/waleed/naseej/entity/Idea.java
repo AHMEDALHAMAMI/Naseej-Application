@@ -2,10 +2,7 @@ package com.waleed.naseej.entity;
 
 import com.waleed.naseej.enums.IdeaStatus;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Idea {
 
     @Id
@@ -39,9 +37,11 @@ public class Idea {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private IdeaStatus status = IdeaStatus.SCREENING;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer membershipThreshold = 150;
 
     private LocalDateTime publishedAt;
