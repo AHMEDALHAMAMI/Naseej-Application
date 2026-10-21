@@ -147,14 +147,13 @@ Residents and idea owners use Naseej for free. Prices below are proposals for te
 
 ```
 com.example.naseej
-├── Advice       # Global exception handling
 ├── Api          # ApiException and ApiResponse
 ├── Config       # Security, OAuth2 and external service configs
 ├── Controller   # REST endpoints
 ├── DTOIN        # Request bodies with validation
 ├── DTOOUT       # Response bodies
 ├── Enums        # Role, IdeaStatus, ContractStatus and other enums
-├── Model        # JPA entities
+├── Entity        # JPA entities
 ├── Repository   # Database access
 ├── Security     # JwtAuthenticationFilter, AuthenticationSuccessHandler
 └── Service      # Business logic
