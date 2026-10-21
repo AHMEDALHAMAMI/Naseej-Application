@@ -1,10 +1,7 @@
 package com.waleed.naseej.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(
@@ -20,6 +17,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class FoundingMember {
 
     @Id
@@ -38,8 +36,10 @@ public class FoundingMember {
     private Integer memberNumber;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean ideaOwner = false;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean consentGiven = false;
 }

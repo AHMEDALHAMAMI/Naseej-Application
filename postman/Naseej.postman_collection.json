@@ -1,0 +1,4195 @@
+{
+  "info": {
+    "name": "Naseej API",
+    "_postman_id": "naseej-api-collection",
+    "description": "Full collection runner on **empty DB**: 00 setup → 01–15 CRUD (dual lane) → 99 teardown.\nDrop/recreate tables, start Naseej, run entire collection in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "seedNeighborhoodId",
+      "value": "1"
+    },
+    {
+      "key": "seedUserId",
+      "value": "1"
+    },
+    {
+      "key": "seedIdeaId",
+      "value": "1"
+    },
+    {
+      "key": "seedFoundingMemberId",
+      "value": "1"
+    },
+    {
+      "key": "seedBusinessModelId",
+      "value": "1"
+    },
+    {
+      "key": "seedIdeaCheckId",
+      "value": "1"
+    },
+    {
+      "key": "seedNearbyPlaceId",
+      "value": "1"
+    },
+    {
+      "key": "seedFeasibilityReportId",
+      "value": "1"
+    },
+    {
+      "key": "seedPaymentId",
+      "value": "1"
+    },
+    {
+      "key": "seedAccessId",
+      "value": "1"
+    },
+    {
+      "key": "seedPartnershipAgreementId",
+      "value": "1"
+    },
+    {
+      "key": "seedContractId",
+      "value": "1"
+    },
+    {
+      "key": "seedContractSignatureId",
+      "value": "1"
+    },
+    {
+      "key": "seedProjectUpdateId",
+      "value": "1"
+    },
+    {
+      "key": "seedSubscriptionPaymentId",
+      "value": "1"
+    },
+    {
+      "key": "seedSubscriptionId",
+      "value": "1"
+    },
+    {
+      "key": "neighborhoodId",
+      "value": "1"
+    },
+    {
+      "key": "userId",
+      "value": "1"
+    },
+    {
+      "key": "investorId",
+      "value": "1"
+    },
+    {
+      "key": "ideaOwnerId",
+      "value": "1"
+    },
+    {
+      "key": "ideaId",
+      "value": "1"
+    },
+    {
+      "key": "foundingMemberId",
+      "value": "1"
+    },
+    {
+      "key": "businessModelId",
+      "value": "1"
+    },
+    {
+      "key": "ideaCheckId",
+      "value": "1"
+    },
+    {
+      "key": "nearbyPlaceId",
+      "value": "1"
+    },
+    {
+      "key": "feasibilityReportId",
+      "value": "1"
+    },
+    {
+      "key": "paymentId",
+      "value": "1"
+    },
+    {
+      "key": "accessId",
+      "value": "1"
+    },
+    {
+      "key": "partnershipAgreementId",
+      "value": "1"
+    },
+    {
+      "key": "contractId",
+      "value": "1"
+    },
+    {
+      "key": "contractSignatureId",
+      "value": "1"
+    },
+    {
+      "key": "projectUpdateId",
+      "value": "1"
+    },
+    {
+      "key": "subscriptionPaymentId",
+      "value": "1"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "1"
+    },
+    {
+      "key": "setupEmail",
+      "value": "1"
+    },
+    {
+      "key": "setupPhone",
+      "value": "1"
+    },
+    {
+      "key": "setupSuffix",
+      "value": "1"
+    },
+    {
+      "key": "contractNumber",
+      "value": "1"
+    },
+    {
+      "key": "moyasarPaymentId",
+      "value": "1"
+    },
+    {
+      "key": "subscriptionMoyasarId",
+      "value": "1"
+    },
+    {
+      "key": "crudNeighborhoodId",
+      "value": "1"
+    },
+    {
+      "key": "crudUserId",
+      "value": "1"
+    },
+    {
+      "key": "crudUserEmail",
+      "value": "1"
+    },
+    {
+      "key": "crudPhone",
+      "value": "1"
+    },
+    {
+      "key": "crudIdeaId",
+      "value": "1"
+    },
+    {
+      "key": "crudFoundingMemberId",
+      "value": "1"
+    },
+    {
+      "key": "crudBusinessModelId",
+      "value": "1"
+    },
+    {
+      "key": "crudIdeaCheckId",
+      "value": "1"
+    },
+    {
+      "key": "crudNearbyPlaceId",
+      "value": "1"
+    },
+    {
+      "key": "crudFeasibilityReportId",
+      "value": "1"
+    },
+    {
+      "key": "crudPaymentId",
+      "value": "1"
+    },
+    {
+      "key": "crudMoyasarPaymentId",
+      "value": "1"
+    },
+    {
+      "key": "crudAccessId",
+      "value": "1"
+    },
+    {
+      "key": "crudPartnershipAgreementId",
+      "value": "1"
+    },
+    {
+      "key": "crudContractId",
+      "value": "1"
+    },
+    {
+      "key": "crudContractNumber",
+      "value": "1"
+    },
+    {
+      "key": "crudContractSignatureId",
+      "value": "1"
+    },
+    {
+      "key": "crudProjectUpdateId",
+      "value": "1"
+    },
+    {
+      "key": "crudSubscriptionPaymentId",
+      "value": "1"
+    },
+    {
+      "key": "crudSubscriptionMoyasarId",
+      "value": "1"
+    },
+    {
+      "key": "crudSubscriptionId",
+      "value": "1"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('baseUrl')) {",
+          "    pm.collectionVariables.set('baseUrl', 'http://localhost:8080/api/v1');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Run setup flow",
+      "description": "Seeds the database. Run first on an empty schema.",
+      "item": [
+        {
+          "name": "1. Create Neighborhood",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Al Olaya\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.7136,\n  \"longitude\": 46.6753\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedNeighborhoodId', data.id);",
+                  "pm.collectionVariables.set('neighborhoodId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Create User (investor / owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Setup Investor\",\n  \"email\": \"{{setupEmail}}\",\n  \"password\": \"Password123!\",\n  \"phone\": \"{{setupPhone}}\",\n  \"authProvider\": \"LOCAL\",\n  \"role\": \"INVESTOR\",\n  \"neighborhoodId\": {{seedNeighborhoodId}},\n  \"emailVerified\": true,\n  \"whatsappOptIn\": true,\n  \"enabled\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('setupEmail', 'setup+' + Date.now() + '@naseej.test');",
+                  "pm.collectionVariables.set('setupPhone', '+9665' + String(Date.now()).slice(-8));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedUserId', data.id);",
+                  "pm.collectionVariables.set('userId', data.id);",
+                  "pm.collectionVariables.set('investorId', data.id);",
+                  "pm.collectionVariables.set('ideaOwnerId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Create Idea",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{seedUserId}},\n  \"neighborhoodId\": {{seedNeighborhoodId}},\n  \"title\": \"Setup coffee cart\",\n  \"description\": \"Seed idea.\",\n  \"category\": \"Food & Beverage\",\n  \"status\": \"SCREENING\",\n  \"membershipThreshold\": 150\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedIdeaId', data.id);",
+                  "pm.collectionVariables.set('ideaId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Create Founding Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{seedUserId}},\n  \"ideaId\": {{seedIdeaId}},\n  \"memberNumber\": 1,\n  \"ideaOwner\": true,\n  \"consentGiven\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedFoundingMemberId', data.id);",
+                  "pm.collectionVariables.set('foundingMemberId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Create Business Model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{seedIdeaId}},\n  \"valueProposition\": \"Affordable specialty coffee.\",\n  \"targetCustomers\": \"Local residents\",\n  \"revenueStreams\": \"Drink sales\",\n  \"costStructure\": \"Cart, beans, staff\",\n  \"channels\": \"Walk-up cart\",\n  \"estimatedCapitalMin\": 50000,\n  \"estimatedCapitalMax\": 120000,\n  \"risks\": \"Permits\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedBusinessModelId', data.id);",
+                  "pm.collectionVariables.set('businessModelId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Create Idea Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{seedIdeaId}},\n  \"score\": 78,\n  \"decision\": \"FIT\",\n  \"searchRadiusKm\": 3.0,\n  \"competitorsCount\": 2,\n  \"nearestCompetitorKm\": 1.2,\n  \"scarcityFound\": true,\n  \"feasibilitySummary\": \"Setup flow check\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedIdeaCheckId', data.id);",
+                  "pm.collectionVariables.set('ideaCheckId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Create Nearby Place",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{seedIdeaId}},\n  \"googlePlaceId\": \"ChIJ-setup-{{setupSuffix}}\",\n  \"name\": \"Sample Cafe\",\n  \"category\": \"cafe\",\n  \"distanceKm\": 0.8\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('setupSuffix', Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedNearbyPlaceId', data.id);",
+                  "pm.collectionVariables.set('nearbyPlaceId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. Create Feasibility Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{seedIdeaId}},\n  \"gapScore\": 72,\n  \"memberGrowthPercent\": 12.5,\n  \"peakDemandTime\": \"17:00-20:00\",\n  \"recommendation\": \"Proceed with pilot\",\n  \"risks\": \"Staffing\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedFeasibilityReportId', data.id);",
+                  "pm.collectionVariables.set('feasibilityReportId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9. Create Payment (for access)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{seedUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 1000.00,\n  \"vat\": 150.00,\n  \"totalAmount\": 1150.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{moyasarPaymentId}}\",\n  \"status\": \"INITIATED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('moyasarPaymentId', 'pay_setup_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedPaymentId', data.id);",
+                  "pm.collectionVariables.set('paymentId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Create Opportunity Access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"investorId\": {{seedUserId}},\n  \"ideaId\": {{seedIdeaId}},\n  \"paymentId\": {{seedPaymentId}},\n  \"accessType\": \"PAID\",\n  \"priorityUntil\": \"2026-12-31T23:59:59\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedAccessId', data.id);",
+                  "pm.collectionVariables.set('accessId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11. Create Partnership Agreement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessId\": {{seedAccessId}},\n  \"profitSharePercent\": 15.00,\n  \"durationYears\": 3,\n  \"status\": \"DRAFT\",\n  \"validUntil\": \"2029-01-01\",\n  \"shareStartsAt\": \"2027-01-01\",\n  \"shareEndsAt\": \"2029-12-31\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedPartnershipAgreementId', data.id);",
+                  "pm.collectionVariables.set('partnershipAgreementId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12. Create Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractNumber\": \"{{contractNumber}}\",\n  \"ideaId\": {{seedIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{seedAccessId}},\n  \"foundingMemberDiscount\": 5.00,\n  \"ideaOwnerDiscount\": 2.50,\n  \"openingDeadline\": \"2026-06-01\",\n  \"status\": \"DRAFT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('contractNumber', 'CNT-SETUP-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedContractId', data.id);",
+                  "pm.collectionVariables.set('contractId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13. Create Contract Signature",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": {{seedContractId}},\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"Setup Investor\",\n  \"signatureImageUri\": \"https://example.com/sig.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-01-15T10:00:00\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedContractSignatureId', data.id);",
+                  "pm.collectionVariables.set('contractSignatureId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14. Create Project Update",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": {{seedContractId}},\n  \"stage\": \"SITE_PREP\",\n  \"note\": \"Setup flow project update\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedProjectUpdateId', data.id);",
+                  "pm.collectionVariables.set('projectUpdateId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15. Create Payment (for subscription)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{seedUserId}},\n  \"purpose\": \"SUBSCRIPTION\",\n  \"amount\": 99.00,\n  \"vat\": 14.85,\n  \"totalAmount\": 113.85,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{subscriptionMoyasarId}}\",\n  \"status\": \"PAID\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('subscriptionMoyasarId', 'pay_sub_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedSubscriptionPaymentId', data.id);",
+                  "pm.collectionVariables.set('subscriptionPaymentId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16. Create Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{seedUserId}},\n  \"paymentId\": {{seedSubscriptionPaymentId}},\n  \"plan\": \"BASIC\",\n  \"status\": \"ACTIVE\",\n  \"startsAt\": \"2026-01-01\",\n  \"endsAt\": \"2027-01-01\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('seedSubscriptionId', data.id);",
+                  "pm.collectionVariables.set('subscriptionId', data.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Neighborhoods",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Al Malqa\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8000,\n  \"longitude\": 46.6200\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudNeighborhoodId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedNeighborhoodId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/get/{{seedNeighborhoodId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudNeighborhoodId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/get/{{crudNeighborhoodId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/update/{{crudNeighborhoodId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Al Malqa Updated\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8001,\n  \"longitude\": 46.6201\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/delete/{{crudNeighborhoodId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Users",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"CRUD Lane User\",\n  \"email\": \"{{crudUserEmail}}\",\n  \"password\": \"Password123!\",\n  \"phone\": \"{{crudPhone}}\",\n  \"authProvider\": \"LOCAL\",\n  \"role\": \"INVESTOR\",\n  \"neighborhoodId\": {{seedNeighborhoodId}},\n  \"emailVerified\": true,\n  \"whatsappOptIn\": true,\n  \"enabled\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('crudUserEmail', 'crud+' + Date.now() + '@naseej.test');",
+                  "pm.collectionVariables.set('crudPhone', '+9665' + String(Date.now() + 1).slice(-8));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudUserId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedUserId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/get/{{seedUserId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudUserId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/get/{{crudUserId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/update/{{crudUserId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"CRUD Lane User Updated\",\n  \"email\": \"{{crudUserEmail}}\",\n  \"password\": \"Password123!\",\n  \"phone\": \"{{crudPhone}}\",\n  \"authProvider\": \"LOCAL\",\n  \"role\": \"INVESTOR\",\n  \"neighborhoodId\": {{seedNeighborhoodId}},\n  \"emailVerified\": true,\n  \"whatsappOptIn\": true,\n  \"enabled\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Ideas",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{seedUserId}},\n  \"neighborhoodId\": {{seedNeighborhoodId}},\n  \"title\": \"CRUD lane idea\",\n  \"description\": \"Second idea for CRUD tests.\",\n  \"category\": \"Retail\",\n  \"status\": \"SCREENING\",\n  \"membershipThreshold\": 100\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudIdeaId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedIdeaId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/get/{{seedIdeaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudIdeaId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/get/{{crudIdeaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/update/{{crudIdeaId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": {{seedUserId}},\n  \"neighborhoodId\": {{seedNeighborhoodId}},\n  \"title\": \"CRUD lane idea updated\",\n  \"description\": \"Updated.\",\n  \"category\": \"Retail\",\n  \"status\": \"SCREENING\",\n  \"membershipThreshold\": 110\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Founding Members",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"ideaId\": {{crudIdeaId}},\n  \"memberNumber\": 2,\n  \"ideaOwner\": false,\n  \"consentGiven\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudFoundingMemberId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedFoundingMemberId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/get/{{seedFoundingMemberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudFoundingMemberId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/get/{{crudFoundingMemberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/update/{{crudFoundingMemberId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"ideaId\": {{crudIdeaId}},\n  \"memberNumber\": 2,\n  \"ideaOwner\": false,\n  \"consentGiven\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/delete/{{crudFoundingMemberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Business Models",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"valueProposition\": \"CRUD lane BM\",\n  \"targetCustomers\": \"Residents\",\n  \"revenueStreams\": \"Sales\",\n  \"costStructure\": \"Ops\",\n  \"channels\": \"Store\",\n  \"estimatedCapitalMin\": 10000,\n  \"estimatedCapitalMax\": 20000,\n  \"risks\": \"Low\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudBusinessModelId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedBusinessModelId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/get/{{seedBusinessModelId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudBusinessModelId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/get/{{crudBusinessModelId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/update/{{crudBusinessModelId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"valueProposition\": \"CRUD lane BM updated\",\n  \"targetCustomers\": \"Residents\",\n  \"revenueStreams\": \"Sales\",\n  \"costStructure\": \"Ops\",\n  \"channels\": \"Store\",\n  \"estimatedCapitalMin\": 10000,\n  \"estimatedCapitalMax\": 25000,\n  \"risks\": \"Low\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/delete/{{crudBusinessModelId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Idea Checks",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"score\": 65,\n  \"decision\": \"FIT\",\n  \"searchRadiusKm\": 2.0,\n  \"competitorsCount\": 1,\n  \"nearestCompetitorKm\": 2.0,\n  \"scarcityFound\": false,\n  \"feasibilitySummary\": \"CRUD lane check\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudIdeaCheckId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedIdeaCheckId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/get/{{seedIdeaCheckId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudIdeaCheckId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/get/{{crudIdeaCheckId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/update/{{crudIdeaCheckId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"score\": 70,\n  \"decision\": \"FIT\",\n  \"searchRadiusKm\": 2.0,\n  \"competitorsCount\": 1,\n  \"nearestCompetitorKm\": 2.0,\n  \"scarcityFound\": false,\n  \"feasibilitySummary\": \"CRUD lane check updated\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/delete/{{crudIdeaCheckId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Nearby Places",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"googlePlaceId\": \"ChIJ-crud-{{setupSuffix}}\",\n  \"name\": \"CRUD Cafe\",\n  \"category\": \"cafe\",\n  \"distanceKm\": 1.1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('setupSuffix', Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudNearbyPlaceId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedNearbyPlaceId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/get/{{seedNearbyPlaceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudNearbyPlaceId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/get/{{crudNearbyPlaceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/update/{{crudNearbyPlaceId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"googlePlaceId\": \"ChIJ-crud-{{setupSuffix}}\",\n  \"name\": \"CRUD Cafe Updated\",\n  \"category\": \"cafe\",\n  \"distanceKm\": 1.2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/delete/{{crudNearbyPlaceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 - Feasibility Reports",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"gapScore\": 60,\n  \"memberGrowthPercent\": 5.0,\n  \"peakDemandTime\": \"12:00-14:00\",\n  \"recommendation\": \"CRUD lane\",\n  \"risks\": \"None\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudFeasibilityReportId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedFeasibilityReportId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/get/{{seedFeasibilityReportId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudFeasibilityReportId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/get/{{crudFeasibilityReportId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/update/{{crudFeasibilityReportId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ideaId\": {{crudIdeaId}},\n  \"gapScore\": 62,\n  \"memberGrowthPercent\": 5.5,\n  \"peakDemandTime\": \"12:00-14:00\",\n  \"recommendation\": \"CRUD lane updated\",\n  \"risks\": \"None\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/delete/{{crudFeasibilityReportId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 - Payments",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 500.00,\n  \"vat\": 75.00,\n  \"totalAmount\": 575.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"INITIATED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('crudMoyasarPaymentId', 'pay_crud_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudPaymentId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedPaymentId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/get/{{seedPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudPaymentId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/get/{{crudPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/update/{{crudPaymentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 500.00,\n  \"vat\": 75.00,\n  \"totalAmount\": 575.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"PAID\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10 - Opportunity Access",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"investorId\": {{seedUserId}},\n  \"ideaId\": {{crudIdeaId}},\n  \"paymentId\": {{crudPaymentId}},\n  \"accessType\": \"PAID\",\n  \"priorityUntil\": \"2026-12-31T23:59:59\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudAccessId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedAccessId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/get/{{seedAccessId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudAccessId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/get/{{crudAccessId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/update/{{crudAccessId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"investorId\": {{seedUserId}},\n  \"ideaId\": {{crudIdeaId}},\n  \"paymentId\": {{crudPaymentId}},\n  \"accessType\": \"PAID\",\n  \"priorityUntil\": \"2027-06-30T23:59:59\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11 - Partnership Agreements",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessId\": {{crudAccessId}},\n  \"profitSharePercent\": 10.00,\n  \"durationYears\": 2,\n  \"status\": \"DRAFT\",\n  \"validUntil\": \"2028-01-01\",\n  \"shareStartsAt\": \"2026-06-01\",\n  \"shareEndsAt\": \"2028-06-01\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudPartnershipAgreementId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedPartnershipAgreementId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/get/{{seedPartnershipAgreementId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudPartnershipAgreementId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/get/{{crudPartnershipAgreementId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/update/{{crudPartnershipAgreementId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessId\": {{crudAccessId}},\n  \"profitSharePercent\": 12.00,\n  \"durationYears\": 2,\n  \"status\": \"DRAFT\",\n  \"validUntil\": \"2028-01-01\",\n  \"shareStartsAt\": \"2026-06-01\",\n  \"shareEndsAt\": \"2028-06-01\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/delete/{{crudPartnershipAgreementId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12 - Contracts",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractNumber\": \"{{crudContractNumber}}\",\n  \"ideaId\": {{crudIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{crudAccessId}},\n  \"foundingMemberDiscount\": 3.00,\n  \"ideaOwnerDiscount\": 1.50,\n  \"openingDeadline\": \"2026-09-01\",\n  \"status\": \"DRAFT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('crudContractNumber', 'CNT-CRUD-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudContractId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedContractId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/get/{{seedContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudContractId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/get/{{crudContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/update/{{crudContractId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractNumber\": \"{{crudContractNumber}}\",\n  \"ideaId\": {{crudIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{crudAccessId}},\n  \"foundingMemberDiscount\": 4.00,\n  \"ideaOwnerDiscount\": 1.50,\n  \"openingDeadline\": \"2026-09-01\",\n  \"status\": \"DRAFT\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13 - Contract Signatures",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{crudUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Signer\",\n  \"signatureImageUri\": \"https://example.com/crud.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-02-01T10:00:00\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudContractSignatureId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedContractSignatureId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/get/{{seedContractSignatureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudContractSignatureId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/get/{{crudContractSignatureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/update/{{crudContractSignatureId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{crudUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Signer Updated\",\n  \"signatureImageUri\": \"https://example.com/crud.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-02-01T10:00:00\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/delete/{{crudContractSignatureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "14 - Project Updates",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"stage\": \"SITE_PREP\",\n  \"note\": \"CRUD lane update\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudProjectUpdateId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedProjectUpdateId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/get/{{seedProjectUpdateId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudProjectUpdateId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/get/{{crudProjectUpdateId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/update/{{crudProjectUpdateId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"stage\": \"CONSTRUCTION\",\n  \"note\": \"CRUD lane update revised\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete (CRUD lane)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/delete/{{crudProjectUpdateId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "15 - Subscriptions",
+      "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
+      "item": [
+        {
+          "name": "Create Payment (CRUD lane, for subscription)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"SUBSCRIPTION\",\n  \"amount\": 199.00,\n  \"vat\": 29.85,\n  \"totalAmount\": 228.85,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{crudSubscriptionMoyasarId}}\",\n  \"status\": \"PAID\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('crudSubscriptionMoyasarId', 'pay_crud_sub_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudSubscriptionPaymentId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"paymentId\": {{crudSubscriptionPaymentId}},\n  \"plan\": \"PRO\",\n  \"status\": \"ACTIVE\",\n  \"startsAt\": \"2026-03-01\",\n  \"endsAt\": \"2027-03-01\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('crudSubscriptionId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (seed {{seedSubscriptionId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/get/{{seedSubscriptionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get By Id (CRUD {{crudSubscriptionId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/get/{{crudSubscriptionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update (CRUD lane)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/update/{{crudSubscriptionId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"paymentId\": {{crudSubscriptionPaymentId}},\n  \"plan\": \"PRO\",\n  \"status\": \"ACTIVE\",\n  \"startsAt\": \"2026-03-01\",\n  \"endsAt\": \"2027-06-01\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "99 - Teardown",
+      "description": "Deletes all rows in FK-safe order. Expect 204 or 404 if a CRUD-lane delete already ran in folders 01–15.",
+      "item": [
+        {
+          "name": "1. Delete {{crudSubscriptionId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/delete/{{crudSubscriptionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Delete {{seedSubscriptionId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subscriptions/delete/{{seedSubscriptionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Delete {{crudProjectUpdateId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/delete/{{crudProjectUpdateId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Delete {{seedProjectUpdateId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/project-updates/delete/{{seedProjectUpdateId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Delete {{crudContractSignatureId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/delete/{{crudContractSignatureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. Delete {{seedContractSignatureId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/delete/{{seedContractSignatureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Delete {{crudContractId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/delete/{{crudContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. Delete {{seedContractId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/delete/{{seedContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9. Delete {{crudPartnershipAgreementId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/delete/{{crudPartnershipAgreementId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10. Delete {{seedPartnershipAgreementId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/delete/{{seedPartnershipAgreementId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11. Delete {{crudAccessId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/delete/{{crudAccessId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12. Delete {{seedAccessId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/delete/{{seedAccessId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13. Delete {{crudSubscriptionPaymentId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/delete/{{crudSubscriptionPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14. Delete {{crudPaymentId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/delete/{{crudPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15. Delete {{seedSubscriptionPaymentId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/delete/{{seedSubscriptionPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16. Delete {{seedPaymentId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/delete/{{seedPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17. Delete {{crudNearbyPlaceId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/delete/{{crudNearbyPlaceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18. Delete {{seedNearbyPlaceId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/nearby-places/delete/{{seedNearbyPlaceId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19. Delete {{crudFeasibilityReportId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/delete/{{crudFeasibilityReportId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20. Delete {{seedFeasibilityReportId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/delete/{{seedFeasibilityReportId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21. Delete {{crudIdeaCheckId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/delete/{{crudIdeaCheckId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22. Delete {{seedIdeaCheckId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/idea-checks/delete/{{seedIdeaCheckId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23. Delete {{crudBusinessModelId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/delete/{{crudBusinessModelId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24. Delete {{seedBusinessModelId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/delete/{{seedBusinessModelId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25. Delete {{crudFoundingMemberId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/delete/{{crudFoundingMemberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "26. Delete {{seedFoundingMemberId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/founding-members/delete/{{seedFoundingMemberId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "27. Delete {{crudIdeaId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/delete/{{crudIdeaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "28. Delete {{seedIdeaId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/delete/{{seedIdeaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "29. Delete {{crudUserId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/delete/{{crudUserId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "30. Delete {{seedUserId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/delete/{{seedUserId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "31. Delete {{crudNeighborhoodId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/delete/{{crudNeighborhoodId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "32. Delete {{seedNeighborhoodId}}",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/delete/{{seedNeighborhoodId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
