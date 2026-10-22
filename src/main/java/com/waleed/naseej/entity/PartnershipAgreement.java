@@ -2,7 +2,6 @@ package com.waleed.naseej.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -50,4 +49,11 @@ public class PartnershipAgreement {
 
     @Column(name = "share_ends_at")
     private LocalDate shareEndsAt;
+
+    public void acceptTerms(String signedName, String signatureIp) {
+        this.signedName = signedName;
+        this.signatureIp = signatureIp;
+        this.signedAt = LocalDateTime.now();
+        this.status = "SIGNED";
+    }
 }

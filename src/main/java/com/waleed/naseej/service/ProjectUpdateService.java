@@ -2,17 +2,23 @@ package com.waleed.naseej.service;
 
 import com.waleed.naseej.dto.in.ProjectUpdateRequest;
 import com.waleed.naseej.dto.out.ProjectUpdateResponse;
+import com.waleed.naseej.entity.Contract;
 import com.waleed.naseej.entity.ProjectUpdate;
+import com.waleed.naseej.enums.ContractStatus;
+import com.waleed.naseej.exception.BadRequestException;
 import com.waleed.naseej.exception.ResourceNotFoundException;
 import com.waleed.naseej.repository.ContractRepository;
 import com.waleed.naseej.repository.ProjectUpdateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ProjectUpdateService {
+
+    private static final int BIWEEKLY_UPDATE_INTERVAL_DAYS = 14;
 
     private final ProjectUpdateRepository projectUpdateRepository;
     private final ContractRepository contractRepository;
@@ -22,18 +28,21 @@ public class ProjectUpdateService {
     }
 
     public ProjectUpdateResponse create(ProjectUpdateRequest request) {
-        ProjectUpdate entity = ProjectUpdate.builder()
-                .contract(contractRepository.findById(request.getContractId())
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                "Contract not found with id: " + request.getContractId())))
-                .stage(request.getStage())
-                .note(request.getNote())
-                .build();
-        return toResponse(projectUpdateRepository.save(entity));
+        Contract contract = contractRepository.findById(request.getContractId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Contract not found with id: " + request.getContractId()));
+        return createForActiveContract(contract, request.getStage(), request.getNote());
+    }
+
+    public ProjectUpdateResponse createForActiveContract(Integer contractId, String stage, String note) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contract not found with id: " + contractId));
+        return createForActiveContract(contract, stage, note);
     }
 
     public ProjectUpdateResponse update(Integer id, ProjectUpdateRequest request) {
-        ProjectUpdate entity = projectUpdateRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Project update not found with id: " + id));
+        ProjectUpdate entity = projectUpdateRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Project update not found with id: " + id));
         entity.setContract(contractRepository.findById(request.getContractId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Contract not found with id: " + request.getContractId())));
@@ -50,6 +59,28 @@ public class ProjectUpdateService {
     public ProjectUpdateResponse getById(Integer id) {
         return toResponse(projectUpdateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Project update not found with id: " + id)));
+    }
+
+    private ProjectUpdateResponse createForActiveContract(Contract contract, String stage, String note) {
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            throw new BadRequestException("Project updates are allowed only for ACTIVE contracts");
+        }
+        enforceBiweeklyInterval(contract.getId());
+        ProjectUpdate entity = contract.addUpdate(stage, note);
+        return toResponse(projectUpdateRepository.save(entity));
+    }
+
+    private void enforceBiweeklyInterval(Integer contractId) {
+        projectUpdateRepository.findTopByContractIdOrderByCreatedAtDesc(contractId)
+                .ifPresent(lastUpdate -> {
+                    LocalDateTime nextAllowedAt = lastUpdate.getCreatedAt()
+                            .plusDays(BIWEEKLY_UPDATE_INTERVAL_DAYS);
+                    if (LocalDateTime.now().isBefore(nextAllowedAt)) {
+                        throw new BadRequestException(
+                                "Project updates are allowed at most once every "
+                                        + BIWEEKLY_UPDATE_INTERVAL_DAYS + " days");
+                    }
+                });
     }
 
     private ProjectUpdateResponse toResponse(ProjectUpdate entity) {

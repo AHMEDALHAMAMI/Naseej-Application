@@ -2,6 +2,7 @@ package com.waleed.naseej.controller;
 
 import com.waleed.naseej.dto.in.ContractSignatureRequest;
 import com.waleed.naseej.dto.out.ContractSignatureResponse;
+import com.waleed.naseej.dto.out.ContractSigningCheckResponse;
 import com.waleed.naseej.service.ContractSignatureService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,5 +42,18 @@ public class ContractSignatureController {
     @GetMapping("/get/{id}")
     public ContractSignatureResponse getById(@PathVariable Integer id) {
         return contractSignatureService.getById(id);
+    }
+
+    @PostMapping("/sign/{contractId}")
+    public ResponseEntity<ContractSignatureResponse> sign(
+            @PathVariable Integer contractId,
+            @Valid @RequestBody ContractSignatureRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(contractSignatureService.signForContract(contractId, request));
+    }
+
+    @GetMapping("/check/contract/{contractId}")
+    public ContractSigningCheckResponse checkSigningStatus(@PathVariable Integer contractId) {
+        return contractSignatureService.checkSigningStatus(contractId);
     }
 }
