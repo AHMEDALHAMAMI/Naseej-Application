@@ -58,4 +58,19 @@ public class Payment {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    public void confirm() {
+        if (this.status == PaymentStatus.REFUNDED) {
+            throw new IllegalStateException("Refunded payments cannot be confirmed");
+        }
+        this.status = PaymentStatus.PAID;
+        this.paidAt = LocalDateTime.now();
+    }
+
+    public void refund() {
+        if (this.status != PaymentStatus.PAID) {
+            throw new IllegalStateException("Only paid payments can be refunded");
+        }
+        this.status = PaymentStatus.REFUNDED;
+    }
 }

@@ -64,4 +64,34 @@ public class Contract {
 
     @Column(name = "opened_at")
     private LocalDateTime openedAt;
+
+    public void sign(ContractSignature signature) {
+        signature.setContract(this);
+        if ("INVESTOR".equalsIgnoreCase(signature.getSignerRole())
+                && this.status == ContractStatus.DRAFT) {
+            this.status = ContractStatus.INVESTOR_SIGNED;
+        }
+    }
+
+    public void activate() {
+        if (this.status == ContractStatus.TERMINATED) {
+            throw new IllegalStateException("Terminated contracts cannot be activated");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        this.status = ContractStatus.ACTIVE;
+        this.activatedAt = now;
+        this.emailSentAt = now;
+    }
+
+    public void terminate() {
+        this.status = ContractStatus.TERMINATED;
+    }
+
+    public ProjectUpdate addUpdate(String stage, String note) {
+        return ProjectUpdate.builder()
+                .contract(this)
+                .stage(stage)
+                .note(note)
+                .build();
+    }
 }

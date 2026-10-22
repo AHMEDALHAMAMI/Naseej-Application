@@ -2,7 +2,7 @@
   "info": {
     "name": "Naseej API",
     "_postman_id": "naseej-api-collection",
-    "description": "Full collection runner on **empty DB**: 00 setup → 01–15 CRUD (dual lane) → 99 teardown.\nDrop/recreate tables, start Naseej, run entire collection in order.",
+    "description": "## Import & run (full test)\n1. Import **`Naseej.postman_collection.json`** and **`Naseej-Local.postman_environment.json`**.\n2. Select environment **Naseej Local** and set **`MOYASAR_WEBHOOK_SECRET`** (same value as `.env`).\n   - Or set collection variable **`moyasarWebhookSecret`** instead.\n3. Do **not** put seed/crud IDs in the environment (only webhook secret + optional baseUrl).\n4. Drop/recreate DB, restart app after `.env` changes, **Run collection**.\n\n## Webhook secret\nWhen `MOYASAR_WEBHOOK_SECRET` is set on the server, every webhook request must send header **`X-Webhook-Secret`** with the same value. When it is empty on the server, the header is not required.\n\n## Moyasar\n- **Test env:** Dashboard → Test Environment ON; Settings → copy `pk_test_*` and `sk_test_*` into `.env`.\n- **Initiate (real sandbox charge):** `POST {{baseUrl}}/payments/initiate-moyasar` with `{ \"userId\", \"purpose\": \"OPPORTUNITY_ACCESS\", \"useSandboxTestCard\": true }` → stores real Moyasar id; may return `paid` immediately in test.\n- **Sync (no webhook on localhost):** `POST {{baseUrl}}/payments/sync-moyasar/{localPaymentId}` after hosted checkout.\n- Webhook: `POST {{baseUrl}}/payments/webhook/moyasar`\n- Status: `GET {{baseUrl}}/payments/get-status/{moyasarPaymentId}`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -167,6 +167,18 @@
       "value": "1"
     },
     {
+      "key": "moyasarSandboxPaymentId",
+      "value": ""
+    },
+    {
+      "key": "moyasarSandboxMoyasarId",
+      "value": ""
+    },
+    {
+      "key": "moyasarWebhookSecret",
+      "value": ""
+    },
+    {
       "key": "subscriptionMoyasarId",
       "value": "1"
     },
@@ -263,6 +275,24 @@
         "exec": [
           "if (!pm.collectionVariables.get('baseUrl')) {",
           "    pm.collectionVariables.set('baseUrl', 'http://localhost:8080/api/v1');",
+          "}",
+          "function resolveMoyasarWebhookSecret() {",
+          "    const keys = ['moyasarWebhookSecret', 'MOYASAR_WEBHOOK_SECRET'];",
+          "    for (let i = 0; i < keys.length; i++) {",
+          "        const v = pm.variables.get(keys[i]);",
+          "        if (v && String(v).trim()) {",
+          "            return String(v).trim();",
+          "        }",
+          "    }",
+          "    return '';",
+          "}",
+          "const secret = resolveMoyasarWebhookSecret();",
+          "if (secret && !pm.variables.get('moyasarWebhookSecret')) {",
+          "    pm.collectionVariables.set('moyasarWebhookSecret', secret);",
+          "}",
+          "const url = pm.request.url ? pm.request.url.toString() : '';",
+          "if (url.includes('/payments/webhook/moyasar') && secret) {",
+          "    pm.request.headers.upsert({ key: 'X-Webhook-Secret', value: secret });",
           "}"
         ]
       }
@@ -271,8 +301,33 @@
   "item": [
     {
       "name": "00 - Run setup flow",
-      "description": "Seeds the database. Run first on an empty schema.",
+      "description": "Seeds the database. Run first on an empty schema. Before step 18, set collection variable `moyasarWebhookSecret` to match `.env` if webhooks are protected.",
       "item": [
+        {
+          "name": "0. Ping API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/neighborhoods/get-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API is reachable (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const secret = pm.collectionVariables.get('moyasarWebhookSecret');",
+                  "if (!secret) {",
+                  "    console.warn('Tip: set collection variable moyasarWebhookSecret to match MOYASAR_WEBHOOK_SECRET in .env before webhook steps.');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "1. Create Neighborhood",
           "request": {
@@ -571,7 +626,7 @@
             "url": "{{baseUrl}}/payments/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": {{seedUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 1000.00,\n  \"vat\": 150.00,\n  \"totalAmount\": 1150.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{moyasarPaymentId}}\",\n  \"status\": \"INITIATED\"\n}"
+              "raw": "{\n  \"userId\": {{seedUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 1500.00,\n  \"vat\": 225.00,\n  \"totalAmount\": 1725.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{moyasarPaymentId}}\",\n  \"status\": \"INITIATED\"\n}"
             }
           },
           "event": [
@@ -667,7 +722,7 @@
           ]
         },
         {
-          "name": "12. Create Contract",
+          "name": "12. Draft Contract",
           "request": {
             "method": "POST",
             "header": [
@@ -676,10 +731,10 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/contracts/create",
+            "url": "{{baseUrl}}/contracts/draft",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractNumber\": \"{{contractNumber}}\",\n  \"ideaId\": {{seedIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{seedAccessId}},\n  \"foundingMemberDiscount\": 5.00,\n  \"ideaOwnerDiscount\": 2.50,\n  \"openingDeadline\": \"2026-06-01\",\n  \"status\": \"DRAFT\"\n}"
+              "raw": "{\n  \"contractNumber\": \"{{contractNumber}}\",\n  \"ideaId\": {{seedIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{seedAccessId}},\n  \"foundingMemberDiscount\": 5.00,\n  \"ideaOwnerDiscount\": 2.50\n}"
             }
           },
           "event": [
@@ -701,6 +756,9 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
+                  "pm.test('Contract is DRAFT', function () {",
+                  "    pm.expect(data.status).to.eql('DRAFT');",
+                  "});",
                   "pm.collectionVariables.set('seedContractId', data.id);",
                   "pm.collectionVariables.set('contractId', data.id);"
                 ]
@@ -709,7 +767,7 @@
           ]
         },
         {
-          "name": "13. Create Contract Signature",
+          "name": "13. Accept Partnership Terms",
           "request": {
             "method": "POST",
             "header": [
@@ -718,10 +776,74 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/contract-signatures/create",
+            "url": "{{baseUrl}}/partnership-agreements/accept-terms/{{seedPartnershipAgreementId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractId\": {{seedContractId}},\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"Setup Investor\",\n  \"signatureImageUri\": \"https://example.com/sig.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-01-15T10:00:00\"\n}"
+              "raw": "{\n  \"termsAccepted\": true,\n  \"signedName\": \"Setup Investor\",\n  \"signatureIp\": \"127.0.0.1\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Partnership agreement is SIGNED', function () {",
+                  "    pm.expect(data.status).to.eql('SIGNED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14. Check Partnership Terms (access)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/check/access/{{seedAccessId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Partnership terms accepted for access', function () {",
+                  "    pm.expect(data.termsAccepted).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15. Sign Contract (Investor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/sign/{{seedContractId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"Setup Investor\",\n  \"signatureImageUri\": \"https://example.com/sig-investor.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true\n}"
             }
           },
           "event": [
@@ -742,7 +864,142 @@
           ]
         },
         {
-          "name": "14. Create Project Update",
+          "name": "16. Sign Contract (Idea Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/sign/{{seedContractId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"IDEA_OWNER\",\n  \"typedName\": \"Setup Idea Owner\",\n  \"signatureImageUri\": \"https://example.com/sig-owner.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17. Check Contract Signing",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/check/contract/{{seedContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Both parties signed with terms', function () {",
+                  "    pm.expect(data.bothPartiesSigned).to.eql(true);",
+                  "    pm.expect(data.bothPartiesTermsAccepted).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18. Moyasar Webhook (confirm access payment)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Webhook-Secret",
+                "value": "{{moyasarWebhookSecret}}"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/webhook/moyasar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{moyasarPaymentId}}\",\n  \"status\": \"paid\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code !== 200) {",
+                  "    console.log('Webhook response:', pm.response.code, pm.response.text());",
+                  "}",
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Payment confirmed', function () {",
+                  "    pm.expect(data.paymentStatus).to.eql('PAID');",
+                  "});",
+                  "pm.test('Contract activated', function () {",
+                  "    pm.expect(data.contractStatus).to.eql('ACTIVE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19. Verify Contract ACTIVE",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/get/{{seedContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Contract status is ACTIVE', function () {",
+                  "    pm.expect(data.status).to.eql('ACTIVE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20. Create Project Update",
           "request": {
             "method": "POST",
             "header": [
@@ -775,7 +1032,41 @@
           ]
         },
         {
-          "name": "15. Create Payment (for subscription)",
+          "name": "21. Get Moyasar Payment Status (API)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/get-status/{{moyasarPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200, 400 (no API key), or 404 (unknown Moyasar id)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 404]);",
+                  "});",
+                  "if (pm.response.code === 400 && pm.response.json().message && pm.response.json().message.includes('API key')) {",
+                  "    console.warn('Set MOYASAR_API_KEY in .env and restart the app for live Moyasar status.');",
+                  "}",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Moyasar id matches seed payment', function () {",
+                  "        pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('moyasarPaymentId'));",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22. Create Payment (for subscription)",
           "request": {
             "method": "POST",
             "header": [
@@ -817,7 +1108,7 @@
           ]
         },
         {
-          "name": "16. Create Subscription",
+          "name": "23. Create Subscription",
           "request": {
             "method": "POST",
             "header": [
@@ -2211,7 +2502,7 @@
             "url": "{{baseUrl}}/payments/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 500.00,\n  \"vat\": 75.00,\n  \"totalAmount\": 575.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"INITIATED\"\n}"
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 1500.00,\n  \"vat\": 225.00,\n  \"totalAmount\": 1725.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"INITIATED\"\n}"
             }
           },
           "event": [
@@ -2318,6 +2609,65 @@
           ]
         },
         {
+          "name": "Get Moyasar Status (seed {{moyasarPaymentId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/get-status/{{moyasarPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200, 400, or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test('Moyasar status payload has id and status', function () {",
+                  "        pm.expect(data.id).to.eql(pm.collectionVariables.get('moyasarPaymentId'));",
+                  "        pm.expect(data.status).to.be.a('string');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Moyasar Status (CRUD {{crudMoyasarPaymentId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/get-status/{{crudMoyasarPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200, 400, or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Update (CRUD lane)",
           "request": {
             "method": "PUT",
@@ -2330,7 +2680,7 @@
             "url": "{{baseUrl}}/payments/update/{{crudPaymentId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 500.00,\n  \"vat\": 75.00,\n  \"totalAmount\": 575.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"PAID\"\n}"
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"amount\": 1500.00,\n  \"vat\": 225.00,\n  \"totalAmount\": 1725.00,\n  \"currency\": \"SAR\",\n  \"method\": \"MADA\",\n  \"moyasarPaymentId\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"PAID\"\n}"
             }
           },
           "event": [
@@ -2341,6 +2691,146 @@
                 "exec": [
                   "pm.test('Status is 200', function () {",
                   "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Initiate Moyasar (sandbox — optional)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/initiate-moyasar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{crudUserId}},\n  \"purpose\": \"OPPORTUNITY_ACCESS\",\n  \"useSandboxTestCard\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 or 400 (keys/config)', function () {",
+                  "    pm.expect([201, 400]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('moyasarSandboxPaymentId', data.payment.id);",
+                  "    if (data.payment && data.payment.moyasarPaymentId) {",
+                  "        pm.collectionVariables.set('moyasarSandboxMoyasarId', data.payment.moyasarPaymentId);",
+                  "    }",
+                  "    pm.test('Moyasar id returned', function () {",
+                  "        pm.expect(data.payment.moyasarPaymentId).to.be.a('string').and.not.empty;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sync Moyasar (sandbox payment id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/sync-moyasar/{{moyasarSandboxPaymentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.collectionVariables.get('moyasarSandboxPaymentId');",
+                  "if (!id) {",
+                  "    pm.test('Skipped — run Initiate Moyasar first', function () { pm.expect(true).to.be.true; });",
+                  "    return;",
+                  "}",
+                  "pm.test('Status is 200 or 400 (not paid yet)', function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Moyasar status (sandbox id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/get-status/{{moyasarSandboxMoyasarId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.collectionVariables.get('moyasarSandboxMoyasarId');",
+                  "if (!id) {",
+                  "    pm.test('Skipped — no sandbox Moyasar id', function () { pm.expect(true).to.be.true; });",
+                  "    return;",
+                  "}",
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Id matches', function () {",
+                  "    pm.expect(pm.response.json().id).to.eql(id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Moyasar Webhook (seed {{moyasarPaymentId}})",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Webhook-Secret",
+                "value": "{{moyasarWebhookSecret}}"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/webhook/moyasar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{moyasarPaymentId}}\",\n  \"status\": \"paid\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Seed payment remains PAID', function () {",
+                  "    pm.expect(pm.response.json().paymentStatus).to.eql('PAID');",
                   "});"
                 ]
               }
@@ -2640,6 +3130,97 @@
           ]
         },
         {
+          "name": "Accept Terms (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/accept-terms/{{crudPartnershipAgreementId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"termsAccepted\": true,\n  \"signedName\": \"CRUD Investor\",\n  \"signatureIp\": \"127.0.0.1\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Partnership agreement is SIGNED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('SIGNED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check Terms by Access (seed {{seedAccessId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/check/access/{{seedAccessId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Seed access partnership terms accepted', function () {",
+                  "    pm.expect(pm.response.json().termsAccepted).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check Terms by Access (CRUD {{crudAccessId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/check/access/{{crudAccessId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('CRUD access partnership terms accepted', function () {",
+                  "    pm.expect(pm.response.json().termsAccepted).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Delete (CRUD lane)",
           "request": {
             "method": "DELETE",
@@ -2758,6 +3339,39 @@
                 "exec": [
                   "pm.test('Status is 200', function () {",
                   "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Seed contract is ACTIVE after setup lifecycle', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('ACTIVE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign via Contract API (seed — expect duplicate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contracts/sign/{{seedContractId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"Setup Investor\",\n  \"signatureImageUri\": \"https://example.com/sig.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Already signed returns 409', function () {",
+                  "    pm.response.to.have.status(409);",
                   "});"
                 ]
               }
@@ -2827,7 +3441,7 @@
       "description": "Runs after 00 setup. CRUD lane uses separate IDs so Create/Update/Delete do not collide with seed data.",
       "item": [
         {
-          "name": "Create (CRUD lane)",
+          "name": "Sign Investor (CRUD lane)",
           "request": {
             "method": "POST",
             "header": [
@@ -2836,10 +3450,10 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/contract-signatures/create",
+            "url": "{{baseUrl}}/contract-signatures/sign/{{crudContractId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{crudUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Signer\",\n  \"signatureImageUri\": \"https://example.com/crud.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-02-01T10:00:00\"\n}"
+              "raw": "{\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Investor Signer\",\n  \"signatureImageUri\": \"https://example.com/crud-investor.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true\n}"
             }
           },
           "event": [
@@ -2853,6 +3467,163 @@
                   "});",
                   "const data = pm.response.json();",
                   "pm.collectionVariables.set('crudContractSignatureId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign Idea Owner (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/sign/{{crudContractId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"IDEA_OWNER\",\n  \"typedName\": \"CRUD Owner Signer\",\n  \"signatureImageUri\": \"https://example.com/crud-owner.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check Signing (seed {{seedContractId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/check/contract/{{seedContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Seed contract fully signed', function () {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.bothPartiesTermsAccepted).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check Signing (CRUD {{crudContractId}})",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/check/contract/{{crudContractId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('CRUD contract fully signed', function () {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.bothPartiesTermsAccepted).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Moyasar Webhook (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Webhook-Secret",
+                "value": "{{moyasarWebhookSecret}}"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/webhook/moyasar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"paid\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('CRUD contract activated', function () {",
+                  "    pm.expect(pm.response.json().contractStatus).to.eql('ACTIVE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create via CRUD endpoint (legacy create)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Legacy Create\",\n  \"signatureImageUri\": \"https://example.com/crud-legacy.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Duplicate investor signature returns 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
                 ]
               }
             }
@@ -3531,8 +4302,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
-                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "pm.test('Status is 204, 400 (ACTIVE), or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 400, 404]);",
                   "});"
                 ]
               }
@@ -3557,8 +4328,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status is 204 No Content or 404 if already deleted', function () {",
-                  "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                  "pm.test('Status is 204, 400 (ACTIVE), or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([204, 400, 404]);",
                   "});"
                 ]
               }
