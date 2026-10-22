@@ -1,6 +1,7 @@
 package com.waleed.naseej.controller;
 
 import com.waleed.naseej.dto.in.BusinessModelRequest;
+import com.waleed.naseej.dto.in.ReviseByChatRequest;
 import com.waleed.naseej.dto.out.BusinessModelResponse;
 import com.waleed.naseej.service.BusinessModelService;
 import jakarta.validation.Valid;
@@ -30,6 +31,11 @@ public class BusinessModelController {
     @PutMapping("/update/{id}")
     public BusinessModelResponse update(@PathVariable Integer id, @Valid @RequestBody BusinessModelRequest request) {
         return businessModelService.update(id, request);
+    }
+
+    @PutMapping("/revise-by-chat/{id}")
+    public BusinessModelResponse reviseByChat(@PathVariable Integer id, @Valid @RequestBody ReviseByChatRequest request) {
+        return businessModelService.reviseByChat(id, request.getMessage());
     }
 
     @DeleteMapping("/delete/{id}")
