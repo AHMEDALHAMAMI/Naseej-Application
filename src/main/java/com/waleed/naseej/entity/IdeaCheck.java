@@ -43,4 +43,8 @@ public class IdeaCheck {
 
     @Column(columnDefinition = "text")
     private String feasibilitySummary;
+
+    // Google Places type the AI chose for the idea (e.g. "cafe"), reused when competitors are refreshed
+    @Column(length = 50)
+    private String placeType;
 }

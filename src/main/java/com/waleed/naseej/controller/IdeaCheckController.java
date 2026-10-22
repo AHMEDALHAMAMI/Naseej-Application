@@ -42,4 +42,19 @@ public class IdeaCheckController {
     public IdeaCheckResponse getById(@PathVariable Integer id) {
         return ideaCheckService.getById(id);
     }
+
+    @PostMapping("/run/{ideaId}")
+    public IdeaCheckResponse run(@PathVariable Integer ideaId) {
+        return ideaCheckService.run(ideaId);
+    }
+
+    @GetMapping("/get-by-idea/{ideaId}")
+    public IdeaCheckResponse getByIdea(@PathVariable Integer ideaId) {
+        return ideaCheckService.getByIdea(ideaId);
+    }
+
+    @GetMapping("/get-by-decision/{decision}")
+    public List<IdeaCheckResponse> getByDecision(@PathVariable String decision) {
+        return ideaCheckService.getByDecision(decision);
+    }
 }

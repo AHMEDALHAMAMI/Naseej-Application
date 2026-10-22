@@ -42,4 +42,20 @@ public class NearbyPlaceController {
     public NearbyPlaceResponse getById(@PathVariable Integer id) {
         return nearbyPlaceService.getById(id);
     }
+
+    @GetMapping("/get-by-idea/{ideaId}")
+    public List<NearbyPlaceResponse> getByIdea(@PathVariable Integer ideaId) {
+        return nearbyPlaceService.getByIdea(ideaId);
+    }
+
+    @GetMapping("/count-by-idea/{ideaId}")
+    public long countByIdea(@PathVariable Integer ideaId,
+                            @RequestParam(defaultValue = "2") Double radiusKm) {
+        return nearbyPlaceService.countByIdea(ideaId, radiusKm);
+    }
+
+    @PostMapping("/refresh/{ideaId}")
+    public List<NearbyPlaceResponse> refresh(@PathVariable Integer ideaId) {
+        return nearbyPlaceService.refresh(ideaId);
+    }
 }

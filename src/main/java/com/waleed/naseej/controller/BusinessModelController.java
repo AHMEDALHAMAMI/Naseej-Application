@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -47,5 +48,20 @@ public class BusinessModelController {
     @GetMapping("/get/{id}")
     public BusinessModelResponse getById(@PathVariable Integer id) {
         return businessModelService.getById(id);
+    }
+
+    @PostMapping("/generate/{ideaId}")
+    public ResponseEntity<BusinessModelResponse> generate(@PathVariable Integer ideaId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(businessModelService.generate(ideaId));
+    }
+
+    @GetMapping("/get-by-idea/{ideaId}")
+    public BusinessModelResponse getByIdea(@PathVariable Integer ideaId) {
+        return businessModelService.getByIdea(ideaId);
+    }
+
+    @GetMapping("/search-by-capital")
+    public List<BusinessModelResponse> searchByCapital(@RequestParam BigDecimal max) {
+        return businessModelService.searchByCapital(max);
     }
 }
