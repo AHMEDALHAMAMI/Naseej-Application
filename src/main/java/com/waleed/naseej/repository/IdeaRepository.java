@@ -11,6 +11,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface IdeaRepository extends JpaRepository<Idea, Integer> {
 
+    // Used before deleting a neighborhood
+    boolean existsByNeighborhoodId(Integer neighborhoodId);
+
     // Loads the neighborhood in the same query (it is LAZY on the entity)
     @EntityGraph(attributePaths = "neighborhood")
     Optional<Idea> findWithNeighborhoodById(Integer id);

@@ -1,5 +1,5 @@
 package com.waleed.naseej.entity;
-
+import com.waleed.naseej.enums.OtpPurpose;
 import com.waleed.naseej.enums.AuthProvider;
 import com.waleed.naseej.enums.Role;
 import jakarta.persistence.*;
@@ -25,7 +25,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+//    @Column(nullable = false)
     private String password;
 
     @Column(unique = true)
@@ -66,7 +66,8 @@ public class User {
 
     private String otpHash;
 
-    private String otpPurpose;
+    @Enumerated(EnumType.STRING)
+    private OtpPurpose otpPurpose;
 
     private LocalDateTime otpExpiresAt;
 
