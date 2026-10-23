@@ -1,6 +1,8 @@
 package com.waleed.naseej.controller;
 
+import com.waleed.naseej.dto.in.AcceptPartnershipTermsRequest;
 import com.waleed.naseej.dto.in.PartnershipAgreementRequest;
+import com.waleed.naseej.dto.out.PartnershipAgreementCheckResponse;
 import com.waleed.naseej.dto.out.PartnershipAgreementResponse;
 import com.waleed.naseej.service.PartnershipAgreementService;
 import jakarta.validation.Valid;
@@ -41,5 +43,17 @@ public class PartnershipAgreementController {
     @GetMapping("/get/{id}")
     public PartnershipAgreementResponse getById(@PathVariable Integer id) {
         return partnershipAgreementService.getById(id);
+    }
+
+    @PostMapping("/accept-terms/{id}")
+    public PartnershipAgreementResponse acceptTerms(
+            @PathVariable Integer id,
+            @Valid @RequestBody AcceptPartnershipTermsRequest request) {
+        return partnershipAgreementService.acceptTerms(id, request);
+    }
+
+    @GetMapping("/check/access/{accessId}")
+    public PartnershipAgreementCheckResponse checkTermsByAccess(@PathVariable Integer accessId) {
+        return partnershipAgreementService.checkTermsByAccessId(accessId);
     }
 }
