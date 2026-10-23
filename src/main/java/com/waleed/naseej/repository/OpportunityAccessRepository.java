@@ -1,12 +1,18 @@
 package com.waleed.naseej.repository;
 
 import com.waleed.naseej.entity.OpportunityAccess;
-import java.util.Optional;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OpportunityAccessRepository extends JpaRepository<OpportunityAccess, Integer> {
 
-    Optional<OpportunityAccess> findByPaymentId(Integer paymentId);
+    boolean existsByInvestorIdAndIdeaId(Integer investorId, Integer ideaId);
+
+    boolean existsByPaymentId(Integer paymentId);
+
+    List<OpportunityAccess> findByInvestorId(Integer investorId);
+
+    long countByIdeaId(Integer ideaId);
 }

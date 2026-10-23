@@ -22,4 +22,5 @@ public class IdeaCheckResponse {
     private Double nearestCompetitorKm;
     private Boolean scarcityFound;
     private String feasibilitySummary;
+    private String placeType;
 }
