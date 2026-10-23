@@ -10,6 +10,8 @@ import com.waleed.naseej.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import com.waleed.naseej.exception.DuplicateResourceException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 @RequiredArgsConstructor
@@ -17,16 +19,20 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final NeighborhoodRepository neighborhoodRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<UserResponse> getAll() {
         return userRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     public UserResponse create(UserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail().trim().toLowerCase())) {
+            throw new DuplicateResourceException("Email is already registered");
+        }
         User user = User.builder()
                 .fullName(request.getFullName())
-                .email(request.getEmail())
-                .password(request.getPassword())
+                .email(request.getEmail().trim().toLowerCase())
+                .password(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : null)
                 .phone(request.getPhone())
                 .authProvider(request.getAuthProvider())
                 .googleId(request.getGoogleId())
@@ -46,8 +52,11 @@ public class UserService {
     public UserResponse update(Integer id, UserRequest request) {
         User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
+        user.setEmail(request.getEmail().trim().toLowerCase());
+        // Keep the old password when no new one is sent
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
         user.setPhone(request.getPhone());
         user.setAuthProvider(request.getAuthProvider());
         user.setGoogleId(request.getGoogleId());
@@ -73,9 +82,9 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id)));
     }
 
-    
 
-    private UserResponse toResponse(User user) {
+
+    public  UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())

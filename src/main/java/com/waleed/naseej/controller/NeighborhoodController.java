@@ -42,4 +42,14 @@ public class NeighborhoodController {
     public NeighborhoodResponse getById(@PathVariable Integer id) {
         return neighborhoodService.getById(id);
     }
+
+    @GetMapping("/get-by-city/{city}")
+    public List<NeighborhoodResponse> getByCity(@PathVariable String city) {
+        return neighborhoodService.getByCity(city);
+    }
+
+    @GetMapping("/search/{keyword}")
+    public List<NeighborhoodResponse> search(@PathVariable String keyword) {
+        return neighborhoodService.search(keyword);
+    }
 }

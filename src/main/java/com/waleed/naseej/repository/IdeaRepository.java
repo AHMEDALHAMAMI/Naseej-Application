@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface IdeaRepository extends JpaRepository<Idea, Integer> {
+
+    boolean existsByNeighborhoodId(Integer neighborhoodId);
 }
