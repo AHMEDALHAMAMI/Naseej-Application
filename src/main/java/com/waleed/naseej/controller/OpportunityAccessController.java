@@ -42,4 +42,24 @@ public class OpportunityAccessController {
     public OpportunityAccessResponse getById(@PathVariable Integer id) {
         return opportunityAccessService.getById(id);
     }
+
+    @PostMapping("/unlock")
+    public ResponseEntity<OpportunityAccessResponse> unlock(@Valid @RequestBody OpportunityAccessRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(opportunityAccessService.unlock(request));
+    }
+
+    @GetMapping("/check")
+    public boolean check(@RequestParam Integer investorId, @RequestParam Integer ideaId) {
+        return opportunityAccessService.check(investorId, ideaId);
+    }
+
+    @GetMapping("/get-by-investor/{investorId}")
+    public List<OpportunityAccessResponse> getByInvestor(@PathVariable Integer investorId) {
+        return opportunityAccessService.getByInvestor(investorId);
+    }
+
+    @GetMapping("/count-by-idea/{ideaId}")
+    public long countByIdea(@PathVariable Integer ideaId) {
+        return opportunityAccessService.countByIdea(ideaId);
+    }
 }

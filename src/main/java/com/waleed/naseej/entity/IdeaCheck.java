@@ -44,14 +44,7 @@ public class IdeaCheck {
     @Column(columnDefinition = "text")
     private String feasibilitySummary;
 
-    public String evaluate() {
-        if (!Boolean.TRUE.equals(scarcityFound)) {
-            decision = "SATURATED";
-        } else if (similarIdea != null) {
-            decision = "SIMILAR";
-        } else {
-            decision = "FIT";
-        }
-        return decision;
-    }
+    // Google Places type the AI chose for the idea (e.g. "cafe"), reused when competitors are refreshed
+    @Column(length = 50)
+    private String placeType;
 }

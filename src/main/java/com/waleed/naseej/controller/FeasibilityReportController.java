@@ -1,6 +1,7 @@
 package com.waleed.naseej.controller;
 
 import com.waleed.naseej.dto.in.FeasibilityReportRequest;
+import com.waleed.naseej.dto.out.FeasibilityPreviewResponse;
 import com.waleed.naseej.dto.out.FeasibilityReportResponse;
 import com.waleed.naseej.service.FeasibilityReportService;
 import jakarta.validation.Valid;
@@ -41,5 +42,20 @@ public class FeasibilityReportController {
     @GetMapping("/get/{id}")
     public FeasibilityReportResponse getById(@PathVariable Integer id) {
         return feasibilityReportService.getById(id);
+    }
+
+    @PostMapping("/generate/{ideaId}")
+    public FeasibilityReportResponse generate(@PathVariable Integer ideaId) {
+        return feasibilityReportService.generate(ideaId);
+    }
+
+    @GetMapping("/preview/{ideaId}")
+    public FeasibilityPreviewResponse preview(@PathVariable Integer ideaId) {
+        return feasibilityReportService.preview(ideaId);
+    }
+
+    @GetMapping("/get-full/{ideaId}")
+    public FeasibilityReportResponse getFull(@PathVariable Integer ideaId, @RequestParam Integer investorId) {
+        return feasibilityReportService.getFull(ideaId, investorId);
     }
 }

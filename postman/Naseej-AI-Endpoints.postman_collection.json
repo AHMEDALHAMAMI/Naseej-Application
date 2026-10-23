@@ -1,0 +1,248 @@
+{
+  "info": {
+    "name": "Naseej AI Endpoints",
+    "_postman_id": "naseej-ai-endpoints",
+    "description": "The extra endpoints for IdeaCheck, NearbyPlace, BusinessModel, FeasibilityReport and OpportunityAccess.\nRun the folders in order. Needs CLAUDE_API_KEY and GOOGLE_PLACES_API_KEY in .env, and an idea whose neighborhood has latitude/longitude (the setup flow in the main collection creates one).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "ideaId",
+      "value": "1"
+    },
+    {
+      "key": "investorId",
+      "value": "1"
+    },
+    {
+      "key": "paymentId",
+      "value": "1"
+    },
+    {
+      "key": "businessModelId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Idea Check",
+      "item": [
+        {
+          "name": "Run check (AI + Google Places)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/idea-checks/run/{{ideaId}}",
+            "description": "Classifies the idea, searches competitors, compares with published ideas, and saves the check and the competitors."
+          }
+        },
+        {
+          "name": "Get by idea",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/idea-checks/get-by-idea/{{ideaId}}"
+          }
+        },
+        {
+          "name": "Get by decision",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/idea-checks/get-by-decision/FIT",
+            "description": "FIT, SIMILAR or SATURATED"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Nearby Places",
+      "item": [
+        {
+          "name": "Get by idea",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/nearby-places/get-by-idea/{{ideaId}}"
+          }
+        },
+        {
+          "name": "Count by idea (2 km)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/nearby-places/count-by-idea/{{ideaId}}?radiusKm=2"
+          }
+        },
+        {
+          "name": "Refresh (Google Places)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/nearby-places/refresh/{{ideaId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Business Model",
+      "item": [
+        {
+          "name": "Generate draft (AI)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/business-models/generate/{{ideaId}}",
+            "description": "Needs an idea check that isn't SATURATED, and no business model for the idea yet."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('businessModelId', pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get by idea",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/business-models/get-by-idea/{{ideaId}}"
+          }
+        },
+        {
+          "name": "Revise by chat (AI)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/revise-by-chat/{{businessModelId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"أضف خدمة توصيل للبيوت\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Search by capital",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/business-models/search-by-capital?max=150000",
+            "description": "Skips ideas still in SCREENING."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Feasibility Report",
+      "item": [
+        {
+          "name": "Generate (AI)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/feasibility-reports/generate/{{ideaId}}",
+            "description": "Needs an idea check."
+          }
+        },
+        {
+          "name": "Preview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/feasibility-reports/preview/{{ideaId}}"
+          }
+        },
+        {
+          "name": "Get full",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/feasibility-reports/get-full/{{ideaId}}?investorId={{investorId}}",
+            "description": "403 until the investor unlocks the idea."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Opportunity Access",
+      "item": [
+        {
+          "name": "Unlock (paid)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/unlock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"investorId\": {{investorId}},\n  \"ideaId\": {{ideaId}},\n  \"accessType\": \"PAID\",\n  \"paymentId\": {{paymentId}}\n}"
+            },
+            "description": "Investor role, idea status COMPLETED, and a PAID payment that belongs to the investor."
+          }
+        },
+        {
+          "name": "Unlock (partnership)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/opportunity-access/unlock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"investorId\": {{investorId}},\n  \"ideaId\": {{ideaId}},\n  \"accessType\": \"PARTNERSHIP\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/opportunity-access/check?investorId={{investorId}}&ideaId={{ideaId}}"
+          }
+        },
+        {
+          "name": "Get by investor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/opportunity-access/get-by-investor/{{investorId}}"
+          }
+        },
+        {
+          "name": "Count by idea",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/opportunity-access/count-by-idea/{{ideaId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

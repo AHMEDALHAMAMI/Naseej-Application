@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface FoundingMemberRepository extends JpaRepository<FoundingMember, Integer> {
+
+    long countByIdeaId(Integer ideaId);
 }

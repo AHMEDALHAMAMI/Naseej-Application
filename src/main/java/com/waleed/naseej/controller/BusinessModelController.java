@@ -1,6 +1,7 @@
 package com.waleed.naseej.controller;
 
 import com.waleed.naseej.dto.in.BusinessModelRequest;
+import com.waleed.naseej.dto.in.ReviseByChatRequest;
 import com.waleed.naseej.dto.out.BusinessModelResponse;
 import com.waleed.naseej.service.BusinessModelService;
 import jakarta.validation.Valid;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -32,6 +34,11 @@ public class BusinessModelController {
         return businessModelService.update(id, request);
     }
 
+    @PutMapping("/revise-by-chat/{id}")
+    public BusinessModelResponse reviseByChat(@PathVariable Integer id, @Valid @RequestBody ReviseByChatRequest request) {
+        return businessModelService.reviseByChat(id, request.getMessage());
+    }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         businessModelService.delete(id);
@@ -41,5 +48,20 @@ public class BusinessModelController {
     @GetMapping("/get/{id}")
     public BusinessModelResponse getById(@PathVariable Integer id) {
         return businessModelService.getById(id);
+    }
+
+    @PostMapping("/generate/{ideaId}")
+    public ResponseEntity<BusinessModelResponse> generate(@PathVariable Integer ideaId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(businessModelService.generate(ideaId));
+    }
+
+    @GetMapping("/get-by-idea/{ideaId}")
+    public BusinessModelResponse getByIdea(@PathVariable Integer ideaId) {
+        return businessModelService.getByIdea(ideaId);
+    }
+
+    @GetMapping("/search-by-capital")
+    public List<BusinessModelResponse> searchByCapital(@RequestParam BigDecimal max) {
+        return businessModelService.searchByCapital(max);
     }
 }
