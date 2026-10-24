@@ -245,19 +245,19 @@ The raw CRUD and AI endpoints (`/ideas/**`, `/payments/**`, `/contracts/**`, …
     <td align="center" width="33%">
       <a href="https://github.com/AHMEDALHAMAMI"><img src="https://github.com/AHMEDALHAMAMI.png" width="100" alt="Member"><br><b>Ahmad Alhamami</b></a><br>
       <sub><img src="https://cdn.simpleicons.org/anthropic" width="16"> AI feature</sub><br><br>
-      Responsibilities<br><br>
+      User, Idea, FoundingMember, Subscription, Neighborhood<br><br>
       <b>0</b> extra endpoints
     </td>
     <td align="center" width="33%">
       <a href="https://github.com/WaleedAlaql"><img src="https://github.com/WaleedAlaql.png" width="100" alt="Member"><br><b>Waleed Alaql</b></a><br>
       <sub><img src="https://cdn.simpleicons.org/anthropic" width="16"> AI feature</sub><br><br>
-      Responsibilities<br><br>
+      Contract, Payment, PartnershipAgreement, ContractSignature, ProjectUpdate<br><br>
       <b>0</b> extra endpoints
     </td>
     <td align="center" width="33%">
       <a href="https://github.com/AmiraAldajani"><img src="https://github.com/AmiraAldajani.png" width="100" alt="Member"><br><b>Amira Aldajani</b></a><br>
       <sub><img src="https://cdn.simpleicons.org/anthropic" width="16"> AI feature</sub><br><br>
-      Responsibilities<br><br>
+      IdeaCheck, BusinessModel, OpportunityAccess, FeasibilityReport, NearbyPlace<br><br>
       <b>0</b> extra endpoints
     </td>
   </tr>
