@@ -14,7 +14,7 @@ import com.waleed.naseej.exception.ForbiddenException;
 import com.waleed.naseej.exception.ResourceNotFoundException;
 import com.waleed.naseej.repository.BusinessModelRepository;
 import com.waleed.naseej.repository.FeasibilityReportRepository;
-import com.waleed.naseej.repository.FoundingMemberRepository;
+import com.waleed.naseej.repository.VoteRepository;
 import com.waleed.naseej.repository.IdeaCheckRepository;
 import com.waleed.naseej.repository.IdeaRepository;
 import com.waleed.naseej.repository.NearbyPlaceRepository;
@@ -35,7 +35,7 @@ public class FeasibilityReportService {
     private final IdeaCheckRepository ideaCheckRepository;
     private final NearbyPlaceRepository nearbyPlaceRepository;
     private final BusinessModelRepository businessModelRepository;
-    private final FoundingMemberRepository foundingMemberRepository;
+    private final VoteRepository voteRepository;
     private final OpportunityAccessRepository opportunityAccessRepository;
     private final ClaudeService claudeService;
 
@@ -121,7 +121,8 @@ public class FeasibilityReportService {
         IdeaCheck check = ideaCheckRepository.findByIdeaId(ideaId)
                 .orElseThrow(() -> new BadRequestException("Run the idea check before generating a feasibility report"));
 
-        long members = foundingMemberRepository.countByIdeaId(ideaId);
+        // Voters count toward the target (the creator is the only founding member)
+        long members = voteRepository.countByIdeaId(ideaId);
         int threshold = idea.getMembershipThreshold() != null && idea.getMembershipThreshold() > 0
                 ? idea.getMembershipThreshold() : DEFAULT_MEMBERSHIP_THRESHOLD;
         // Share of the membership threshold reached so far, e.g. 120 of 150 members = 80.0

@@ -1,6 +1,7 @@
 package com.waleed.naseej.repository;
 
 import com.waleed.naseej.entity.ProjectUpdate;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
@@ -9,4 +10,6 @@ import java.util.Optional;
 public interface ProjectUpdateRepository extends JpaRepository<ProjectUpdate, Integer> {
 
     Optional<ProjectUpdate> findTopByContractIdOrderByCreatedAtDesc(Integer contractId);
+
+    List<ProjectUpdate> findByContractIdOrderByCreatedAtAsc(Integer contractId);
 }

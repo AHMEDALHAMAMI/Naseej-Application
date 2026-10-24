@@ -4,6 +4,7 @@ import com.waleed.naseej.enums.IdeaStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -47,4 +48,29 @@ public class Idea {
     private LocalDateTime publishedAt;
 
     private LocalDateTime confirmedAt;
+
+    // Exact spot of the idea; when empty the neighborhood center is used
+    private Double latitude;
+
+    private Double longitude;
+
+    // Why the AI check rejected the idea (status REJECTED)
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
+    // ---------- Unlock price quoted by the AI once, so checkout always matches what the investor saw ----------
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal unlockPrice;
+
+    private Integer executionScore;
+
+    private Integer successScore;
+
+    private Integer opportunityScore;
+
+    @Column(columnDefinition = "TEXT")
+    private String priceReasoning;
+
+    private LocalDateTime priceQuotedAt;
 }

@@ -14,6 +14,7 @@ import com.waleed.naseej.dto.out.PaymentResponse;
 import com.waleed.naseej.enums.PaymentMethod;
 import com.waleed.naseej.entity.Contract;
 import com.waleed.naseej.entity.Payment;
+import com.waleed.naseej.entity.User;
 import com.waleed.naseej.enums.ContractStatus;
 import com.waleed.naseej.enums.PaymentPurpose;
 import com.waleed.naseej.enums.PaymentStatus;
@@ -48,8 +49,7 @@ import java.util.UUID;
 public class PaymentService {
 
     private static final BigDecimal ACCESS_FEE_AMOUNT = new BigDecimal("1500.00");
-    private static final BigDecimal ACCESS_FEE_VAT = new BigDecimal("225.00");
-    private static final BigDecimal ACCESS_FEE_TOTAL = new BigDecimal("1725.00");
+    private static final BigDecimal VAT_RATE = new BigDecimal("0.15");
     private static final String MOYASAR_PAYMENTS_URL = "https://api.moyasar.com/v1/payments/";
     private static final String MOYASAR_CREATE_PAYMENT_URL = "https://api.moyasar.com/v1/payments";
 
@@ -129,22 +129,45 @@ public class PaymentService {
             throw new BadRequestException(
                     "Only OPPORTUNITY_ACCESS payments can be initiated via Moyasar for now");
         }
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+        return createAccessPayment(user, ACCESS_FEE_AMOUNT, "Naseej opportunity access fee",
+                request.getCallbackUrl(), request.getUseSandboxTestCard());
+    }
 
+    /**
+     * Unlock payment for one idea, priced by the AI quote (amount before VAT).
+     * Used by the investor checkout; the access is granted after the payment is confirmed as PAID.
+     */
+    @Transactional
+    public InitiateMoyasarPaymentResponse initiateUnlockPayment(User investor, BigDecimal amount, String description,
+                                                                String callbackUrl, Boolean useSandboxTestCard) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new BadRequestException("Unlock amount must be greater than zero");
+        }
+        return createAccessPayment(investor, amount.setScale(2, RoundingMode.HALF_UP), description,
+                callbackUrl, useSandboxTestCard);
+    }
+
+    private InitiateMoyasarPaymentResponse createAccessPayment(User user, BigDecimal amount, String description,
+                                                               String requestCallbackUrl, Boolean useSandboxTestCard) {
         String createApiKey = resolveCreatePaymentApiKey();
-        String callbackUrl = StringUtils.hasText(request.getCallbackUrl())
-                ? request.getCallbackUrl().trim()
+        String callbackUrl = StringUtils.hasText(requestCallbackUrl)
+                ? requestCallbackUrl.trim()
                 : moyasarCallbackUrl;
         if (!StringUtils.hasText(callbackUrl)) {
             throw new BadRequestException(
                     "callbackUrl is required (set MOYASAR_CALLBACK_URL or pass callbackUrl in the request)");
         }
 
-        boolean useTestCard = request.getUseSandboxTestCard() == null
-                || Boolean.TRUE.equals(request.getUseSandboxTestCard());
+        boolean useTestCard = useSandboxTestCard == null || Boolean.TRUE.equals(useSandboxTestCard);
         if (useTestCard && !isTestMoyasarEnvironment()) {
             throw new BadRequestException(
                     "Sandbox test card is only allowed when MOYASAR_API_KEY or MOYASAR_PUBLISHABLE_KEY is a test key");
         }
+
+        BigDecimal vat = vatOf(amount);
+        BigDecimal total = amount.add(vat);
 
         String givenId = UUID.randomUUID().toString();
         if (paymentRepository.existsByMoyasarPaymentId(givenId)) {
@@ -153,9 +176,9 @@ public class PaymentService {
 
         MoyasarCreatePaymentApiRequest apiRequest = MoyasarCreatePaymentApiRequest.builder()
                 .givenId(givenId)
-                .amount(toHalalas(ACCESS_FEE_TOTAL))
+                .amount(toHalalas(total))
                 .currency("SAR")
-                .description("Naseej opportunity access fee")
+                .description(description)
                 .callbackUrl(callbackUrl)
                 .source(buildMoyasarSource(useTestCard))
                 .build();
@@ -167,13 +190,11 @@ public class PaymentService {
                 : null;
 
         Payment payment = Payment.builder()
-                .user(userRepository.findById(request.getUserId())
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                "User not found with id: " + request.getUserId())))
+                .user(user)
                 .purpose(PaymentPurpose.OPPORTUNITY_ACCESS)
-                .amount(ACCESS_FEE_AMOUNT)
-                .vat(ACCESS_FEE_VAT)
-                .totalAmount(ACCESS_FEE_TOTAL)
+                .amount(amount)
+                .vat(vat)
+                .totalAmount(total)
                 .currency("SAR")
                 .method(PaymentMethod.CREDIT_CARD)
                 .moyasarPaymentId(moyasarPaymentId)
@@ -202,6 +223,11 @@ public class PaymentService {
                 .transactionUrl(transactionUrl)
                 .message(message)
                 .build();
+    }
+
+    // Saudi VAT 15%, rounded to halalas
+    private static BigDecimal vatOf(BigDecimal amount) {
+        return amount.multiply(VAT_RATE).setScale(2, RoundingMode.HALF_UP);
     }
 
     @Transactional
@@ -453,12 +479,15 @@ public class PaymentService {
     }
 
     private void validatePaymentPurposeAndAmounts(Payment payment) {
+        // The unlock price is quoted per idea by the AI, so only the VAT math is checked here
         if (PaymentPurpose.OPPORTUNITY_ACCESS.equals(payment.getPurpose())) {
-            if (payment.getAmount().compareTo(ACCESS_FEE_AMOUNT) != 0
-                    || payment.getVat().compareTo(ACCESS_FEE_VAT) != 0
-                    || payment.getTotalAmount().compareTo(ACCESS_FEE_TOTAL) != 0) {
+            if (payment.getAmount() == null || payment.getAmount().signum() <= 0
+                    || payment.getVat() == null
+                    || payment.getTotalAmount() == null
+                    || payment.getVat().compareTo(vatOf(payment.getAmount())) != 0
+                    || payment.getTotalAmount().compareTo(payment.getAmount().add(payment.getVat())) != 0) {
                 throw new BadRequestException(
-                        "Opportunity access fee must be 1500 SAR + 225 VAT = 1725 SAR total");
+                        "Opportunity access payment must be amount + 15% VAT = total");
             }
         }
         if (PaymentPurpose.SUCCESS_PARTNERSHIP.equals(payment.getPurpose())) {

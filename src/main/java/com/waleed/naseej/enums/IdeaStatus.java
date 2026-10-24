@@ -5,5 +5,7 @@ public enum IdeaStatus {
     PUBLISHED,
     COMPLETED,
     ADOPTED,
-    OPENED
+    OPENED,
+    // The AI check found a similar idea nearby or no shortage, so the idea isn't published
+    REJECTED
 }

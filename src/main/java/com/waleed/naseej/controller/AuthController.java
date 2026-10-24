@@ -6,6 +6,7 @@ import com.waleed.naseej.dto.in.RegisterRequest;
 import com.waleed.naseej.dto.in.ResetPasswordRequest;
 import com.waleed.naseej.dto.in.SelectRoleRequest;
 import com.waleed.naseej.dto.in.SendOtpRequest;
+import com.waleed.naseej.dto.in.UpdateLocationRequest;
 import com.waleed.naseej.dto.in.VerifyOtpRequest;
 import com.waleed.naseej.dto.out.AuthResponse;
 import com.waleed.naseej.dto.out.MessageResponse;
@@ -72,6 +73,13 @@ public class AuthController {
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal User user) {
         return authService.me(user);
+    }
+
+    // Current location from the browser: used for the voting radius and the resident map
+    @PutMapping("/location")
+    public UserResponse updateLocation(@AuthenticationPrincipal User user,
+                                       @Valid @RequestBody UpdateLocationRequest request) {
+        return authService.updateLocation(user, request);
     }
 
     @PostMapping("/logout")

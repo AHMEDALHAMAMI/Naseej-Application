@@ -11,14 +11,11 @@ import com.waleed.naseej.repository.ContractRepository;
 import com.waleed.naseej.repository.ProjectUpdateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ProjectUpdateService {
-
-    private static final int BIWEEKLY_UPDATE_INTERVAL_DAYS = 14;
 
     private final ProjectUpdateRepository projectUpdateRepository;
     private final ContractRepository contractRepository;
@@ -65,22 +62,8 @@ public class ProjectUpdateService {
         if (contract.getStatus() != ContractStatus.ACTIVE) {
             throw new BadRequestException("Project updates are allowed only for ACTIVE contracts");
         }
-        enforceBiweeklyInterval(contract.getId());
         ProjectUpdate entity = contract.addUpdate(stage, note);
         return toResponse(projectUpdateRepository.save(entity));
-    }
-
-    private void enforceBiweeklyInterval(Integer contractId) {
-        projectUpdateRepository.findTopByContractIdOrderByCreatedAtDesc(contractId)
-                .ifPresent(lastUpdate -> {
-                    LocalDateTime nextAllowedAt = lastUpdate.getCreatedAt()
-                            .plusDays(BIWEEKLY_UPDATE_INTERVAL_DAYS);
-                    if (LocalDateTime.now().isBefore(nextAllowedAt)) {
-                        throw new BadRequestException(
-                                "Project updates are allowed at most once every "
-                                        + BIWEEKLY_UPDATE_INTERVAL_DAYS + " days");
-                    }
-                });
     }
 
     private ProjectUpdateResponse toResponse(ProjectUpdate entity) {

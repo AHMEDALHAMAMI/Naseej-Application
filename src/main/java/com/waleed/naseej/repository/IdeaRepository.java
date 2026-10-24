@@ -2,6 +2,7 @@ package com.waleed.naseej.repository;
 
 import com.waleed.naseej.entity.Idea;
 import com.waleed.naseej.enums.IdeaStatus;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -21,4 +22,16 @@ public interface IdeaRepository extends JpaRepository<Idea, Integer> {
     // Every other idea that isn't in screening anymore, used to look for similar ideas
     @EntityGraph(attributePaths = "neighborhood")
     List<Idea> findByIdNotAndStatusNot(Integer id, IdeaStatus status);
+
+    // Map, explore and stats: ideas in some statuses with their neighborhood
+    @EntityGraph(attributePaths = "neighborhood")
+    List<Idea> findByStatusIn(Collection<IdeaStatus> statuses);
+
+    @EntityGraph(attributePaths = "neighborhood")
+    List<Idea> findByNeighborhoodIdAndStatusIn(Integer neighborhoodId, Collection<IdeaStatus> statuses);
+
+    @EntityGraph(attributePaths = "neighborhood")
+    List<Idea> findByOwnerIdOrderByIdDesc(Integer ownerId);
+
+    long countByStatus(IdeaStatus status);
 }

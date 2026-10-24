@@ -3,6 +3,7 @@ package com.waleed.naseej.repository;
 import com.waleed.naseej.entity.OpportunityAccess;
 import java.util.List;
 import java.util.Optional;
+import com.waleed.naseej.enums.AccessType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,4 +20,10 @@ public interface OpportunityAccessRepository extends JpaRepository<OpportunityAc
     List<OpportunityAccess> findByInvestorId(Integer investorId);
 
     long countByIdeaId(Integer ideaId);
+
+    List<OpportunityAccess> findByIdeaId(Integer ideaId);
+
+    boolean existsByIdeaId(Integer ideaId);
+
+    long countByAccessType(AccessType accessType);
 }

@@ -1,6 +1,7 @@
 package com.waleed.naseej.entity;
 import com.waleed.naseej.enums.OtpPurpose;
 import com.waleed.naseej.enums.AuthProvider;
+import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
@@ -74,4 +75,30 @@ public class User {
     @Column(nullable = false)
     @Builder.Default
     private Integer otpAttempts = 0;
+
+    // ---------- Location (from the browser at sign-up, used for the voting radius) ----------
+
+    private Double latitude;
+
+    private Double longitude;
+
+    // ---------- Investor profile (only for role INVESTOR) ----------
+
+    @Column(length = 10)
+    private String crNumber;
+
+    // UP_TO_300K, FROM_300K_TO_700K or ABOVE_700K
+    @Column(length = 20)
+    private String investmentBudget;
+
+    // Comma-separated fields, e.g. "FOOD,HEALTH"
+    @Column(length = 200)
+    private String investmentFields;
+
+    // Null for non-investors. An investor waits as PENDING until an admin checks the CR
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private InvestorStatus investorStatus;
+
+    private LocalDateTime investorReviewedAt;
 }
