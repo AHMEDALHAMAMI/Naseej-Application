@@ -23,4 +23,6 @@ public interface ContractRepository extends JpaRepository<Contract, Integer> {
     List<Contract> findByInvestorId(Integer investorId);
 
     List<Contract> findByStatus(ContractStatus status);
+
+    List<Contract> findByIdeaOwnerId(Integer ideaOwnerId);
 }

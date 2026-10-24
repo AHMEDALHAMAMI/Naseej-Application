@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2F5444">
+<script>try{var l=localStorage.getItem('naseej.lang');if(l!=='ar'&&l!=='en'){l=(navigator.language||'').toLowerCase().indexOf('ar')===0?'ar':'en';}document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';}catch(e){}</script>
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="assets/css/app.css">
+<meta name="description" content="Naseej: residents propose the shops and services their neighborhood is missing, vote for free, and investors open them with real demand behind them.">
+<title data-i18n-title="land.docTitle">Naseej — What is your neighborhood missing?</title>
+</head>
+<body>
+
+<section class="hero">
+  <img class="hero-weave" src="assets/img/mark-white.png" alt="">
+  <div class="container">
+    <nav class="hero-nav" data-i18n-attr="aria-label:common.mainNav">
+      <a class="brand" href="index.html" style="color:#fff" data-i18n-attr="aria-label:brand.home"><img src="assets/img/mark-white.png" alt=""><span data-i18n="brand.name">NASEEJ</span></a>
+      <div class="links">
+        <span id="lang-slot"></span>
+        <span class="links" id="nav-links">
+          <a class="btn btn-outline-light btn-sm" href="login.html" data-i18n="land.login">Log in</a>
+          <a class="btn btn-light btn-sm" href="register.html" data-i18n="land.join">Join</a>
+        </span>
+      </div>
+    </nav>
+    <div class="hero-inner">
+      <div>
+        <span class="eyebrow" data-i18n="land.eyebrow">Neighborhood demand · Saudi Arabia</span>
+        <h1 style="margin-top:18px" data-i18n-html="land.title">What is your neighborhood <em>missing?</em></h1>
+        <p class="lead" data-i18n="land.lead">Residents propose the shops and services they need and vote on each other's ideas for free. When an idea gathers enough votes, investors can open it with real demand behind it.</p>
+        <div class="row" style="margin-top:32px">
+          <a class="btn btn-light" href="register.html" data-i18n="land.joinHood">Join your neighborhood</a>
+          <a class="btn btn-outline-light" href="#around" data-i18n="land.seeMissing">See what's missing</a>
+        </div>
+        <div class="stat-strip" id="stats" aria-live="polite">
+          <div><strong data-stat="openIdeas">—</strong><span data-i18n="land.statOpen">ideas open for votes</span></div>
+          <div><strong data-stat="totalVotes">—</strong><span data-i18n="land.statVotes">votes from residents</span></div>
+          <div><strong data-stat="adoptedIdeas">—</strong><span data-i18n="land.statAdopted">adopted by investors</span></div>
+          <div><strong data-stat="neighborhoods">—</strong><span data-i18n="land.statHoods">neighborhoods</span></div>
+        </div>
+      </div>
+      <figure class="hero-viz" id="hero-viz" role="img" data-i18n-attr="aria-label:hero.alt"></figure>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="around" aria-labelledby="around-h">
+  <div class="container around">
+    <div class="stack" style="gap:20px">
+      <span class="eyebrow" id="around-h" data-i18n="land.aroundEyebrow">What's missing around you</span>
+      <h2 class="big" style="font-size:clamp(30px,4vw,44px)" id="around-title" data-i18n="land.aroundTitle">Ideas near Riyadh's center</h2>
+      <div id="loc-box" class="row">
+        <button type="button" class="btn btn-secondary btn-sm" id="use-loc" data-i18n-attr="data-loading:loc.locating">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg> <span data-i18n="loc.useMine">Use my location</span>
+        </button>
+        <span class="small muted" id="loc-note" data-i18n="land.locNote">We only use it to show ideas near you.</span>
+      </div>
+      <ul class="place-list" id="places" data-i18n-attr="aria-label:land.placesLabel"></ul>
+      <p class="small muted"><span data-i18n="land.privateCounts">Vote counts stay private to keep voting fair.</span> <a href="register.html" data-i18n="land.join">Join</a> <span data-i18n="land.toVote">to vote for ideas within 2 km of you.</span></p>
+    </div>
+    <div class="map reveal" id="landing-map" style="height:560px" data-i18n-attr="aria-label:land.mapLabel"></div>
+  </div>
+</section>
+
+<section class="section section-sand" id="how" aria-labelledby="how-h">
+  <div class="container">
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <h2 class="big reveal" id="how-h" data-i18n-html="land.howTitle">From a neighbor's idea to an <em>open door</em></h2>
+      <span class="eyebrow" data-i18n="land.howEyebrow">How it works</span>
+    </div>
+    <ol class="steps">
+      <li class="reveal"><span class="n">01</span><h3 data-i18n="land.s1">Propose</h3><p data-i18n="land.s1t"></p></li>
+      <li class="reveal"><span class="n">02</span><h3 data-i18n="land.s2">AI checks it</h3><p data-i18n="land.s2t"></p></li>
+      <li class="reveal"><span class="n">03</span><h3 data-i18n="land.s3">Neighbors vote</h3><p data-i18n="land.s3t"></p></li>
+      <li class="reveal"><span class="n">04</span><h3 data-i18n="land.s4">An investor opens it</h3><p data-i18n="land.s4t"></p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="inv-h">
+  <div class="container grid grid-2" style="align-items:center;gap:48px">
+    <div class="stack reveal" style="gap:18px">
+      <span class="eyebrow" data-i18n="land.invEyebrow">For investors</span>
+      <h2 class="big" id="inv-h" style="font-size:clamp(30px,4vw,46px)" data-i18n-html="land.invTitle">Open where demand is <em>already proven</em></h2>
+      <p class="muted" style="font-size:17px;max-width:520px" data-i18n="land.invText"></p>
+      <div class="row"><a class="btn" href="register.html?role=INVESTOR" data-i18n="land.joinInvestor">Join as an investor</a></div>
+    </div>
+    <div class="card reveal stack" style="gap:14px">
+      <div class="row" style="justify-content:space-between"><strong data-i18n="land.howUnlock">How unlocking works</strong><span class="badge" data-i18n="land.noSubs">No subscriptions</span></div>
+      <div class="surface-sand stack" style="gap:6px"><strong data-i18n="unlock.upfront">Upfront payment</strong><span class="small muted" data-i18n="land.upfrontText"></span></div>
+      <div class="surface-sand stack" style="gap:6px"><strong data-i18n="unlock.partnership">Success partnership</strong><span class="small muted" data-i18n="land.partnerText"></span></div>
+      <p class="small muted" data-i18n="land.verifiedNote"></p>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container row" style="justify-content:space-between">
+    <span>© <span id="year"></span> <span data-i18n="land.footer">Naseej · Built at Tuwaiq Academy</span></span>
+    <span class="row" style="gap:16px"><a href="login.html" data-i18n="land.login">Log in</a><a href="register.html" data-i18n="land.join">Join</a><span id="lang-foot"></span></span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script type="module" src="assets/js/pages/landing.js"></script>
+</body>
+</html>

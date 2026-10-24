@@ -6,6 +6,7 @@ import com.waleed.naseej.dto.in.RegisterRequest;
 import com.waleed.naseej.dto.in.ResetPasswordRequest;
 import com.waleed.naseej.dto.in.SelectRoleRequest;
 import com.waleed.naseej.dto.in.SendOtpRequest;
+import com.waleed.naseej.dto.in.UpdateLocationRequest;
 import com.waleed.naseej.dto.in.VerifyOtpRequest;
 import com.waleed.naseej.dto.out.AuthResponse;
 import com.waleed.naseej.dto.out.MessageResponse;
@@ -13,6 +14,7 @@ import com.waleed.naseej.dto.out.UserResponse;
 import com.waleed.naseej.entity.Neighborhood;
 import com.waleed.naseej.entity.User;
 import com.waleed.naseej.enums.AuthProvider;
+import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.OtpPurpose;
 import com.waleed.naseej.enums.Role;
 import com.waleed.naseej.exception.BadRequestException;
@@ -53,6 +55,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final OtpService otpService;
     private final UserService userService;
+    private final LocationService locationService;
 
     @Value("${jwt.refresh-token-days}")
     private long refreshTokenDays;
@@ -61,7 +64,11 @@ public class AuthService {
 
     public MessageResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
-        validateSignUpRole(request.getRole(), request.getNeighborhoodId());
+        Integer neighborhoodId = resolveNeighborhoodId(
+                request.getRole(), request.getNeighborhoodId(), request.getLatitude(), request.getLongitude());
+        validateSignUpRole(request.getRole(), neighborhoodId);
+        validateInvestorProfile(request.getRole(), request.getCrNumber(),
+                request.getInvestmentBudget(), request.getInvestmentFields());
 
         if (userRepository.existsByEmail(email)) {
             throw new DuplicateResourceException("Email is already registered");
@@ -77,11 +84,15 @@ public class AuthService {
                 .phone(request.getPhone())
                 .authProvider(AuthProvider.LOCAL)
                 .role(request.getRole())
-                .neighborhood(findNeighborhood(request.getNeighborhoodId()))
+                .neighborhood(findNeighborhood(neighborhoodId))
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .whatsappOptIn(Boolean.TRUE.equals(request.getWhatsappOptIn()))
                 .emailVerified(false)
                 .enabled(false)
                 .build();
+        applyInvestorProfile(user, request.getRole(), request.getCrNumber(),
+                request.getInvestmentBudget(), request.getInvestmentFields());
         userRepository.save(user);
 
         otpService.sendOtp(user, OtpPurpose.REGISTER);
@@ -243,7 +254,11 @@ public class AuthService {
         Integer neighborhoodId = request.getNeighborhoodId() != null
                 ? request.getNeighborhoodId()
                 : (user.getNeighborhood() != null ? user.getNeighborhood().getId() : null);
+        neighborhoodId = resolveNeighborhoodId(
+                request.getRole(), neighborhoodId, request.getLatitude(), request.getLongitude());
         validateSignUpRole(request.getRole(), neighborhoodId);
+        validateInvestorProfile(request.getRole(), request.getCrNumber(),
+                request.getInvestmentBudget(), request.getInvestmentFields());
 
         if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
             if (userRepository.existsByPhone(request.getPhone())) {
@@ -251,12 +266,32 @@ public class AuthService {
             }
             user.setPhone(request.getPhone());
         }
-        if (request.getNeighborhoodId() != null) {
-            user.setNeighborhood(findNeighborhood(request.getNeighborhoodId()));
+        if (neighborhoodId != null) {
+            user.setNeighborhood(findNeighborhood(neighborhoodId));
+        }
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            user.setLatitude(request.getLatitude());
+            user.setLongitude(request.getLongitude());
         }
         user.setRole(request.getRole());
+        applyInvestorProfile(user, request.getRole(), request.getCrNumber(),
+                request.getInvestmentBudget(), request.getInvestmentFields());
         userRepository.save(user);
         return issueTokens(user);
+    }
+
+    // ---------- Location ----------
+
+    /** Saves the user's current location; a resident without a neighborhood gets the nearest one. */
+    public UserResponse updateLocation(User currentUser, UpdateLocationRequest request) {
+        User user = getUser(currentUser.getId());
+        user.setLatitude(request.getLatitude());
+        user.setLongitude(request.getLongitude());
+        if (user.getNeighborhood() == null && user.getRole() == Role.RESIDENT) {
+            locationService.findNearestNeighborhood(request.getLatitude(), request.getLongitude())
+                    .ifPresent(user::setNeighborhood);
+        }
+        return userService.toResponse(userRepository.save(user));
     }
 
     // ---------- Helpers ----------
@@ -291,6 +326,47 @@ public class AuthService {
         }
         if (role == Role.RESIDENT && neighborhoodId == null) {
             throw new BadRequestException("Neighborhood is required for residents");
+        }
+    }
+
+    // A resident who didn't pick a neighborhood gets the one nearest to their location
+    private Integer resolveNeighborhoodId(Role role, Integer neighborhoodId, Double latitude, Double longitude) {
+        if (neighborhoodId != null || role != Role.RESIDENT || latitude == null || longitude == null) {
+            return neighborhoodId;
+        }
+        return locationService.findNearestNeighborhood(latitude, longitude)
+                .map(Neighborhood::getId)
+                .orElseThrow(() -> new BadRequestException(
+                        "Naseej isn't available in your area yet. Choose your neighborhood from the list"));
+    }
+
+    private void validateInvestorProfile(Role role, String crNumber, String budget, String fields) {
+        if (role != Role.INVESTOR) {
+            return;
+        }
+        if (crNumber == null || crNumber.isBlank()) {
+            throw new BadRequestException("Commercial registration number is required for investors");
+        }
+        if (budget == null || budget.isBlank()) {
+            throw new BadRequestException("Investment budget is required for investors");
+        }
+        if (fields == null || fields.isBlank()) {
+            throw new BadRequestException("Choose at least one investment field");
+        }
+    }
+
+    // Investors start as PENDING until an admin checks the CR; other roles have no investor data
+    private void applyInvestorProfile(User user, Role role, String crNumber, String budget, String fields) {
+        if (role == Role.INVESTOR) {
+            user.setCrNumber(crNumber.trim());
+            user.setInvestmentBudget(budget);
+            user.setInvestmentFields(fields);
+            user.setInvestorStatus(InvestorStatus.PENDING);
+        } else {
+            user.setCrNumber(null);
+            user.setInvestmentBudget(null);
+            user.setInvestmentFields(null);
+            user.setInvestorStatus(null);
         }
     }
 
