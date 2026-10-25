@@ -8,7 +8,6 @@ import com.waleed.naseej.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -70,10 +69,26 @@ public class SecurityConfig {
                         // Moyasar calls these directly (no JWT); the webhook checks its own X-Webhook-Secret
                         .requestMatchers(paths(HttpMethod.POST, "/payments/webhook/moyasar")).permitAll()
                         .requestMatchers(paths(HttpMethod.GET, "/payments/moyasar-callback")).permitAll()
+                        // Website pages and their files (served by Spring from resources/static)
+                        .requestMatchers(paths(HttpMethod.GET,
+                                "/", "/*.html", "/assets/**", "/favicon.ico")).permitAll()
+                        // Landing page numbers/map and the sign-up neighborhood lookup
+                        .requestMatchers(paths(HttpMethod.GET, "/public/**")).permitAll()
                         // Logged in but maybe still PENDING (Google user before choosing a membership)
                         .requestMatchers(paths("/auth/**")).authenticated()
-                        // Admin CRUD
-                        .requestMatchers(paths("/users/**", "/neighborhoods/**")).hasRole("ADMIN")
+                        // ----- Website flow -----
+                        .requestMatchers(paths("/discover/vote/**")).hasRole("RESIDENT")
+                        .requestMatchers(paths("/discover/**")).hasAnyRole("RESIDENT", "INVESTOR", "ADMIN")
+                        .requestMatchers(paths("/explore/**", "/unlock/**")).hasRole("INVESTOR")
+                        .requestMatchers(paths("/projects/**")).hasAnyRole("RESIDENT", "INVESTOR")
+                        .requestMatchers(paths("/admin/**")).hasRole("ADMIN")
+                        // ----- Raw CRUD and AI endpoints take ids in the body, so only admins call them -----
+                        .requestMatchers(paths(
+                                "/users/**", "/neighborhoods/**", "/ideas/**", "/idea-checks/**",
+                                "/business-models/**", "/feasibility-reports/**", "/nearby-places/**",
+                                "/founding-members/**", "/opportunity-access/**", "/contracts/**",
+                                "/contract-signatures/**", "/partnership-agreements/**", "/payments/**",
+                                "/project-updates/**", "/subscriptions/**")).hasRole("ADMIN")
                         // Everything else: a real membership is required, PENDING is blocked
                         .anyRequest().hasAnyRole("RESIDENT", "INVESTOR", "LANDLORD", "ADMIN"))
                 .exceptionHandling(ex -> ex
@@ -81,8 +96,9 @@ public class SecurityConfig {
                         .accessDeniedHandler(restAuthenticationEntryPoint))
                 .oauth2Login(oauth -> oauth
                         .successHandler(oAuth2LoginSuccessHandler)
+                        // Back to the website's login page with a message
                         .failureHandler((request, response, exception) ->
-                                response.sendError(HttpStatus.UNAUTHORIZED.value(), "Google sign-in failed")))
+                                response.sendRedirect(request.getContextPath() + "/login.html?error=google")))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService, userRepository),
                         UsernamePasswordAuthenticationFilter.class);
 

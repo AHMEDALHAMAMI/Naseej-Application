@@ -180,14 +180,24 @@ public class IdeaCheckService {
                 : Math.min(MAX_RADIUS_KM, Math.max(MIN_RADIUS_KM, activity.radiusKm()));
 
         // 2. Competitors of that kind around the neighborhood
-        List<FoundPlace> competitors = googlePlacesService.searchNearby(
-                neighborhood.getLatitude(), neighborhood.getLongitude(), radiusKm, placeType);
+        // Around the idea's own spot when it has one, otherwise around the neighborhood center
+        double[] center = LocationService.pointOf(idea);
+        // If the map service doesn't answer, the check continues without competitors instead of failing the idea
+        List<FoundPlace> competitors;
+        boolean competitorsUnavailable = false;
+        try {
+            competitors = googlePlacesService.searchNearby(center[0], center[1], radiusKm, placeType);
+        } catch (ExternalServiceException ex) {
+            competitors = List.of();
+            competitorsUnavailable = true;
+        }
+        List<FoundPlace> found = competitors;
 
         // 3. Shortage, similar idea, score and summary
         Map<Integer, Idea> candidates = similarIdeaCandidates(idea);
         ScreeningResult result = claudeService.generateJson(
                 SCREENING_PROMPT,
-                screeningMessage(idea, placeType, radiusKm, competitors, candidates.values()),
+                screeningMessage(idea, placeType, radiusKm, found, competitorsUnavailable, candidates.values()),
                 SCREENING_SCHEMA,
                 ScreeningResult.class);
         checkResult(result, candidates);
@@ -197,7 +207,7 @@ public class IdeaCheckService {
         String decision = evaluate(result.scarcityFound(), similarIdea).name();
 
         IdeaCheck saved = transactionTemplate.execute(status -> {
-            nearbyPlaceService.replaceForIdea(idea, competitors);
+            nearbyPlaceService.replaceForIdea(idea, found);
 
             IdeaCheck check = ideaCheckRepository.findByIdeaId(ideaId).orElseGet(IdeaCheck::new);
             check.setIdea(idea);
@@ -205,14 +215,16 @@ public class IdeaCheckService {
             check.setScore(result.score());
             check.setDecision(decision);
             check.setSearchRadiusKm(radiusKm);
-            check.setCompetitorsCount(competitors.size());
-            check.setNearestCompetitorKm(competitors.isEmpty() ? null : competitors.get(0).distanceKm());
+            check.setCompetitorsCount(found.size());
+            check.setNearestCompetitorKm(found.isEmpty() ? null : found.get(0).distanceKm());
             check.setScarcityFound(result.scarcityFound());
             check.setFeasibilitySummary(result.feasibilitySummary().trim());
             check.setPlaceType(placeType);
             return ideaCheckRepository.save(check);
         });
-        return toResponse(saved);
+        IdeaCheckResponse response = toResponse(saved);
+        response.setCompetitorsUnavailable(competitorsUnavailable);
+        return response;
     }
 
     public IdeaCheckResponse getByIdea(Integer ideaId) {
@@ -245,6 +257,8 @@ public class IdeaCheckService {
         Neighborhood home = idea.getNeighborhood();
         Map<Integer, Idea> candidates = new LinkedHashMap<>();
         ideaRepository.findByIdNotAndStatusNot(idea.getId(), IdeaStatus.SCREENING).stream()
+                // A rejected idea is not open, so it can't block a new one
+                .filter((Idea other) -> other.getStatus() != IdeaStatus.REJECTED)
                 .filter((Idea other) -> distanceBetween(home, other.getNeighborhood()) <= SIMILAR_IDEAS_RADIUS_KM)
                 .sorted(Comparator.comparingDouble((Idea other) -> distanceBetween(home, other.getNeighborhood())))
                 .limit(MAX_SIMILAR_CANDIDATES)
@@ -290,17 +304,23 @@ public class IdeaCheckService {
     }
 
     private String screeningMessage(Idea idea, String placeType, double radiusKm,
-                                    List<FoundPlace> competitors, Collection<Idea> candidates) {
+                                    List<FoundPlace> competitors, boolean competitorsUnavailable,
+                                    Collection<Idea> candidates) {
         StringBuilder text = new StringBuilder(describeIdea(idea));
         text.append("\nBusiness type: ").append(placeType).append('\n');
 
-        text.append("\nCompetitors within ").append(radiusKm).append(" km: ").append(competitors.size());
-        if (competitors.size() >= GooglePlacesService.MAX_RESULTS) {
-            text.append(" (the search stops at ").append(GooglePlacesService.MAX_RESULTS).append(", so there may be more)");
+        if (competitorsUnavailable) {
+            text.append("\nCompetitors: unknown, the map service didn't answer. Don't assume there are none or many; ")
+                    .append("only report no shortage if the idea itself clearly has no demand.\n");
+        } else {
+            text.append("\nCompetitors within ").append(radiusKm).append(" km: ").append(competitors.size());
+            if (competitors.size() >= GooglePlacesService.MAX_RESULTS) {
+                text.append(" (the search stops at ").append(GooglePlacesService.MAX_RESULTS).append(", so there may be more)");
+            }
+            text.append('\n');
+            competitors.stream().limit(10).forEach(place ->
+                    text.append("- ").append(place.name()).append(", ").append(place.distanceKm()).append(" km\n"));
         }
-        text.append('\n');
-        competitors.stream().limit(10).forEach(place ->
-                text.append("- ").append(place.name()).append(", ").append(place.distanceKm()).append(" km\n"));
 
         text.append("\nPublished ideas nearby:\n");
         if (candidates.isEmpty()) {

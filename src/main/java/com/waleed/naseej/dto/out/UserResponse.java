@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import com.waleed.naseej.enums.AuthProvider;
+import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.Role;
 import java.time.LocalDateTime;
 
@@ -26,4 +27,10 @@ public class UserResponse {
     private Boolean emailVerified;
     private Boolean whatsappOptIn;
     private Boolean enabled;
+    private Double latitude;
+    private Double longitude;
+    private String crNumber;
+    private String investmentBudget;
+    private String investmentFields;
+    private InvestorStatus investorStatus;
 }

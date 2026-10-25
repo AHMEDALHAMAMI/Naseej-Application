@@ -5,26 +5,31 @@ import com.waleed.naseej.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * After Google sign-in: find or create the user, then return our own JWT tokens as JSON.
- * When "roleSelectionRequired" is true the client shows the membership page and calls PUT /auth/select-role.
+ * After Google sign-in: find or create the user, then send the browser back to the website with our own
+ * JWT tokens in the URL fragment (#...). The fragment never reaches any server or log; the page reads it,
+ * stores the tokens and removes it from the address bar.
+ * When roleSelectionRequired is true the website shows the membership page, which calls PUT /auth/select-role.
  */
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final AuthService authService;
-    private final ObjectMapper objectMapper;
+
+    // Page under the context path that receives the tokens
+    @Value("${app.frontend.oauth-callback-path:/oauth-callback.html}")
+    private String callbackPath;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -42,9 +47,14 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             request.getSession(false).invalidate();
         }
 
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write(objectMapper.writeValueAsString(tokens));
+        String fragment = "accessToken=" + encode(tokens.getAccessToken())
+                + "&refreshToken=" + encode(tokens.getRefreshToken())
+                + "&expiresIn=" + tokens.getExpiresIn()
+                + "&roleSelectionRequired=" + Boolean.TRUE.equals(tokens.getRoleSelectionRequired());
+        response.sendRedirect(request.getContextPath() + callbackPath + "#" + fragment);
+    }
+
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

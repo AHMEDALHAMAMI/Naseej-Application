@@ -5,16 +5,21 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -93,6 +98,39 @@ public class GlobalExceptionHandler {
                         "Validation failed",
                         request.getRequestURI(),
                         fieldErrors));
+    }
+
+    // Unknown URL or missing page file: 404 instead of the generic 500
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiErrorResponse.of(HttpStatus.NOT_FOUND.value(), "Not found", request.getRequestURI()));
+    }
+
+    // Broken or missing JSON body
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnreadable(HttpMessageNotReadableException ex,
+                                                             HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiErrorResponse.of(HttpStatus.BAD_REQUEST.value(),
+                        "The request body is missing or isn't valid JSON", request.getRequestURI()));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethod(HttpRequestMethodNotSupportedException ex,
+                                                         HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(ApiErrorResponse.of(HttpStatus.METHOD_NOT_ALLOWED.value(), ex.getMessage(),
+                        request.getRequestURI()));
+    }
+
+    // A unique rule in the database, e.g. two votes sent at the same moment
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleIntegrity(DataIntegrityViolationException ex,
+                                                            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiErrorResponse.of(HttpStatus.CONFLICT.value(),
+                        "This was already saved, refresh the page", request.getRequestURI()));
     }
 
     @ExceptionHandler(Exception.class)

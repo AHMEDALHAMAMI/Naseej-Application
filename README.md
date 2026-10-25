@@ -198,6 +198,46 @@ n8n.webhook.url=${N8N_WEBHOOK_URL}
 
 </details>
 
+## 🌐 Web App
+
+The website lives in `src/main/resources/static` and is served by the same Spring Boot app, so there is nothing extra to install or build.
+
+1. Start the backend (`./mvnw spring-boot:run`).
+2. Open **http://localhost:8080/api/v1/** (the pages share the `/api/v1` context path with the API).
+3. In Google Cloud, the authorized redirect URI stays `http://localhost:8080/api/v1/login/oauth2/code/google`. After Google sign-in the browser is sent to `oauth-callback.html` with the tokens.
+4. To try unlocking with a payment, set Moyasar **test** keys in `.env`; checkout runs in Moyasar's sandbox.
+
+| Page | Who | What it does |
+|---|---|---|
+| `index.html` | everyone | Landing page, live numbers, map of open ideas near the visitor (asks for location) |
+| `register.html` / `verify.html` | new users | Email sign-up with the role chosen in the form, neighborhood filled from the location, email code |
+| `choose-role.html` | Google sign-up | Step 1 membership, step 2 the role's form |
+| `resident.html` | residents | Map centered on the user with the 2 km voting radius, vote / view details (no vote counts) |
+| `idea.html` | everyone logged in | Idea page; founder and investors also see votes and the business model |
+| `propose.html` | residents, investors | AI check → published or rejected (similar ideas are rejected); investors can adopt their own idea |
+| `investor.html` | investors | Saudi map → city → neighborhood → opportunities, pending/verified state |
+| `unlock.html` | verified investors | AI-priced upfront payment (Moyasar) or 5% success partnership |
+| `projects.html` | investors, founders | Adopted projects with execution stages and progress |
+| `admin.html` | admin | Dashboard charts and investor verification |
+
+Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and Chart.js 4.4.1.
+
+### Website endpoints
+
+| Method | Path | Role |
+|---|---|---|
+| GET | `/public/stats`, `/public/ideas-nearby`, `/public/nearest-neighborhood` | public |
+| PUT | `/auth/location` | logged in |
+| GET | `/discover/map`, `/discover/idea/{id}`, `/discover/my-ideas` | resident, investor, admin |
+| POST | `/discover/propose`, `/discover/retry-ai/{id}` | resident, investor |
+| POST | `/discover/vote/{id}` | resident |
+| GET | `/explore/cities`, `/explore/neighborhoods/{city}`, `/explore/opportunities/{neighborhoodId}` | investor |
+| GET / POST | `/unlock/quote/{ideaId}`, `/unlock/pay/{ideaId}`, `/unlock/confirm-payment/{ideaId}`, `/unlock/partnership/{ideaId}`, `/unlock/adopt/{ideaId}` | investor (verified to unlock) |
+| GET / POST | `/projects/mine`, `/projects/stages`, `/projects/stage/{contractId}` | resident, investor |
+| GET / PUT | `/admin/stats`, `/admin/investors`, `/admin/investors/verify/{id}`, `/admin/investors/reject/{id}` | admin |
+
+The raw CRUD and AI endpoints (`/ideas/**`, `/payments/**`, `/contracts/**`, …) take user ids in the request body, so they are now **admin only**; the website uses the endpoints above, which read the user from the token.
+
 ## 👥 Team
 
 <table>

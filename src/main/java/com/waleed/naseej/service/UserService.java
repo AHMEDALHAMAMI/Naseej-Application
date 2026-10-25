@@ -97,6 +97,12 @@ public class UserService {
                 .emailVerified(user.getEmailVerified())
                 .whatsappOptIn(user.getWhatsappOptIn())
                 .enabled(user.getEnabled())
+                .latitude(user.getLatitude())
+                .longitude(user.getLongitude())
+                .crNumber(user.getCrNumber())
+                .investmentBudget(user.getInvestmentBudget())
+                .investmentFields(user.getInvestmentFields())
+                .investorStatus(user.getInvestorStatus())
                 .build();
     }
 }

@@ -23,4 +23,6 @@ public class IdeaCheckResponse {
     private Boolean scarcityFound;
     private String feasibilitySummary;
     private String placeType;
+    // Only set right after a check: true when the map service didn't answer and the AI judged without competitors
+    private Boolean competitorsUnavailable;
 }

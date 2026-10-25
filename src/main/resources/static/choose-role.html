@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2F5444">
+<script>try{var l=localStorage.getItem('naseej.lang');if(l!=='ar'&&l!=='en'){l=(navigator.language||'').toLowerCase().indexOf('ar')===0?'ar':'en';}document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';}catch(e){}</script>
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/app.css">
+<title data-i18n-title="choose.title">Naseej</title>
+</head>
+<body>
+<div class="auth">
+  <aside class="auth-aside">
+    <a class="brand" href="index.html" style="color:#fff" data-i18n-attr="aria-label:brand.home"><img src="assets/img/mark-white.png" alt=""><span data-i18n="brand.name">NASEEJ</span></a>
+    <div class="stack" style="gap:18px">
+      <h2 data-i18n-html="choose.asideTitle"></h2>
+      <p data-i18n="choose.asideText"></p>
+    </div>
+    <span class="small" style="color:#C9D8CE" data-i18n="auth.asideFoot"></span>
+    <img class="weave" src="assets/img/mark-white.png" alt="">
+  </aside>
+  <main class="auth-main" id="main">
+    <div class="auth-top"><a class="btn btn-ghost btn-sm" href="index.html" data-i18n="auth.home"></a><span id="lang-slot"></span></div>
+    <div class="auth-card wide" id="step-1">
+      <div class="stack" style="gap:6px">
+        <span class="eyebrow" data-i18n="choose.step1"></span>
+        <h1 data-i18n="choose.heading"></h1>
+      </div>
+      <div class="grid grid-2" style="gap:14px">
+        <button type="button" class="card stack choice-card" data-pick="RESIDENT">
+          <span class="badge" style="align-self:flex-start" data-i18n="choose.free"></span>
+          <strong data-i18n="role.RESIDENT"></strong>
+          <span class="small muted" data-i18n="choose.residentText"></span>
+        </button>
+        <button type="button" class="card stack choice-card" data-pick="INVESTOR">
+          <span class="badge badge-sand" style="align-self:flex-start" data-i18n="choose.crRequired"></span>
+          <strong data-i18n="role.INVESTOR"></strong>
+          <span class="small muted" data-i18n="choose.investorText"></span>
+        </button>
+      </div>
+    </div>
+    <div class="auth-card wide hidden" id="step-2">
+      <div class="stack" style="gap:6px">
+        <button type="button" class="btn btn-ghost btn-sm" id="back" style="align-self:flex-start;padding:0 4px" data-i18n="choose.change"></button>
+        <span class="eyebrow" data-i18n="choose.step2"></span>
+        <h1 id="step2-title"></h1>
+      </div>
+      <form id="role-form" class="stack" novalidate>
+        <div class="field">
+          <label for="phone"><span data-i18n="form.mobile"></span> <span class="muted" data-i18n="form.optional"></span></label>
+          <input class="input" id="phone" name="phone" type="tel" inputmode="numeric" placeholder="9665XXXXXXXX" dir="ltr">
+          <span class="error" aria-live="polite"></span>
+        </div>
+        <div id="resident-fields" class="stack">
+          <div class="surface-sand stack" style="gap:10px">
+            <div class="row" style="justify-content:space-between">
+              <span style="font-size:13px;font-weight:600" data-i18n="loc.yourHood"></span>
+              <span class="badge badge-sand" id="loc-status" data-i18n="loc.detecting"></span>
+            </div>
+            <div id="loc-result" class="small muted" data-i18n="loc.willFill"></div>
+            <div class="grid grid-2" style="gap:10px">
+              <div class="field">
+                <label for="city" data-i18n="form.city"></label>
+                <select class="select" id="city"><option value="" data-i18n="form.chooseCity"></option></select>
+              </div>
+              <div class="field">
+                <label for="neighborhoodId" data-i18n="form.hood"></label>
+                <select class="select" id="neighborhoodId" name="neighborhoodId"><option value="" data-i18n="form.chooseHood"></option></select>
+                <span class="error" aria-live="polite"></span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="detect" style="align-self:flex-start" data-i18n="loc.useMine" data-i18n-attr="data-loading:loc.locating"></button>
+          </div>
+        </div>
+        <div id="investor-fields" class="stack hidden">
+          <div class="field">
+            <label for="crNumber" data-i18n="inv.cr"></label>
+            <input class="input" id="crNumber" name="crNumber" inputmode="numeric" maxlength="10" data-i18n-attr="placeholder:inv.crPlaceholder" dir="ltr">
+            <span class="error" aria-live="polite"></span>
+          </div>
+          <div class="field">
+            <span class="label" id="budget-label" data-i18n="inv.budget"></span>
+            <div class="chips" role="group" aria-labelledby="budget-label" id="budget-chips"></div>
+            <input type="hidden" name="investmentBudget">
+            <span class="error" aria-live="polite"></span>
+          </div>
+          <div class="field">
+            <span class="label" id="fields-label" data-i18n="inv.fields"></span>
+            <div class="chips" role="group" aria-labelledby="fields-label" id="field-chips"></div>
+            <input type="hidden" name="investmentFields">
+            <span class="error" aria-live="polite"></span>
+          </div>
+          <div class="notice notice-warn"><span data-i18n-html="inv.reviewNote"></span></div>
+        </div>
+        <label class="check"><input type="checkbox" id="terms" required><span data-i18n="form.terms"></span></label>
+        <button class="btn btn-block" type="submit" data-i18n="choose.finish" data-i18n-attr="data-loading:common.saving"></button>
+      </form>
+    </div>
+  </main>
+</div>
+<script type="module" src="assets/js/pages/choose-role.js"></script>
+</body>
+</html>
