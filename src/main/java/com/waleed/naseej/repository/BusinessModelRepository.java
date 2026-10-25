@@ -3,6 +3,7 @@ package com.waleed.naseej.repository;
 import com.waleed.naseej.entity.BusinessModel;
 import com.waleed.naseej.enums.IdeaStatus;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -23,4 +24,7 @@ public interface BusinessModelRepository extends JpaRepository<BusinessModel, In
     // Business models whose minimum capital fits the budget, skipping ideas still in screening
     List<BusinessModel> findByEstimatedCapitalMinLessThanEqualAndIdeaStatusNotOrderByEstimatedCapitalMinAsc(
             BigDecimal max, IdeaStatus status);
+
+    // The business models of many ideas in one query (investor search by capital)
+    List<BusinessModel> findByIdeaIdIn(Collection<Integer> ideaIds);
 }

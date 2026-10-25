@@ -14,4 +14,7 @@ public interface IdeaCheckRepository extends JpaRepository<IdeaCheck, Integer> {
     Optional<IdeaCheck> findByIdeaId(Integer ideaId);
 
     List<IdeaCheck> findByDecision(String decision);
+
+    // Other ideas' checks that point at this idea as "similar" (cleared before the idea is deleted)
+    List<IdeaCheck> findBySimilarIdeaId(Integer similarIdeaId);
 }

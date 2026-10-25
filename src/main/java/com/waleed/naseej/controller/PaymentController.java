@@ -7,11 +7,13 @@ import com.waleed.naseej.dto.out.InitiateMoyasarPaymentResponse;
 import com.waleed.naseej.dto.out.MoyasarPaymentStatusResponse;
 import com.waleed.naseej.dto.out.MoyasarWebhookResponse;
 import com.waleed.naseej.dto.out.PaymentResponse;
+import com.waleed.naseej.entity.User;
 import com.waleed.naseej.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -85,5 +87,11 @@ public class PaymentController {
     public InitiateMoyasarPaymentResponse moyasarCallback(@RequestParam("id") String moyasarPaymentId) {
         MoyasarWebhookResponse synced = paymentService.syncMoyasarPaymentByMoyasarId(moyasarPaymentId);
         return paymentService.buildInitiateResponseFromWebhook(synced);
+    }
+
+    // Investor: own payments and invoices (the user comes from the token, see SecurityConfig)
+    @GetMapping("/mine")
+    public List<PaymentResponse> mine(@AuthenticationPrincipal User user) {
+        return paymentService.myPayments(user);
     }
 }

@@ -35,6 +35,10 @@ public class ContractSignature {
     @Column(name = "signature_image_uri", length = 512)
     private String signatureImageUri;
 
+    // The drawn signature as a data URI (data:image/png;base64,...); too long for signature_image_uri
+    @Column(name = "signature_image_data", columnDefinition = "MEDIUMTEXT")
+    private String signatureImageData;
+
     @Column(name = "ip_address")
     private String ipAddress;
 

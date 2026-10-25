@@ -8,4 +8,7 @@ import org.springframework.stereotype.Repository;
 public interface FoundingMemberRepository extends JpaRepository<FoundingMember, Integer> {
 
     long countByIdeaId(Integer ideaId);
+
+    // Used when the founder withdraws the idea
+    void deleteByIdeaId(Integer ideaId);
 }

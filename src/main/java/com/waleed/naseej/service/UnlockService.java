@@ -14,6 +14,7 @@ import com.waleed.naseej.entity.PartnershipAgreement;
 import com.waleed.naseej.entity.Payment;
 import com.waleed.naseej.entity.User;
 import com.waleed.naseej.enums.AccessType;
+import com.waleed.naseej.enums.ContractStatus;
 import com.waleed.naseej.enums.IdeaStatus;
 import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.PartnershipAgreementStatus;
@@ -234,7 +235,8 @@ public class UnlockService {
         if (payment.getStatus() != PaymentStatus.PAID) {
             throw new BadRequestException("The payment isn't confirmed yet");
         }
-        return grant(investor, idea, AccessType.PAID, payment, "Payment confirmed. The opportunity is yours");
+        return grant(investor, idea, AccessType.PAID, payment,
+                "Payment confirmed. The opportunity is yours. Next: set the founding members' benefits and sign the contract in My projects");
     }
 
     // ---------- PARTNERSHIP ----------
@@ -248,7 +250,7 @@ public class UnlockService {
 
         UnlockResultResponse result = grant(investor, idea, AccessType.PARTNERSHIP, null,
                 "Partnership signed. The founding member gets " + PARTNERSHIP_PERCENT.stripTrailingZeros().toPlainString()
-                        + "% of the net profit");
+                        + "% of the net profit. Next: set the founding members' benefits and sign the contract in My projects");
         OpportunityAccess access = opportunityAccessRepository.findById(result.getAccessId()).orElseThrow();
 
         LocalDate start = LocalDate.now();
@@ -280,15 +282,20 @@ public class UnlockService {
         if (idea.getStatus() != IdeaStatus.PUBLISHED && idea.getStatus() != IdeaStatus.COMPLETED) {
             throw new BadRequestException("Only a published idea can be adopted");
         }
-        if (opportunityAccessRepository.existsByIdeaId(idea.getId())) {
+        if (isTaken(idea)) {
             throw new DuplicateResourceException("This idea is already adopted");
         }
-        return grant(investor, idea, AccessType.OWNER, null, "Idea adopted. Track its progress in My projects");
+        ensureNotHeldBefore(investor, idea);
+        return grant(investor, idea, AccessType.OWNER, null,
+                "Idea adopted. Set the founding members' benefits and sign the contract in My projects");
     }
 
     // ---------- Shared ----------
 
-    // Access + an active contract (no signing steps: the payment or the partnership signature is the agreement)
+    /**
+     * Access + a DRAFT contract. The investor then sets the founding members' benefits and both parties sign
+     * (ContractFlowService); the contract becomes ACTIVE, and the 90 days start, after the last signature.
+     */
     private UnlockResultResponse grant(User investor, Idea idea, AccessType type, Payment payment, String message) {
         OpportunityAccess access = opportunityAccessRepository.save(OpportunityAccess.builder()
                 .investor(investor)
@@ -305,9 +312,11 @@ public class UnlockService {
                 .access(access)
                 .foundingMemberDiscount(BigDecimal.ZERO)
                 .ideaOwnerDiscount(BigDecimal.ZERO)
+                // Until it is signed, the 90 days count from adoption, so an unsigned contract can't hold the idea
+                // forever; signing restarts them from activation
                 .openingDeadline(LocalDate.now().plusDays(OPENING_DEADLINE_DAYS))
+                .status(ContractStatus.DRAFT)
                 .build();
-        contract.activate();
         contract = contractRepository.save(contract);
 
         idea.setStatus(IdeaStatus.ADOPTED);
@@ -328,11 +337,24 @@ public class UnlockService {
         if (idea.getOwner().getId().equals(investor.getId())) {
             throw new BadRequestException("This is your own idea. Use adopt instead");
         }
-        if (opportunityAccessRepository.existsByIdeaId(idea.getId())) {
+        if (isTaken(idea)) {
             throw new DuplicateResourceException("This idea is already adopted");
         }
         if (idea.getStatus() != IdeaStatus.COMPLETED) {
             throw new BadRequestException("Unlocking opens when the idea reaches 100% of its vote target");
+        }
+        ensureNotHeldBefore(investor, idea);
+    }
+
+    // Only a live contract holds an idea; an expired or refunded one gives it back to the other investors
+    private boolean isTaken(Idea idea) {
+        return contractRepository.existsByIdeaIdAndStatusNot(idea.getId(), ContractStatus.TERMINATED);
+    }
+
+    // One access per investor and idea (unique in the database): an investor whose adoption ended can't take it again
+    private void ensureNotHeldBefore(User investor, Idea idea) {
+        if (opportunityAccessRepository.existsByInvestorIdAndIdeaId(investor.getId(), idea.getId())) {
+            throw new BadRequestException("Your earlier adoption of this idea ended, so it's now open to other investors");
         }
     }
 

@@ -2,6 +2,8 @@ package com.waleed.naseej.dto.out;
 
 import com.waleed.naseej.enums.AccessType;
 import com.waleed.naseej.enums.ContractStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -40,4 +42,17 @@ public class ProjectResponse {
     private List<ProjectUpdateResponse> updates;
     private Boolean canPostUpdate;
     private LocalDateTime nextUpdateAllowedAt;
+
+    // ---------- Contract: benefits and signatures (DRAFT → INVESTOR_SIGNED → ACTIVE) ----------
+    private BigDecimal foundingMemberDiscount;
+    private BigDecimal ideaOwnerDiscount;
+    private String benefitsNote;
+    private Boolean benefitsSet;
+    private Boolean investorSigned;
+    private Boolean founderSigned;
+    private LocalDate openingDeadline;
+    // SET_BENEFITS, INVESTOR_SIGN, FOUNDER_SIGN, WAITING_PAYMENT, IN_PROGRESS, OPENED or ENDED
+    private String nextStep;
+    private Boolean canSetBenefits;
+    private Boolean canSign;
 }

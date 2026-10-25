@@ -236,6 +236,33 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | GET / POST | `/projects/mine`, `/projects/stages`, `/projects/stage/{contractId}` | resident, investor |
 | GET / PUT | `/admin/stats`, `/admin/investors`, `/admin/investors/verify/{id}`, `/admin/investors/reject/{id}` | admin |
 
+### Logic endpoints added
+
+| Method | Path | Role | What it does |
+|---|---|---|---|
+| DELETE | `/discover/vote/{id}` | resident | Take a vote back while the idea is still collecting votes |
+| GET | `/discover/my-votes` | resident | Ideas the resident voted for, to follow them until they open |
+| PUT | `/discover/idea/{id}` | founder | Edit title/description of a published idea (title locked once someone voted) |
+| DELETE | `/discover/idea/{id}` | founder | Withdraw a published idea or delete a rejected one |
+| PUT | `/discover/idea/{id}/business-model/chat` | founder | Change the business model in your own words (Claude rewrites it) |
+| PUT | `/auth/me` | logged in | Edit profile; a new CR number sends an investor back to admin review |
+| PUT | `/projects/{contractId}/benefits` | investor | Set the founding members' and idea owner's discounts (required before signing) |
+| POST | `/projects/{contractId}/sign-otp` | investor, founder | Email the 6-digit signing code to the party whose turn it is |
+| POST | `/projects/{contractId}/sign` | investor, founder | Sign: typed full name + drawn signature + code; the last signature activates the contract |
+| GET | `/projects/{contractId}/contract` | investor, founder | Print-ready contract page (Arabic); "Save as PDF" in the browser |
+| GET | `/payments/mine` | investor | Own payments and invoices |
+| POST | `/subscriptions/subscribe` | investor | Start a BASIC (299) or PRO (999) monthly subscription through Moyasar |
+| GET | `/subscriptions/mine` | investor | Own subscriptions (checks pending payments with Moyasar) |
+| PUT | `/subscriptions/cancel` | investor | Cancel; a paid month keeps working until its end date |
+| GET | `/explore/search` | investor | Search by words, city, category and `maxCapital` (from the business model) |
+| GET | `/explore/rising` | investor | Requests that gained the most votes in the last `days` (default 7) |
+| PUT | `/admin/users/{id}/disable` | admin | Disable an account (`?disabled=false` re-enables it) |
+| PUT | `/admin/ideas/{id}/hide` | admin | Hide an idea from the map and lists (`?hidden=false` restores it) |
+| POST | `/admin/payments/{id}/refund` | admin | Refund through Moyasar's Refund API and undo what the payment unlocked |
+| POST | `/admin/contracts/expire-overdue` | admin | Run the 90-day check now (it also runs every night) |
+
+**Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor sets the benefits → the investor signs (`INVESTOR_SIGNED`) → the idea owner signs → `ACTIVE`, and the 90-day opening deadline starts. An investor who adopts their own idea signs once. A contract that doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
+
 The raw CRUD and AI endpoints (`/ideas/**`, `/payments/**`, `/contracts/**`, …) take user ids in the request body, so they are now **admin only**; the website uses the endpoints above, which read the user from the token.
 
 ## 👥 Team

@@ -6,11 +6,13 @@ import com.waleed.naseej.entity.BusinessModel;
 import com.waleed.naseej.entity.Idea;
 import com.waleed.naseej.entity.IdeaCheck;
 import com.waleed.naseej.entity.NearbyPlace;
+import com.waleed.naseej.entity.User;
 import com.waleed.naseej.enums.IdeaStatus;
 import com.waleed.naseej.enums.ScreeningDecision;
 import com.waleed.naseej.exception.BadRequestException;
 import com.waleed.naseej.exception.DuplicateResourceException;
 import com.waleed.naseej.exception.ExternalServiceException;
+import com.waleed.naseej.exception.ForbiddenException;
 import com.waleed.naseej.exception.ResourceNotFoundException;
 import com.waleed.naseej.repository.BusinessModelRepository;
 import com.waleed.naseej.repository.IdeaCheckRepository;
@@ -250,6 +252,25 @@ public class BusinessModelService {
     public BusinessModelResponse getByIdea(Integer ideaId) {
         return toResponse(businessModelRepository.findByIdeaId(ideaId)
                 .orElseThrow(() -> new ResourceNotFoundException("No business model found for idea id: " + ideaId)));
+    }
+
+    /**
+     * Website version of revise-by-chat: the founder changes their own idea's business model in their words,
+     * while the idea is still collecting votes (after that, investors rely on it).
+     */
+    public BusinessModelResponse reviseForOwner(User currentUser, Integer ideaId, String message) {
+        Idea idea = ideaRepository.findById(ideaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Idea not found with id: " + ideaId));
+        if (!idea.getOwner().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("Only the idea's creator can change its business model");
+        }
+        if (idea.getStatus() != IdeaStatus.PUBLISHED) {
+            throw new BadRequestException("The business model can be changed only while the idea is collecting votes");
+        }
+        BusinessModel model = businessModelRepository.findByIdeaId(ideaId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "This idea has no business model yet. Generate it first with retry-ai"));
+        return reviseByChat(model.getId(), message);
     }
 
     /** Business models whose minimum capital fits the budget, cheapest first (ideas in screening are skipped). */

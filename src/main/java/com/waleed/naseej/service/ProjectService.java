@@ -13,12 +13,14 @@ import com.waleed.naseej.exception.BadRequestException;
 import com.waleed.naseej.exception.ForbiddenException;
 import com.waleed.naseej.exception.ResourceNotFoundException;
 import com.waleed.naseej.repository.ContractRepository;
+import com.waleed.naseej.repository.ContractSignatureRepository;
 import com.waleed.naseej.repository.IdeaRepository;
 import com.waleed.naseej.repository.ProjectUpdateRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +40,7 @@ public class ProjectService {
     private final ProjectUpdateRepository projectUpdateRepository;
     private final IdeaRepository ideaRepository;
     private final ProjectUpdateService projectUpdateService;
+    private final ContractSignatureRepository contractSignatureRepository;
 
     public List<ProjectResponse> mine(User currentUser) {
         List<ProjectResponse> projects = new ArrayList<>();
@@ -79,11 +82,27 @@ public class ProjectService {
         return toResponse(contractRepository.findById(contractId).orElseThrow(), "INVESTOR");
     }
 
+    /** The project as the given party sees it (used after setting benefits or signing). */
+    public ProjectResponse toResponseFor(User user, Contract contract) {
+        boolean investor = contract.getInvestor().getId().equals(user.getId());
+        return toResponse(contract, investor ? "INVESTOR" : "FOUNDER");
+    }
+
     private ProjectResponse toResponse(Contract contract, String myRole) {
         List<ProjectUpdate> updates = updatesOf(contract.getId());
         int index = currentIndex(updates);
         boolean active = contract.getStatus() == ContractStatus.ACTIVE;
         Idea idea = contract.getIdea();
+
+        // Signing progress: an investor who adopted their own idea signs once, for both sides
+        boolean selfOwned = Objects.equals(contract.getInvestor().getId(), contract.getIdeaOwner().getId());
+        boolean investorSigned = contractSignatureRepository.existsByContractIdAndSignerRole(
+                contract.getId(), ContractFlowService.ROLE_INVESTOR);
+        boolean founderSigned = selfOwned ? investorSigned : contractSignatureRepository.existsByContractIdAndSignerRole(
+                contract.getId(), ContractFlowService.ROLE_IDEA_OWNER);
+        boolean benefitsSet = contract.getBenefitsSetAt() != null;
+        String nextStep = nextStep(contract, benefitsSet, investorSigned, founderSigned);
+        boolean investorView = "INVESTOR".equals(myRole);
 
         return ProjectResponse.builder()
                 .contractId(contract.getId())
@@ -107,7 +126,38 @@ public class ProjectService {
                 // The investor can post the next stage any time; there is no waiting period
                 .canPostUpdate("INVESTOR".equals(myRole) && active && index < STAGES.size() - 1)
                 .nextUpdateAllowedAt(null)
+                .foundingMemberDiscount(contract.getFoundingMemberDiscount())
+                .ideaOwnerDiscount(contract.getIdeaOwnerDiscount())
+                .benefitsNote(contract.getBenefitsNote())
+                .benefitsSet(benefitsSet)
+                .investorSigned(investorSigned)
+                .founderSigned(founderSigned)
+                .openingDeadline(contract.getOpeningDeadline())
+                .nextStep(nextStep)
+                .canSetBenefits(investorView && contract.getStatus() == ContractStatus.DRAFT)
+                .canSign((investorView && "INVESTOR_SIGN".equals(nextStep))
+                        || (!investorView && "FOUNDER_SIGN".equals(nextStep)))
                 .build();
+    }
+
+    // What has to happen next for this contract, so the page knows which button to show
+    private static String nextStep(Contract contract, boolean benefitsSet, boolean investorSigned, boolean founderSigned) {
+        if (contract.getStatus() == ContractStatus.TERMINATED) {
+            return "ENDED";
+        }
+        if (contract.getOpenedAt() != null) {
+            return "OPENED";
+        }
+        if (contract.getStatus() == ContractStatus.ACTIVE) {
+            return "IN_PROGRESS";
+        }
+        if (!benefitsSet) {
+            return "SET_BENEFITS";
+        }
+        if (!investorSigned) {
+            return "INVESTOR_SIGN";
+        }
+        return founderSigned ? "WAITING_PAYMENT" : "FOUNDER_SIGN";
     }
 
     private List<ProjectUpdate> updatesOf(Integer contractId) {

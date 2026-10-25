@@ -4,6 +4,8 @@ import com.waleed.naseej.entity.Contract;
 import com.waleed.naseej.enums.ContractStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,4 +27,14 @@ public interface ContractRepository extends JpaRepository<Contract, Integer> {
     List<Contract> findByStatus(ContractStatus status);
 
     List<Contract> findByIdeaOwnerId(Integer ideaOwnerId);
+
+    // An idea is taken while it has a contract that isn't TERMINATED (expired or refunded contracts free it again)
+    boolean existsByIdeaIdAndStatusNot(Integer ideaId, ContractStatus status);
+
+    // This investor currently holds the idea (a live contract, not an ended one)
+    boolean existsByIdeaIdAndInvestorIdAndStatusNot(Integer ideaId, Integer investorId, ContractStatus status);
+
+    // Contracts past their opening deadline whose project never opened (the 90-day rule)
+    List<Contract> findByStatusInAndOpenedAtIsNullAndOpeningDeadlineBefore(
+            Collection<ContractStatus> statuses, LocalDate date);
 }

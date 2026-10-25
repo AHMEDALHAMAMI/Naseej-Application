@@ -73,4 +73,11 @@ public class Idea {
     private String priceReasoning;
 
     private LocalDateTime priceQuotedAt;
+
+    // ---------- Admin moderation ----------
+
+    // The status the idea had before an admin hid it, so un-hiding puts it back where it was
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private IdeaStatus hiddenFromStatus;
 }

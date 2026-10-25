@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -21,9 +23,12 @@ public class N8nService {
 
     private final RestClient restClient = RestClient.create();
     private final String otpWebhookUrl;
+    private final String eventsWebhookUrl;
 
-    public N8nService(@Value("${n8n.webhook.otp-url:}") String otpWebhookUrl) {
+    public N8nService(@Value("${n8n.webhook.otp-url:}") String otpWebhookUrl,
+                      @Value("${n8n.webhook.events-url:}") String eventsWebhookUrl) {
         this.otpWebhookUrl = otpWebhookUrl;
+        this.eventsWebhookUrl = eventsWebhookUrl;
     }
 
     public void sendOtpEmail(String email, String fullName, String code, OtpPurpose purpose, long expiresInMinutes) {
@@ -51,6 +56,34 @@ public class N8nService {
         } catch (RestClientException e) {
             log.error("Failed to call n8n OTP webhook: {}", e.getMessage());
             throw new BadRequestException("Could not send the verification code, please try again");
+        }
+    }
+
+    /**
+     * Platform events for the n8n workflows (WhatsApp and email alerts): IDEA_COMPLETED, CONTRACT_ACTIVE,
+     * CONTRACT_EXPIRED, PAYMENT_REFUNDED. n8n switches on "event".
+     * An alert must never break the action that caused it, so failures are only logged.
+     */
+    public void sendEvent(String event, Map<String, Object> data) {
+        // LinkedHashMap because Map.of rejects null values
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("event", event);
+        body.put("occurredAt", LocalDateTime.now().toString());
+        body.put("data", data);
+
+        if (eventsWebhookUrl == null || eventsWebhookUrl.isBlank()) {
+            log.info("[DEV] N8N_EVENTS_WEBHOOK_URL is empty. Event {}: {}", event, data);
+            return;
+        }
+        try {
+            restClient.post()
+                    .uri(eventsWebhookUrl)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            log.warn("Failed to send n8n event {}: {}", event, e.getMessage());
         }
     }
 }

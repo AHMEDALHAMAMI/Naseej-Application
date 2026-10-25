@@ -1,12 +1,16 @@
 package com.waleed.naseej.controller;
 
+import com.waleed.naseej.dto.in.SubscribeRequest;
 import com.waleed.naseej.dto.in.SubscriptionRequest;
+import com.waleed.naseej.dto.out.SubscriptionCheckoutResponse;
 import com.waleed.naseej.dto.out.SubscriptionResponse;
+import com.waleed.naseej.entity.User;
 import com.waleed.naseej.service.SubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -41,5 +45,23 @@ public class SubscriptionController {
     @GetMapping("/get/{id}")
     public SubscriptionResponse getById(@PathVariable Integer id) {
         return subscriptionService.getById(id);
+    }
+
+    // ----- Investor (the user comes from the token, see SecurityConfig) -----
+
+    @PostMapping("/subscribe")
+    public ResponseEntity<SubscriptionCheckoutResponse> subscribe(@AuthenticationPrincipal User user,
+                                                                  @Valid @RequestBody SubscribeRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(subscriptionService.subscribe(user, request));
+    }
+
+    @GetMapping("/mine")
+    public List<SubscriptionResponse> mine(@AuthenticationPrincipal User user) {
+        return subscriptionService.mine(user);
+    }
+
+    @PutMapping("/cancel")
+    public SubscriptionResponse cancel(@AuthenticationPrincipal User user) {
+        return subscriptionService.cancel(user);
     }
 }

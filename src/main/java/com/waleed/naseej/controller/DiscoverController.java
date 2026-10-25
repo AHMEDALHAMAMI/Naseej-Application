@@ -1,10 +1,15 @@
 package com.waleed.naseej.controller;
 
 import com.waleed.naseej.dto.in.ProposeIdeaRequest;
+import com.waleed.naseej.dto.in.ReviseByChatRequest;
+import com.waleed.naseej.dto.in.UpdateIdeaRequest;
 import com.waleed.naseej.dto.in.VoteRequest;
+import com.waleed.naseej.dto.out.BusinessModelResponse;
 import com.waleed.naseej.dto.out.IdeaDetailResponse;
 import com.waleed.naseej.dto.out.MapIdeaResponse;
+import com.waleed.naseej.dto.out.MessageResponse;
 import com.waleed.naseej.entity.User;
+import com.waleed.naseej.service.BusinessModelService;
 import com.waleed.naseej.service.DiscoverService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -14,13 +19,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-/** Ideas around the logged-in user: map, idea page, propose and vote. */
+/** Ideas around the logged-in user: map, idea page, propose, vote, and the founder's own actions. */
 @RestController
 @RequestMapping("/discover")
 @RequiredArgsConstructor
 public class DiscoverController {
 
     private final DiscoverService discoverService;
+    private final BusinessModelService businessModelService;
 
     @GetMapping("/map")
     public List<MapIdeaResponse> map(@AuthenticationPrincipal User user,
@@ -58,5 +64,38 @@ public class DiscoverController {
                                    @PathVariable Integer id,
                                    @Valid @RequestBody(required = false) VoteRequest request) {
         return discoverService.vote(user, id, request);
+    }
+
+    // ----- Resident: take a vote back, follow voted ideas -----
+
+    @DeleteMapping("/vote/{id}")
+    public IdeaDetailResponse unvote(@AuthenticationPrincipal User user, @PathVariable Integer id) {
+        return discoverService.unvote(user, id);
+    }
+
+    @GetMapping("/my-votes")
+    public List<IdeaDetailResponse> myVotes(@AuthenticationPrincipal User user) {
+        return discoverService.myVotes(user);
+    }
+
+    // ----- Founder: edit, withdraw, change the business model by chat -----
+
+    @PutMapping("/idea/{id}")
+    public IdeaDetailResponse updateIdea(@AuthenticationPrincipal User user,
+                                         @PathVariable Integer id,
+                                         @Valid @RequestBody UpdateIdeaRequest request) {
+        return discoverService.updateIdea(user, id, request);
+    }
+
+    @DeleteMapping("/idea/{id}")
+    public MessageResponse deleteIdea(@AuthenticationPrincipal User user, @PathVariable Integer id) {
+        return discoverService.deleteIdea(user, id);
+    }
+
+    @PutMapping("/idea/{id}/business-model/chat")
+    public BusinessModelResponse reviseBusinessModel(@AuthenticationPrincipal User user,
+                                                     @PathVariable Integer id,
+                                                     @Valid @RequestBody ReviseByChatRequest request) {
+        return businessModelService.reviseForOwner(user, id, request.getMessage());
     }
 }

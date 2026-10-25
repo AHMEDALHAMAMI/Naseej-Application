@@ -65,6 +65,14 @@ public class Contract {
     @Column(name = "opened_at")
     private LocalDateTime openedAt;
 
+    // Benefits the investor commits to beyond the two discounts, e.g. "priority booking for founding members"
+    @Column(name = "benefits_note", length = 500)
+    private String benefitsNote;
+
+    // Set when the investor saves the founding members' benefits; signing is allowed only after this
+    @Column(name = "benefits_set_at")
+    private LocalDateTime benefitsSetAt;
+
     public void sign(ContractSignature signature) {
         signature.setContract(this);
         if ("INVESTOR".equalsIgnoreCase(signature.getSignerRole())

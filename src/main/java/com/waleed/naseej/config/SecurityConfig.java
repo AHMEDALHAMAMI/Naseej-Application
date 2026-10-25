@@ -82,6 +82,11 @@ public class SecurityConfig {
                         .requestMatchers(paths("/explore/**", "/unlock/**")).hasRole("INVESTOR")
                         .requestMatchers(paths("/projects/**")).hasAnyRole("RESIDENT", "INVESTOR")
                         .requestMatchers(paths("/admin/**")).hasRole("ADMIN")
+                        // Investor's own payments and subscription: these read the user from the token,
+                        // so they come before the admin-only /payments/** and /subscriptions/** rule below
+                        .requestMatchers(paths(HttpMethod.GET, "/payments/mine", "/subscriptions/mine")).hasRole("INVESTOR")
+                        .requestMatchers(paths(HttpMethod.POST, "/subscriptions/subscribe")).hasRole("INVESTOR")
+                        .requestMatchers(paths(HttpMethod.PUT, "/subscriptions/cancel")).hasRole("INVESTOR")
                         // ----- Raw CRUD and AI endpoints take ids in the body, so only admins call them -----
                         .requestMatchers(paths(
                                 "/users/**", "/neighborhoods/**", "/ideas/**", "/idea-checks/**",

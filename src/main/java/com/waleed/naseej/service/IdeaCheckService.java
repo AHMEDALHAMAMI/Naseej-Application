@@ -257,8 +257,8 @@ public class IdeaCheckService {
         Neighborhood home = idea.getNeighborhood();
         Map<Integer, Idea> candidates = new LinkedHashMap<>();
         ideaRepository.findByIdNotAndStatusNot(idea.getId(), IdeaStatus.SCREENING).stream()
-                // A rejected idea is not open, so it can't block a new one
-                .filter((Idea other) -> other.getStatus() != IdeaStatus.REJECTED)
+                // A rejected or admin-hidden idea is not open, so it can't block a new one
+                .filter((Idea other) -> other.getStatus() != IdeaStatus.REJECTED && other.getStatus() != IdeaStatus.HIDDEN)
                 .filter((Idea other) -> distanceBetween(home, other.getNeighborhood()) <= SIMILAR_IDEAS_RADIUS_KM)
                 .sorted(Comparator.comparingDouble((Idea other) -> distanceBetween(home, other.getNeighborhood())))
                 .limit(MAX_SIMILAR_CANDIDATES)

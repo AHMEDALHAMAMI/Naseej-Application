@@ -1,6 +1,7 @@
 package com.waleed.naseej.repository;
 
 import com.waleed.naseej.entity.Payment;
+import java.util.List;
 import java.util.Optional;
 import com.waleed.naseej.enums.PaymentStatus;
 import java.math.BigDecimal;
@@ -19,4 +20,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     // Total collected (amount before VAT) of payments in a status, 0 when none
     @Query("select coalesce(sum(p.amount), 0) from Payment p where p.status = :status")
     BigDecimal sumAmountByStatus(@Param("status") PaymentStatus status);
+
+    // A user's payments, newest first ("My payments")
+    List<Payment> findByUserIdOrderByIdDesc(Integer userId);
 }

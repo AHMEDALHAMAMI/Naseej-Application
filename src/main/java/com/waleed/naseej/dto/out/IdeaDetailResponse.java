@@ -43,6 +43,12 @@ public class IdeaDetailResponse {
     private Boolean inRange;
     private Boolean canVote;
     private Boolean voted;
+    // A resident can take the vote back while the idea is still collecting votes
+    private Boolean canUnvote;
+    // ---------- Founder actions ----------
+    private Boolean canEdit;
+    private Boolean canDelete;
+    private Boolean canReviseBusinessModel;
 
     // ---------- Founder, investor and admin only ----------
     private Long votesCount;

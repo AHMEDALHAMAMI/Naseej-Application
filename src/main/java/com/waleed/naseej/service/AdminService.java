@@ -1,6 +1,7 @@
 package com.waleed.naseej.service;
 
 import com.waleed.naseej.dto.out.AdminStatsResponse;
+import com.waleed.naseej.dto.out.IdeaResponse;
 import com.waleed.naseej.dto.out.LabelCountResponse;
 import com.waleed.naseej.dto.out.UserResponse;
 import com.waleed.naseej.entity.Idea;
@@ -67,6 +68,69 @@ public class AdminService {
 
     public UserResponse rejectInvestor(Integer id) {
         return review(id, InvestorStatus.REJECTED);
+    }
+
+    // ---------- Moderation ----------
+
+    /**
+     * Disables (or re-enables) an account. A disabled user can't log in or refresh, and the JWT filter rejects
+     * their current token on the next request. Admins can't be disabled here.
+     */
+    public UserResponse setUserDisabled(User currentAdmin, Integer id, boolean disabled) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        if (user.getId().equals(currentAdmin.getId())) {
+            throw new BadRequestException("You can't disable your own account");
+        }
+        if (user.getRole() == Role.ADMIN) {
+            throw new BadRequestException("Admin accounts can't be disabled here");
+        }
+        if (disabled && !Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new BadRequestException("This account hasn't verified its email yet, so it can't log in anyway");
+        }
+        user.setEnabled(!disabled);
+        if (disabled) {
+            // Ends every session: the refresh token stops working
+            user.setRefreshTokenHash(null);
+            user.setRefreshTokenExpiresAt(null);
+        }
+        return userService.toResponse(userRepository.save(user));
+    }
+
+    /**
+     * Hides an idea from the map, the investor lists and voting (spam, abuse), or puts it back.
+     * Only ideas still collecting votes or waiting for an investor can be hidden; adopted ones have a contract.
+     */
+    public IdeaResponse setIdeaHidden(Integer id, boolean hidden) {
+        Idea idea = ideaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Idea not found with id: " + id));
+        if (hidden) {
+            if (idea.getStatus() != IdeaStatus.PUBLISHED && idea.getStatus() != IdeaStatus.COMPLETED) {
+                throw new BadRequestException("Only published or completed ideas can be hidden (this one is "
+                        + idea.getStatus() + ")");
+            }
+            idea.setHiddenFromStatus(idea.getStatus());
+            idea.setStatus(IdeaStatus.HIDDEN);
+        } else {
+            if (idea.getStatus() != IdeaStatus.HIDDEN) {
+                throw new BadRequestException("This idea isn't hidden");
+            }
+            idea.setStatus(idea.getHiddenFromStatus() != null ? idea.getHiddenFromStatus() : IdeaStatus.PUBLISHED);
+            idea.setHiddenFromStatus(null);
+        }
+        Idea saved = ideaRepository.save(idea);
+        return IdeaResponse.builder()
+                .id(saved.getId())
+                .ownerId(saved.getOwner().getId())
+                .neighborhoodId(saved.getNeighborhood().getId())
+                .title(saved.getTitle())
+                .description(saved.getDescription())
+                .category(saved.getCategory())
+                .status(saved.getStatus())
+                .membershipThreshold(saved.getMembershipThreshold())
+                .publishedAt(saved.getPublishedAt())
+                .confirmedAt(saved.getConfirmedAt())
+                .build();
     }
 
     private UserResponse review(Integer id, InvestorStatus status) {

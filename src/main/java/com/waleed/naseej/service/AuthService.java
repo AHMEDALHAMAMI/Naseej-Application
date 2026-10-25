@@ -7,6 +7,7 @@ import com.waleed.naseej.dto.in.ResetPasswordRequest;
 import com.waleed.naseej.dto.in.SelectRoleRequest;
 import com.waleed.naseej.dto.in.SendOtpRequest;
 import com.waleed.naseej.dto.in.UpdateLocationRequest;
+import com.waleed.naseej.dto.in.UpdateProfileRequest;
 import com.waleed.naseej.dto.in.VerifyOtpRequest;
 import com.waleed.naseej.dto.out.AuthResponse;
 import com.waleed.naseej.dto.out.MessageResponse;
@@ -203,6 +204,59 @@ public class AuthService {
 
     public UserResponse me(User currentUser) {
         return userService.getById(currentUser.getId());
+    }
+
+    /**
+     * Profile edits from the account page. An investor who sends a new CR number (or resubmits after a
+     * rejection) goes back to PENDING until an admin reviews it again.
+     */
+    public UserResponse updateProfile(User currentUser, UpdateProfileRequest request) {
+        User user = getUser(currentUser.getId());
+        if (user.getRole() == Role.PENDING) {
+            throw new BadRequestException("Choose your membership type first");
+        }
+
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName().trim());
+        }
+        if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
+            if (userRepository.existsByPhone(request.getPhone())) {
+                throw new DuplicateResourceException("Phone is already registered");
+            }
+            user.setPhone(request.getPhone());
+        }
+        if (request.getWhatsappOptIn() != null) {
+            user.setWhatsappOptIn(request.getWhatsappOptIn());
+        }
+        if (request.getNeighborhoodId() != null) {
+            if (user.getRole() != Role.RESIDENT) {
+                throw new BadRequestException("Only residents have a home neighborhood");
+            }
+            user.setNeighborhood(findNeighborhood(request.getNeighborhoodId()));
+        }
+
+        boolean investorFields = request.getCrNumber() != null || request.getInvestmentBudget() != null
+                || request.getInvestmentFields() != null;
+        if (investorFields && user.getRole() != Role.INVESTOR) {
+            throw new BadRequestException("Only investors have an investor profile");
+        }
+        if (request.getInvestmentBudget() != null) {
+            user.setInvestmentBudget(request.getInvestmentBudget());
+        }
+        if (request.getInvestmentFields() != null) {
+            user.setInvestmentFields(request.getInvestmentFields());
+        }
+        if (request.getCrNumber() != null) {
+            String cr = request.getCrNumber().trim();
+            boolean changed = !cr.equals(user.getCrNumber());
+            if (changed || user.getInvestorStatus() == InvestorStatus.REJECTED) {
+                // A different CR, or a resubmission after a rejection, needs a new admin check
+                user.setCrNumber(cr);
+                user.setInvestorStatus(InvestorStatus.PENDING);
+                user.setInvestorReviewedAt(null);
+            }
+        }
+        return userService.toResponse(userRepository.save(user));
     }
 
     // ---------- Google ----------

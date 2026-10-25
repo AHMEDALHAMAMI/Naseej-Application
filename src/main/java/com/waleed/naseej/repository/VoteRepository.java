@@ -4,6 +4,8 @@ import com.waleed.naseej.entity.Vote;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,4 +27,17 @@ public interface VoteRepository extends JpaRepository<Vote, Integer> {
     List<Integer> findVotedIdeaIds(@Param("userId") Integer userId, @Param("ideaIds") Collection<Integer> ideaIds);
 
     List<Vote> findByCreatedAtAfter(LocalDateTime after);
+
+    // [ideaId, count] of votes cast since a moment, for "rising" requests
+    @Query("select v.idea.id, count(v) from Vote v where v.createdAt >= :after group by v.idea.id")
+    List<Object[]> countSince(@Param("after") LocalDateTime after);
+
+    Optional<Vote> findByUserIdAndIdeaId(Integer userId, Integer ideaId);
+
+    // A resident's votes with the idea and its neighborhood, newest first ("My votes")
+    @EntityGraph(attributePaths = {"idea", "idea.neighborhood"})
+    List<Vote> findByUserIdOrderByCreatedAtDesc(Integer userId);
+
+    // Used when the founder withdraws the idea
+    void deleteByIdeaId(Integer ideaId);
 }

@@ -1,16 +1,19 @@
 package com.waleed.naseej.service;
 
 import com.waleed.naseej.dto.in.ProposeIdeaRequest;
+import com.waleed.naseej.dto.in.UpdateIdeaRequest;
 import com.waleed.naseej.dto.in.VoteRequest;
 import com.waleed.naseej.dto.out.IdeaCheckResponse;
 import com.waleed.naseej.dto.out.IdeaDetailResponse;
 import com.waleed.naseej.dto.out.MapIdeaResponse;
+import com.waleed.naseej.dto.out.MessageResponse;
 import com.waleed.naseej.entity.FoundingMember;
 import com.waleed.naseej.entity.Idea;
 import com.waleed.naseej.entity.IdeaCheck;
 import com.waleed.naseej.entity.Neighborhood;
 import com.waleed.naseej.entity.User;
 import com.waleed.naseej.entity.Vote;
+import com.waleed.naseej.enums.ContractStatus;
 import com.waleed.naseej.enums.IdeaStatus;
 import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.Role;
@@ -20,10 +23,12 @@ import com.waleed.naseej.exception.DuplicateResourceException;
 import com.waleed.naseej.exception.ForbiddenException;
 import com.waleed.naseej.exception.ResourceNotFoundException;
 import com.waleed.naseej.repository.BusinessModelRepository;
+import com.waleed.naseej.repository.ContractRepository;
 import com.waleed.naseej.repository.FeasibilityReportRepository;
 import com.waleed.naseej.repository.FoundingMemberRepository;
 import com.waleed.naseej.repository.IdeaCheckRepository;
 import com.waleed.naseej.repository.IdeaRepository;
+import com.waleed.naseej.repository.NearbyPlaceRepository;
 import com.waleed.naseej.repository.NeighborhoodRepository;
 import com.waleed.naseej.repository.OpportunityAccessRepository;
 import com.waleed.naseej.repository.UserRepository;
@@ -32,7 +37,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,7 +47,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The resident and investor side of ideas: the map around the user, the idea page (filtered by who is looking),
- * proposing an idea (AI check → published or rejected) and voting inside the voting radius.
+ * proposing an idea (AI check → published or rejected), voting inside the voting radius (and taking a vote back),
+ * and the founder editing or withdrawing an idea.
  */
 @Service
 @RequiredArgsConstructor
@@ -70,6 +78,9 @@ public class DiscoverService {
     private final FeasibilityReportService feasibilityReportService;
     private final NearbyPlaceService nearbyPlaceService;
     private final LocationService locationService;
+    private final ContractRepository contractRepository;
+    private final NearbyPlaceRepository nearbyPlaceRepository;
+    private final N8nService n8nService;
 
     // ---------- Map ----------
 
@@ -126,7 +137,8 @@ public class DiscoverService {
         User user = getUser(currentUser.getId());
         Idea idea = getIdea(ideaId);
         boolean founder = idea.getOwner().getId().equals(user.getId());
-        boolean hidden = idea.getStatus() == IdeaStatus.SCREENING || idea.getStatus() == IdeaStatus.REJECTED;
+        boolean hidden = idea.getStatus() == IdeaStatus.SCREENING || idea.getStatus() == IdeaStatus.REJECTED
+                || idea.getStatus() == IdeaStatus.HIDDEN;
         if (hidden && !founder && user.getRole() != Role.ADMIN) {
             throw new ResourceNotFoundException("Idea not found with id: " + ideaId);
         }
@@ -285,8 +297,125 @@ public class DiscoverService {
             idea.setStatus(IdeaStatus.COMPLETED);
             idea.setConfirmedAt(LocalDateTime.now());
             ideaRepository.save(idea);
+            // n8n generates the alerts: investors interested in the neighborhood, and the founder
+            n8nService.sendEvent("IDEA_COMPLETED", completedEventData(idea, votes));
         }
         return buildDetail(idea, user, null, null, List.of());
+    }
+
+    /** A resident takes their vote back. Only while the idea is still collecting votes. */
+    @Transactional
+    public IdeaDetailResponse unvote(User currentUser, Integer ideaId) {
+        User user = getUser(currentUser.getId());
+        if (user.getRole() != Role.RESIDENT) {
+            throw new ForbiddenException("Only residents vote");
+        }
+        Idea idea = getIdea(ideaId);
+        Vote vote = voteRepository.findByUserIdAndIdeaId(user.getId(), ideaId)
+                .orElseThrow(() -> new ResourceNotFoundException("You haven't voted for this idea"));
+        if (idea.getStatus() != IdeaStatus.PUBLISHED) {
+            throw new BadRequestException("Votes are locked once the idea reaches its target");
+        }
+        voteRepository.delete(vote);
+        return buildDetail(idea, user, null, null, List.of());
+    }
+
+    /** Ideas the resident voted for, newest vote first, to follow them until they open. */
+    public List<IdeaDetailResponse> myVotes(User currentUser) {
+        User user = getUser(currentUser.getId());
+        if (user.getRole() != Role.RESIDENT) {
+            throw new ForbiddenException("Only residents vote");
+        }
+        return voteRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(Vote::getIdea)
+                .filter(idea -> idea.getStatus() != IdeaStatus.HIDDEN)
+                .map(idea -> buildDetail(idea, user, null, null, List.of()))
+                .toList();
+    }
+
+    // ---------- Founder: edit and withdraw ----------
+
+    /**
+     * The founder edits a published idea. The category and the place stay as the AI screened them,
+     * and the title is locked once neighbors voted for it.
+     */
+    public IdeaDetailResponse updateIdea(User currentUser, Integer ideaId, UpdateIdeaRequest request) {
+        User user = getUser(currentUser.getId());
+        Idea idea = getIdea(ideaId);
+        ensureFounder(idea, user);
+        if (idea.getStatus() != IdeaStatus.PUBLISHED) {
+            throw new BadRequestException("Only an idea that is still collecting votes can be edited");
+        }
+        String title = request.getTitle() == null || request.getTitle().isBlank() ? null : request.getTitle().trim();
+        String description = request.getDescription() == null || request.getDescription().isBlank()
+                ? null : request.getDescription().trim();
+        if (title == null && description == null) {
+            throw new BadRequestException("Send a new title or description");
+        }
+        if (title != null && !title.equals(idea.getTitle()) && voteRepository.countByIdeaId(ideaId) > 0) {
+            throw new BadRequestException("Neighbors already voted for this title. You can still edit the description");
+        }
+        if (title != null) {
+            idea.setTitle(title);
+        }
+        if (description != null) {
+            idea.setDescription(description);
+        }
+        ideaRepository.save(idea);
+        return buildDetail(getIdea(ideaId), user, null, null, List.of());
+    }
+
+    /**
+     * The founder withdraws an idea that is still collecting votes, or cleans up a rejected one.
+     * Its votes, AI check, competitors, business model and report go with it.
+     */
+    @Transactional
+    public MessageResponse deleteIdea(User currentUser, Integer ideaId) {
+        User user = getUser(currentUser.getId());
+        Idea idea = getIdea(ideaId);
+        ensureFounder(idea, user);
+        if (idea.getStatus() != IdeaStatus.PUBLISHED && idea.getStatus() != IdeaStatus.REJECTED) {
+            throw new BadRequestException("Only an idea that is still collecting votes, or a rejected one, can be withdrawn");
+        }
+        if (!contractRepository.findByIdeaId(ideaId).isEmpty() || opportunityAccessRepository.countByIdeaId(ideaId) > 0) {
+            throw new BadRequestException("This idea has an investor history, so it can't be deleted");
+        }
+
+        // Other ideas' checks that pointed at this one as "similar" keep their result without the link
+        ideaCheckRepository.findBySimilarIdeaId(ideaId).forEach(check -> {
+            check.setSimilarIdea(null);
+            ideaCheckRepository.save(check);
+        });
+        voteRepository.deleteByIdeaId(ideaId);
+        nearbyPlaceRepository.deleteAllForIdea(ideaId);
+        businessModelRepository.findByIdeaId(ideaId).ifPresent(businessModelRepository::delete);
+        feasibilityReportRepository.findByIdeaId(ideaId).ifPresent(feasibilityReportRepository::delete);
+        ideaCheckRepository.findByIdeaId(ideaId).ifPresent(ideaCheckRepository::delete);
+        foundingMemberRepository.deleteByIdeaId(ideaId);
+        ideaRepository.delete(idea);
+        return new MessageResponse("Idea \"" + idea.getTitle() + "\" was withdrawn");
+    }
+
+    private static void ensureFounder(Idea idea, User user) {
+        if (!idea.getOwner().getId().equals(user.getId())) {
+            throw new ForbiddenException("Only the idea's creator can do this");
+        }
+    }
+
+    private Map<String, Object> completedEventData(Idea idea, long votes) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("ideaId", idea.getId());
+        data.put("title", idea.getTitle());
+        data.put("category", idea.getCategory());
+        data.put("neighborhood", idea.getNeighborhood().getName());
+        data.put("city", idea.getNeighborhood().getCity());
+        data.put("votes", votes);
+        data.put("threshold", threshold(idea));
+        data.put("founderName", idea.getOwner().getFullName());
+        data.put("founderEmail", idea.getOwner().getEmail());
+        data.put("founderPhone", idea.getOwner().getPhone());
+        data.put("founderWhatsappOptIn", idea.getOwner().getWhatsappOptIn());
+        return data;
     }
 
     // ---------- Building the idea page ----------
@@ -335,7 +464,15 @@ public class DiscoverService {
                     .distanceKm(km)
                     .inRange(inRange)
                     .voted(hasVoted)
-                    .canVote(!founder && inRange && !hasVoted && idea.getStatus() == IdeaStatus.PUBLISHED);
+                    .canVote(!founder && inRange && !hasVoted && idea.getStatus() == IdeaStatus.PUBLISHED)
+                    .canUnvote(hasVoted && idea.getStatus() == IdeaStatus.PUBLISHED);
+        }
+
+        if (founder) {
+            boolean collecting = idea.getStatus() == IdeaStatus.PUBLISHED;
+            out.canEdit(collecting)
+                    .canDelete(collecting || idea.getStatus() == IdeaStatus.REJECTED)
+                    .canReviseBusinessModel(collecting && businessModelRepository.existsByIdeaId(idea.getId()));
         }
 
         if (seesNumbers) {
@@ -366,8 +503,12 @@ public class DiscoverService {
 
         if (investor) {
             InvestorStatus status = viewer.getInvestorStatus() != null ? viewer.getInvestorStatus() : InvestorStatus.PENDING;
-            boolean unlocked = opportunityAccessRepository.existsByInvestorIdAndIdeaId(viewer.getId(), idea.getId());
-            boolean adopted = opportunityAccessRepository.existsByIdeaId(idea.getId());
+            // Only live contracts count: an expired or refunded adoption gives the idea back to the investors
+            boolean unlocked = contractRepository.existsByIdeaIdAndInvestorIdAndStatusNot(
+                    idea.getId(), viewer.getId(), ContractStatus.TERMINATED);
+            boolean adopted = contractRepository.existsByIdeaIdAndStatusNot(idea.getId(), ContractStatus.TERMINATED);
+            boolean heldBefore = !unlocked
+                    && opportunityAccessRepository.existsByInvestorIdAndIdeaId(viewer.getId(), idea.getId());
             out.investorStatus(status)
                     .unlocked(unlocked)
                     .adopted(adopted);
@@ -384,12 +525,14 @@ public class DiscoverService {
                         : "Your account is under review. You can unlock after the admin verifies your CR";
             } else if (adopted) {
                 blocked = unlocked ? "You already adopted this idea" : "Another investor already adopted this idea";
+            } else if (heldBefore) {
+                blocked = "Your earlier adoption of this idea ended, so it's now open to other investors";
             } else if (!founder && idea.getStatus() != IdeaStatus.COMPLETED) {
                 blocked = "Unlocking opens when the idea reaches 100% of its vote target";
             }
             boolean openForOwner = idea.getStatus() == IdeaStatus.PUBLISHED || idea.getStatus() == IdeaStatus.COMPLETED;
             out.canUnlock(blocked == null && !founder)
-                    .canAdopt(founder && status == InvestorStatus.VERIFIED && !adopted && openForOwner)
+                    .canAdopt(founder && status == InvestorStatus.VERIFIED && !adopted && !heldBefore && openForOwner)
                     .unlockBlockedReason(founder ? null : blocked);
         }
         return out.build();
