@@ -1,8 +1,9 @@
 // Google sign-up: step 1 choose the membership, step 2 the role's own form.
+// Investors only confirm here; their preferences come next in onboarding.html and the CR at the first unlock.
 import { api, session } from '../api.js';
 import { $, homeFor, toast, withLoading, applyFieldErrors, errorMessage, initPage, t } from '../ui.js';
 import { langButton } from '../i18n.js';
-import { setupLocationCard, setupInvestorFields, checkInvestor, showFieldError } from '../profile-fields.js';
+import { setupLocationCard, showFieldError } from '../profile-fields.js';
 
 $('#lang-slot').innerHTML = langButton();
 initPage();
@@ -11,7 +12,6 @@ if (!session.isLoggedIn()) location.replace('login.html');
 const form = $('#role-form');
 let role = null;
 let location$ = null;
-const investor$ = setupInvestorFields(form);
 
 // Only PENDING users belong here
 api.get('auth/me').then((user) => {
@@ -48,20 +48,13 @@ form.addEventListener('submit', (e) => {
       showFieldError(form, 'neighborhoodId', t('form.chooseYourHood'));
       return;
     }
-  } else {
-    const inv = investor$.values();
-    const problem = checkInvestor(inv);
-    if (problem) {
-      showFieldError(form, problem[0], problem[1]);
-      return;
-    }
-    Object.assign(body, inv);
   }
   withLoading(form.querySelector('[type="submit"]'), async () => {
     try {
       const auth = await api.put('auth/select-role', body);
       session.save(auth);
-      location.replace(homeFor(auth.user));
+      // New investors answer the onboarding questions first
+      location.replace(auth.user.role === 'INVESTOR' ? 'onboarding.html' : homeFor(auth.user));
     } catch (err) {
       if (!applyFieldErrors(form, err)) toast(errorMessage(err), 'error');
     }

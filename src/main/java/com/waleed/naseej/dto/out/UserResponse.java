@@ -31,6 +31,11 @@ public class UserResponse {
     private Double longitude;
     private String crNumber;
     private String investmentBudget;
+    private Long budgetMin;
+    private Long budgetMax;
     private String investmentFields;
+    private String investmentFieldsOther;
+    private String investmentFieldsOtherCategories;
+    private String investmentAreas;
     private InvestorStatus investorStatus;
 }

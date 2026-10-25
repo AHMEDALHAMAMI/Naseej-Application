@@ -50,7 +50,8 @@ $('#otp-form').addEventListener('submit', (e) => {
       const auth = await api.post('auth/verify-otp', { email, code: code(), purpose: 'REGISTER' }, { auth: false });
       session.save(auth);
       toast(t('verify.done'), 'success');
-      location.replace(homeFor(auth.user));
+      // New investors answer the onboarding questions first
+      location.replace(auth.user?.role === 'INVESTOR' ? 'onboarding.html' : homeFor(auth.user));
     } catch (err) {
       toast(errorMessage(err), 'error');
       inputs.forEach((x) => { x.value = ''; });

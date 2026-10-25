@@ -84,18 +84,36 @@ public class User {
 
     // ---------- Investor profile (only for role INVESTOR) ----------
 
+    // Added later, when the investor first wants to unlock; null until then
     @Column(length = 10)
     private String crNumber;
 
-    // UP_TO_300K, FROM_300K_TO_700K or ABOVE_700K
+    // UP_TO_300K, FROM_300K_TO_700K, ABOVE_700K or CUSTOM (then budgetMin / budgetMax hold the range)
     @Column(length = 20)
     private String investmentBudget;
+
+    // Custom budget range in SAR; either end may be empty
+    private Long budgetMin;
+
+    private Long budgetMax;
 
     // Comma-separated fields, e.g. "FOOD,HEALTH"
     @Column(length = 200)
     private String investmentFields;
 
-    // Null for non-investors. An investor waits as PENDING until an admin checks the CR
+    // A field the investor typed in their own words, e.g. "car wash"
+    @Column(length = 200)
+    private String investmentFieldsOther;
+
+    // The idea categories the AI matched to investmentFieldsOther, comma-separated (empty when the AI is off)
+    @Column(length = 300)
+    private String investmentFieldsOtherCategories;
+
+    // Neighborhood ids the investor wants to invest in, comma-separated
+    @Column(length = 500)
+    private String investmentAreas;
+
+    // Null for non-investors. PENDING with no CR means "not submitted yet"; with a CR it waits for the admin
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private InvestorStatus investorStatus;

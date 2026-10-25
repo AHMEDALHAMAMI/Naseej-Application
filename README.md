@@ -210,17 +210,27 @@ The website lives in `src/main/resources/static` and is served by the same Sprin
 | Page | Who | What it does |
 |---|---|---|
 | `index.html` | everyone | Landing page, live numbers, map of open ideas near the visitor (asks for location) |
-| `register.html` / `verify.html` | new users | Email sign-up with the role chosen in the form, neighborhood filled from the location, email code |
+| `register.html` / `verify.html` | new users | Email sign-up with the role chosen in the form (residents add their neighborhood; investors only the account), email code |
 | `choose-role.html` | Google sign-up | Step 1 membership, step 2 the role's form |
+| `onboarding.html` | new investors | Three skippable questions after sign-up: budget (preset or custom range), fields (or "something else" in their own words), neighborhoods |
 | `resident.html` | residents | Map centered on the user with the 2 km voting radius, vote / view details (no vote counts) |
 | `idea.html` | everyone logged in | Idea page; founder and investors also see votes and the business model |
 | `propose.html` | residents, investors | AI check → published or rejected (similar ideas are rejected); investors can adopt their own idea |
-| `investor.html` | investors | Saudi map → city → neighborhood → opportunities, pending/verified state |
-| `unlock.html` | verified investors | AI-priced upfront payment (Moyasar) or 5% success partnership |
-| `projects.html` | investors, founders | Adopted projects with execution stages and progress |
+| `investor.html` | investors | **For you**: the list and the map side by side. *Your fit* shows the opportunities that match the investor's preferences (ready-to-unlock first); *All* shows every opportunity with field and budget filters. Zoomed out, the map groups pins by city |
+| `ask.html` | investors | **Ask AI**: a question in plain words → the filters the AI understood → matching opportunities |
+| `unlock.html` | investors | One payment (Moyasar, AI-priced) or 5% success partnership; asks for the CR here if it's missing |
+| `contract.html` | investors, founders | The contract after unlocking/adopting, step by step: benefits → investor signs → idea owner signs → active |
+| `projects.html` | investors, founders | Investors: two tabs, projects (status, deadline, progress) and their ideas |
+| `account.html` | investors | **Account** (from the avatar menu): details, investment preferences, CR verification, WhatsApp alerts, language |
 | `admin.html` | admin | Dashboard charts and investor verification |
 
 Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and Chart.js 4.4.1.
+
+**Language and voice.** Arabic is the default (English is one tap away and remembered). All text lives in `assets/js/strings.js`, so the wording can change without touching the pages. The investor side speaks casual Saudi dialect, gender-neutral where possible, and stays calm and plain on payment and contract screens.
+
+**Demo data for the investor side.** In Postman, the folder **16 - Investor demo dataset** (in both collections) fills an empty database with a full investor experience: 11 neighborhoods in Riyadh, Jeddah and Al Khobar, 176 residents, 14 ideas with business models, AI checks and competitors, real resident votes (7 ideas ready to unlock, the rest still collecting), feasibility reports and three investor accounts (`investor.demo@naseej.test` verified with preferences and a draft contract, `investor.two@naseej.test` verified, `investor.new@naseej.test` brand new). Set `adminEmail` / `adminPassword` in the collection variables, then *Run folder*. Every account's password is `demoPassword` (default `Demo12345`). Running it again only adds what's missing. Unlock prices are quoted by Claude, so set `CLAUDE_API_KEY` to try the payment option.
+
+**Investor flow.** Sign up (no CR) → onboarding questions → For you. The CR is asked for only when the investor first unlocks an opportunity (or from the account page); until an admin verifies it, browsing is open and unlocking is not. The menu has For you (with the map), Ask AI and My projects; the account opens from the avatar menu.
 
 ### Website endpoints
 
@@ -245,7 +255,8 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | PUT | `/discover/idea/{id}` | founder | Edit title/description of a published idea (title locked once someone voted) |
 | DELETE | `/discover/idea/{id}` | founder | Withdraw a published idea or delete a rejected one |
 | PUT | `/discover/idea/{id}/business-model/chat` | founder | Change the business model in your own words (Claude rewrites it) |
-| PUT | `/auth/me` | logged in | Edit profile; a new CR number sends an investor back to admin review |
+| PUT | `/auth/me` | logged in | Edit profile; a new CR number sends an investor back to admin review. Investors also send `investmentBudget` (a preset or `CUSTOM` with `budgetMin` / `budgetMax`), `investmentFields`, `investmentFieldsOther` (own words; the AI matches it to idea categories) and `investmentAreas` (neighborhood ids). An empty string clears a field |
+| POST | `/explore/ask` | investor | `{ "question": "…" }` → the filters the AI read (city, neighborhood, category, capital, ready to open) and the matching opportunities |
 | PUT | `/projects/{contractId}/benefits` | investor | Set the founding members' and idea owner's discounts (required before signing) |
 | POST | `/projects/{contractId}/sign-otp` | investor, founder | Email the 6-digit signing code to the party whose turn it is |
 | POST | `/projects/{contractId}/sign` | investor, founder | Sign: typed full name + drawn signature + code; the last signature activates the contract |

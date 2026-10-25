@@ -1,11 +1,26 @@
-// My ideas & projects: the ideas I founded (with their status) and adopted projects with execution progress.
+// My projects. Investors get two tabs, each its own topic: projects (contract status, opening progress,
+// deadline) and the ideas they proposed. Residents keep both lists on one page.
 import { api } from '../api.js';
-import { $, $$, esc, fmt, guard, icon, toast, withLoading, errorMessage, statusBadge, progressBar, animateBars, emptyState, skeletonCards, label, categoryLabel, stageLabel, t } from '../ui.js';
-import { serverText } from '../i18n.js';
+import { $, $$, esc, fmt, guard, icon, toast, withLoading, errorMessage, statusBadge, progressBar, animateBars, emptyState, skeletonCards, label, categoryLabel, stageLabel, cityLabel, placeLabel, t } from '../ui.js';
+import { serverText, tn } from '../i18n.js';
 
 const user = await guard(['RESIDENT', 'INVESTOR']);
 const isInvestor = user.role === 'INVESTOR';
 const app = $('#app');
+
+const projectsSection = `
+  <section class="stack" style="gap:16px" aria-labelledby="projects-h" id="tab-projects">
+    <h2 id="projects-h" class="${isInvestor ? 'sr-only' : ''}" style="font-size:28px">${esc(t('proj.inProgress'))}</h2>
+    <div class="stack" id="projects" style="gap:16px">${skeletonCards(2, 220)}</div>
+  </section>`;
+const ideasSection = `
+  <section class="stack${isInvestor ? ' hidden' : ''}" style="gap:16px;${isInvestor ? '' : 'margin-top:40px'}" aria-labelledby="ideas-h" id="tab-ideas">
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <div class="stack" style="gap:4px"><h2 id="ideas-h" style="font-size:28px">${esc(t('proj.myIdeas'))}</h2>${isInvestor ? `<p class="small muted">${esc(t('proj.myIdeasText'))}</p>` : ''}</div>
+      <a class="btn btn-secondary" href="propose.html">${icon.spark} ${esc(t('nav.propose'))}</a>
+    </div>
+    <div class="grid grid-3" id="ideas">${skeletonCards(3, 150)}</div>
+  </section>`;
 
 app.innerHTML = `
   <div class="page-head">
@@ -13,18 +28,48 @@ app.innerHTML = `
       <span class="eyebrow">${esc(t(isInvestor ? 'role.INVESTOR' : 'proj.founder'))}</span>
       <h1>${esc(t(isInvestor ? 'proj.titleInvestor' : 'proj.titleResident'))}</h1>
     </div>
-    <a class="btn btn-secondary" href="propose.html">${icon.spark} ${esc(t('nav.propose'))}</a>
+    ${isInvestor ? `
+      <div class="segmented tabs" role="tablist" aria-label="${esc(t('proj.tabs'))}">
+        <button type="button" role="tab" id="t-projects" aria-controls="tab-projects" aria-selected="true" aria-pressed="true">${esc(t('proj.inProgress'))}</button>
+        <button type="button" role="tab" id="t-ideas" aria-controls="tab-ideas" aria-selected="false" aria-pressed="false">${esc(t('proj.myIdeas'))}</button>
+      </div>` : `<a class="btn btn-secondary" href="propose.html">${icon.spark} ${esc(t('nav.propose'))}</a>`}
   </div>
-  <section class="stack" style="gap:16px;margin-bottom:40px" aria-labelledby="projects-h">
-    <h2 id="projects-h" style="font-size:28px">${esc(t('proj.inProgress'))}</h2>
-    <div class="stack" id="projects" style="gap:16px">${skeletonCards(2, 220)}</div>
-  </section>
-  <section class="stack" style="gap:16px" aria-labelledby="ideas-h">
-    <h2 id="ideas-h" style="font-size:28px">${esc(t('proj.myIdeas'))}</h2>
-    <div class="grid grid-3" id="ideas">${skeletonCards(3, 150)}</div>
-  </section>`;
+  ${projectsSection}
+  ${ideasSection}`;
+
+if (isInvestor) {
+  const show = (tab) => {
+    const ideas = tab === 'ideas';
+    $('#tab-projects').classList.toggle('hidden', ideas);
+    $('#tab-ideas').classList.toggle('hidden', !ideas);
+    $('#t-projects').setAttribute('aria-selected', String(!ideas));
+    $('#t-projects').setAttribute('aria-pressed', String(!ideas));
+    $('#t-ideas').setAttribute('aria-selected', String(ideas));
+    $('#t-ideas').setAttribute('aria-pressed', String(ideas));
+    history.replaceState(null, '', ideas ? '#ideas' : location.pathname + location.search);
+  };
+  $('#t-projects').addEventListener('click', () => show('projects'));
+  $('#t-ideas').addEventListener('click', () => show('ideas'));
+  if (location.hash === '#ideas') show('ideas');
+}
+
+// ---------- Project card ----------
+
+function statusLine(p) {
+  const key = p.nextStep === 'FOUNDER_SIGN' && p.myRole !== 'INVESTOR' ? 'proj.next.FOUNDER_SIGN.mine' : `proj.next.${p.nextStep}`;
+  const text = t(key);
+  return text === key ? '' : text;
+}
+
+function deadlineText(p) {
+  if (!p.openingDeadline || p.nextStep !== 'IN_PROGRESS') return '';
+  const days = Math.ceil((new Date(`${p.openingDeadline}T23:59:59`) - new Date()) / 86400000);
+  return days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed');
+}
 
 function projectCard(p) {
+  const needsMe = (p.myRole === 'INVESTOR' && (p.nextStep === 'SET_BENEFITS' || p.nextStep === 'INVESTOR_SIGN')) || p.canSign;
+  const running = p.nextStep === 'IN_PROGRESS' || p.nextStep === 'OPENED';
   const stages = p.stages.map((s, i) => `<li class="${i <= p.stageIndex ? 'done' : ''} ${i === p.stageIndex ? 'current' : ''}">${esc(stageLabel(s))}</li>`).join('');
   const updates = [...(p.updates || [])].reverse();
   const nextStages = p.stages.slice(p.stageIndex + 1);
@@ -38,26 +83,30 @@ function projectCard(p) {
           <input class="input" id="note-${p.contractId}" name="note" maxlength="1000" placeholder="${esc(t('proj.notePlaceholder'))}"></div>
       </div>
       <button class="btn btn-sm" type="submit" style="align-self:flex-start" data-loading="${esc(t('proj.posting'))}">${esc(t('proj.post'))}</button>
-    </form>`
-    : (p.myRole === 'INVESTOR' && p.stageIndex < p.stages.length - 1 && p.nextUpdateAllowedAt
-      ? `<span class="small muted">${esc(t('proj.nextUpdate', { date: fmt.date(p.nextUpdateAllowedAt) }))}</span>` : '');
-
+    </form>` : '';
   const other = p.myRole === 'INVESTOR' ? t('proj.founderName', { name: p.founderName }) : t('proj.investorName', { name: p.investorName });
+  const deadline = deadlineText(p);
+
   return `
-    <article class="card stack" style="gap:16px">
+    <article class="card stack project-card" style="gap:16px">
       <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div class="stack" style="gap:4px">
           <div class="row" style="gap:8px"><span class="badge ${p.myRole === 'INVESTOR' ? 'badge-solid' : ''}">${esc(t(p.myRole === 'INVESTOR' ? 'proj.youInvestor' : 'proj.youFounder'))}</span><span class="badge badge-sand">${esc(label('access', p.accessType))}</span></div>
           <h3 class="project-title" style="font-size:20px;margin-top:6px"><a href="idea.html?id=${p.ideaId}" style="color:inherit;text-decoration:none">${esc(p.ideaTitle)}</a></h3>
-          <span class="small muted">${esc(p.neighborhoodName)}, ${esc(p.city)} · ${esc(t('proj.contract', { n: p.contractNumber }))} · ${esc(t('proj.since', { date: fmt.date(p.activatedAt) }))}</span>
+          <span class="small muted">${esc(placeLabel(p.neighborhoodName, p.city))} · ${esc(t('proj.contract', { n: p.contractNumber }))}</span>
           <span class="small muted">${esc(other)}${p.accessType === 'PARTNERSHIP' ? ` · ${esc(t('proj.profitShare'))}` : ''}</span>
         </div>
-        <div class="stack" style="align-items:center;gap:6px"><div class="ring" style="--p:${p.progressPercent}"><div><strong>${p.progressPercent}%</strong><span>${esc(t('proj.done'))}</span></div></div><span class="small" style="font-weight:600">${esc(stageLabel(p.currentStage))}</span></div>
+        ${running ? `<div class="stack" style="align-items:center;gap:6px"><div class="ring" style="--p:${p.progressPercent}"><div><strong>${p.progressPercent}%</strong><span>${esc(t('proj.done'))}</span></div></div><span class="small" style="font-weight:600">${esc(stageLabel(p.currentStage))}</span></div>` : ''}
       </div>
-      ${progressBar(p.progressPercent, t('proj.execProgress'))}
-      <ol class="stages" aria-label="${esc(t('proj.stages'))}">${stages}</ol>
-      ${updates.length ? `<ul class="list">${updates.map((u) => `<li><span><strong>${esc(stageLabel(u.stage))}</strong>${u.note ? ` · ${esc(u.note)}` : ''}</span><span class="small muted">${fmt.date(u.createdAt)}</span></li>`).join('')}</ul>` : `<span class="small muted">${esc(t('proj.noUpdates'))}</span>`}
-      ${form}
+      <div class="project-status ${needsMe ? 'is-action' : ''}">
+        <span>${needsMe ? icon.info : icon.check} <strong>${esc(statusLine(p))}</strong>${deadline ? ` · <span class="muted">${esc(deadline)}</span>` : ''}</span>
+        <a class="btn btn-sm ${needsMe ? '' : 'btn-secondary'}" href="contract.html?id=${p.contractId}">${esc(t(needsMe ? 'proj.continue' : 'proj.viewContract'))}</a>
+      </div>
+      ${running ? `
+        ${progressBar(p.progressPercent, t('proj.execProgress'))}
+        <ol class="stages" aria-label="${esc(t('proj.stages'))}">${stages}</ol>
+        ${updates.length ? `<ul class="list">${updates.map((u) => `<li><span><strong>${esc(stageLabel(u.stage))}</strong>${u.note ? ` · ${esc(u.note)}` : ''}</span><span class="small muted">${fmt.date(u.createdAt)}</span></li>`).join('')}</ul>` : `<span class="small muted">${esc(t('proj.noUpdates'))}</span>`}
+        ${form}` : ''}
     </article>`;
 }
 

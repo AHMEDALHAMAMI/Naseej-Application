@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2F5444">
-<script>try{var l=localStorage.getItem('naseej.lang');if(l!=='ar'&&l!=='en'){l=(navigator.language||'').toLowerCase().indexOf('ar')===0?'ar':'en';}document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';}catch(e){}</script>
+<script>try{var l=localStorage.getItem('naseej.lang');if(l!=='ar'&&l!=='en'){l='ar';}document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';}catch(e){}</script>
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,8 +17,8 @@
   <aside class="auth-aside">
     <a class="brand" href="index.html" style="color:#fff" data-i18n-attr="aria-label:brand.home"><img src="assets/img/mark-white.png" alt=""><span data-i18n="brand.name">NASEEJ</span></a>
     <div class="stack" style="gap:18px">
-      <h2 data-i18n-html="register.asideTitle"></h2>
-      <p data-i18n="register.asideText"></p>
+      <h2 id="aside-title" data-i18n-html="register.asideTitle"></h2>
+      <p id="aside-text" data-i18n="register.asideText"></p>
     </div>
     <span class="small" style="color:#C9D8CE" data-i18n="auth.asideFoot"></span>
     <img class="weave" src="assets/img/mark-white.png" alt="">
@@ -60,8 +60,15 @@
         </div>
         <div class="field">
           <label for="password" data-i18n="form.password"></label>
-          <input class="input" id="password" name="password" type="password" autocomplete="new-password" required minlength="8" dir="ltr">
-          <span class="hint" data-i18n="form.passwordHint"></span>
+          <div class="input-affix pw">
+            <input class="input" id="password" name="password" type="password" autocomplete="new-password" required minlength="8" dir="ltr" aria-describedby="pw-rules">
+            <button type="button" class="pw-toggle" id="pw-toggle" aria-pressed="false" data-i18n-attr="aria-label:pw.show"></button>
+          </div>
+          <ul class="pw-rules" id="pw-rules" aria-live="polite">
+            <li data-rule="len" data-i18n="pw.len"></li>
+            <li data-rule="letter" data-i18n="pw.letter"></li>
+            <li data-rule="digit" data-i18n="pw.digit"></li>
+          </ul>
           <span class="error" aria-live="polite"></span>
         </div>
         <div id="resident-fields" class="stack">
@@ -85,26 +92,7 @@
             <button type="button" class="btn btn-secondary btn-sm" id="detect" style="align-self:flex-start" data-i18n="loc.useMine" data-i18n-attr="data-loading:loc.locating"></button>
           </div>
         </div>
-        <div id="investor-fields" class="stack hidden">
-          <div class="field">
-            <label for="crNumber" data-i18n="inv.cr"></label>
-            <input class="input" id="crNumber" name="crNumber" inputmode="numeric" maxlength="10" data-i18n-attr="placeholder:inv.crPlaceholder" dir="ltr">
-            <span class="error" aria-live="polite"></span>
-          </div>
-          <div class="field">
-            <span class="label" id="budget-label" data-i18n="inv.budget"></span>
-            <div class="chips" role="group" aria-labelledby="budget-label" id="budget-chips"></div>
-            <input type="hidden" name="investmentBudget">
-            <span class="error" aria-live="polite"></span>
-          </div>
-          <div class="field">
-            <span class="label" id="fields-label" data-i18n="inv.fields"></span>
-            <div class="chips" role="group" aria-labelledby="fields-label" id="field-chips"></div>
-            <input type="hidden" name="investmentFields">
-            <span class="error" aria-live="polite"></span>
-          </div>
-          <div class="notice notice-warn"><span data-i18n-html="inv.reviewNote"></span></div>
-        </div>
+        <div id="investor-fields" class="notice notice-info hidden"><span data-i18n="register.investorHint"></span></div>
         <label class="check"><input type="checkbox" id="terms" required><span data-i18n="form.terms"></span></label>
         <button class="btn btn-block" type="submit" data-i18n="register.submit" data-i18n-attr="data-loading:register.loading"></button>
       </form>

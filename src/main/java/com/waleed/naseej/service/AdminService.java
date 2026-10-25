@@ -54,6 +54,8 @@ public class AdminService {
             case "PENDING" -> {
                 users = new ArrayList<>(userRepository.findByRoleAndInvestorStatusOrderByIdDesc(Role.INVESTOR, InvestorStatus.PENDING));
                 users.addAll(userRepository.findByRoleAndInvestorStatusIsNullOrderByIdDesc(Role.INVESTOR));
+                // Investors who haven't added a CR yet have nothing to review
+                users.removeIf(u -> u.getCrNumber() == null);
             }
             case "VERIFIED", "REJECTED" -> users = userRepository.findByRoleAndInvestorStatusOrderByIdDesc(
                     Role.INVESTOR, InvestorStatus.valueOf(value));
@@ -139,6 +141,9 @@ public class AdminService {
         if (user.getRole() != Role.INVESTOR) {
             throw new BadRequestException("This user isn't an investor");
         }
+        if (user.getCrNumber() == null) {
+            throw new BadRequestException("This investor hasn't added a commercial registration number yet");
+        }
         user.setInvestorStatus(status);
         user.setInvestorReviewedAt(LocalDateTime.now());
         return userService.toResponse(userRepository.save(user));
@@ -152,8 +157,11 @@ public class AdminService {
                 .toList();
 
         List<User> investors = userRepository.findByRoleOrderByIdDesc(Role.INVESTOR);
+        // Investors without a CR aren't waiting for review yet, so they don't count as pending
         Map<String, Long> byStatus = investors.stream().collect(Collectors.groupingBy(
-                u -> u.getInvestorStatus() == null ? InvestorStatus.PENDING.name() : u.getInvestorStatus().name(),
+                u -> u.getInvestorStatus() == InvestorStatus.VERIFIED || u.getInvestorStatus() == InvestorStatus.REJECTED
+                        ? u.getInvestorStatus().name()
+                        : (u.getCrNumber() == null ? "NO_CR" : InvestorStatus.PENDING.name()),
                 Collectors.counting()));
         List<LabelCountResponse> investorsByStatus = Arrays.stream(InvestorStatus.values())
                 .map(s -> count(s.name(), byStatus.getOrDefault(s.name(), 0L)))

@@ -1,7 +1,7 @@
 // Idea page. The server decides what each viewer may see:
 // residents never get vote counts or the business model; the founder and investors do.
 import { api } from '../api.js';
-import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, statusBadge, progressBar, animateBars, modal, label, categoryLabel, t } from '../ui.js';
+import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, statusBadge, progressBar, animateBars, modal, label, categoryLabel, cityLabel, placeLabel, shortRange, t } from '../ui.js';
 import { serverText } from '../i18n.js';
 import { createMap, pinIcon, meIcon, lastLocation } from '../maps.js';
 
@@ -10,7 +10,9 @@ const id = Number(params().get('id'));
 const app = $('#app');
 if (!id) location.replace('index.html');
 
-const backHref = user.role === 'INVESTOR' ? 'investor.html' : user.role === 'ADMIN' ? 'admin.html' : 'resident.html';
+// Back to where the investor came from (For you, Ask AI or the map), otherwise their home
+const sameSite = document.referrer && new URL(document.referrer).origin === location.origin && !document.referrer.includes('idea.html');
+const backHref = sameSite ? document.referrer : user.role === 'INVESTOR' ? 'investor.html' : user.role === 'ADMIN' ? 'admin.html' : 'resident.html';
 const backLink = (style = '') => `<a class="btn btn-ghost btn-sm" href="${backHref}" style="padding-inline-start:0;${style}">${icon.back} ${esc(t('common.back'))}</a>`;
 
 async function load() {
@@ -36,7 +38,7 @@ function render(idea) {
       <div class="stack" style="gap:10px">
         <div class="row">${statusBadge(idea.status)}${idea.founder ? `<span class="badge badge-sand">${esc(t('idea.founderBadge'))}</span>` : ''}${idea.category ? `<span class="badge badge-sand">${esc(categoryLabel(idea.category))}</span>` : ''}</div>
         <h1>${esc(idea.title)}</h1>
-        <span class="muted row" style="gap:6px">${icon.pin}${esc(idea.neighborhoodName)}, ${esc(idea.city)} · ${esc(serverText(idea.locationLabel || ''))}</span>
+        <span class="muted row" style="gap:6px">${icon.pin}${esc(placeLabel(idea.neighborhoodName, idea.city))} · ${esc(serverText(idea.locationLabel || ''))}</span>
       </div>
     </div>
     ${(idea.warnings || []).map((w) => `<div class="notice notice-warn" style="margin-bottom:12px">${icon.warn}<span>${esc(serverText(w))}</span></div>`).join('')}
@@ -49,7 +51,7 @@ function render(idea) {
           <div class="map" id="mini-map" style="height:280px" aria-label="${esc(t('idea.mapLabel'))}"></div>
         </section>
         ${idea.businessModel ? businessModelCard(idea.businessModel) : (seesNumbers && idea.founder && ['PUBLISHED', 'COMPLETED'].includes(idea.status) ? missingModelCard() : '')}
-        ${idea.feasibilityReport ? feasibilityCard(idea.feasibilityReport) : ''}
+        ${idea.feasibilityReport ? feasibilityCard(idea.feasibilityReport) : (isInvestor && !idea.unlocked && !idea.founder ? lockedStudyCard() : '')}
         ${checkCard(idea)}
       </div>
       <aside class="stack" style="gap:20px">
@@ -115,28 +117,49 @@ function votesCard(idea) {
 }
 
 function investorCard(idea) {
+  const verified = idea.investorStatus === 'VERIFIED';
+  const readyForAnyone = idea.status === 'COMPLETED' && !idea.adopted && !idea.founder;
   let action = '';
   if (idea.canAdopt) {
     action = `<button type="button" class="btn btn-block" id="adopt" data-loading="${esc(t('common.wait'))}">${esc(t('idea.adopt'))}</button>
       <span class="small muted">${esc(t('idea.adoptHint'))}</span>`;
   } else if (idea.unlocked) {
     action = `<div class="notice notice-info">${icon.check}<span>${esc(t('idea.youAdopted'))}</span></div><a class="btn btn-secondary btn-block" href="projects.html">${esc(t('idea.goProjects'))}</a>`;
-  } else if (idea.canUnlock) {
+  } else if (idea.canUnlock || (readyForAnyone && !verified)) {
+    // Not verified yet? The unlock page asks for the CR right there
     action = `<a class="btn btn-block" href="unlock.html?id=${idea.id}">${esc(t('idea.unlockBtn'))}</a>`;
+  } else if (idea.founder && !verified) {
+    action = `<div class="notice notice-warn">${icon.info}<span>${esc(t('prop.adoptAfter'))}</span></div><a class="btn btn-secondary btn-block" href="account.html">${esc(t('gate.goAccount'))}</a>`;
   } else {
     action = `<button type="button" class="btn btn-block" disabled>${icon.lock} ${esc(t('common.unlock'))}</button>
       <span class="small muted">${esc(serverText(idea.unlockBlockedReason || ''))}</span>`;
   }
-  const pending = idea.investorStatus && idea.investorStatus !== 'VERIFIED';
+  const capital = idea.businessModel?.estimatedCapitalMin != null
+    ? shortRange(idea.businessModel.estimatedCapitalMin, idea.businessModel.estimatedCapitalMax) : null;
+  const gets = idea.unlocked || idea.founder ? '' : `
+    <div class="stack" style="gap:8px">
+      <span class="small" style="font-weight:600">${esc(t('idea.afterUnlock'))}</span>
+      <ul class="ticks">
+        <li>${esc(t('idea.get1'))}</li><li>${esc(t('idea.get2'))}</li><li>${esc(t('idea.get3'))}</li>
+      </ul>
+    </div>`;
   return `<section class="card stack" style="gap:14px">
     <h2>${esc(t('idea.forInvestors'))}</h2>
-    ${pending ? `<div class="notice notice-warn">${icon.info}<span>${esc(idea.investorStatus === 'REJECTED' ? t('inv.rejected') : t('idea.underReview'))}</span></div>` : ''}
     <dl class="dl">
       <dt>${esc(t('idea.gapScore'))}</dt><dd>${idea.gapScore != null ? `<strong>${idea.gapScore}</strong>/100` : `<span class="muted">${esc(t('idea.afterQuote'))}</span>`}</dd>
-      <dt>${esc(t('idea.location'))}</dt><dd>${esc(serverText(idea.locationLabel || '—'))}</dd>
+      ${capital ? `<dt>${esc(t('idea.capital'))}</dt><dd class="num">${esc(capital)}</dd>` : ''}
       <dt>${esc(t('idea.status'))}</dt><dd>${esc(label('status', idea.status))}</dd>
     </dl>
+    ${gets}
     ${action}
+  </section>`;
+}
+
+function lockedStudyCard() {
+  return `<section class="card stack locked-card" style="gap:12px">
+    <div class="card-head" style="margin:0"><h2>${esc(t('idea.lockedStudy'))}</h2><span class="badge badge-sand">${icon.lock}</span></div>
+    <div class="locked-preview" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p class="small muted">${esc(t('idea.lockedText'))}</p>
   </section>`;
 }
 
@@ -213,7 +236,8 @@ function wire(idea) {
     });
     if (result) {
       toast(serverText(result.message) || t('adopt.done'), 'success');
-      location.href = 'projects.html';
+      // Next: the founding members' benefits and the signature
+      location.href = result.contractId ? `contract.html?id=${result.contractId}` : 'projects.html';
     }
   });
 

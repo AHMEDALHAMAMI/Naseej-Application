@@ -360,6 +360,9 @@ public class UnlockService {
 
     private void ensureVerified(User investor) {
         InvestorStatus status = investor.getInvestorStatus();
+        if (status != InvestorStatus.VERIFIED && investor.getCrNumber() == null) {
+            throw new ForbiddenException("Add your commercial registration number to unlock opportunities");
+        }
         if (status != InvestorStatus.VERIFIED) {
             throw new ForbiddenException(status == InvestorStatus.REJECTED
                     ? "Your investor account wasn't approved"

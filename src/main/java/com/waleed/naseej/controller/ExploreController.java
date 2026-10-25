@@ -1,16 +1,22 @@
 package com.waleed.naseej.controller;
 
+import com.waleed.naseej.dto.in.AskOpportunitiesRequest;
+import com.waleed.naseej.dto.out.AskOpportunitiesResponse;
 import com.waleed.naseej.dto.out.CityStatResponse;
 import com.waleed.naseej.dto.out.NeighborhoodStatResponse;
 import com.waleed.naseej.dto.out.OpportunityResponse;
 import com.waleed.naseej.entity.User;
+import com.waleed.naseej.service.AskService;
 import com.waleed.naseej.service.ExploreService;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +28,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExploreController {
 
     private final ExploreService exploreService;
+    private final AskService askService;
+
+    // "Ask the AI": a question in the investor's own words becomes search filters
+    @PostMapping("/ask")
+    public AskOpportunitiesResponse ask(@AuthenticationPrincipal User user,
+                                        @Valid @RequestBody AskOpportunitiesRequest request) {
+        return askService.ask(user, request);
+    }
 
     @GetMapping("/cities")
     public List<CityStatResponse> cities() {

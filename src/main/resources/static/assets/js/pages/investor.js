@@ -1,209 +1,236 @@
-// Investor home: Saudi map with cities → zoom into a city's neighborhoods → a neighborhood's opportunities.
+// "For you" with the map: the investor's home. The list and the map show the same opportunities.
+// "Your fit" = the ones that match the investor's preferences (budget, fields, areas); "All" = every
+// opportunity, with field and budget filters. Zoomed out, the map groups pins by city.
 import { api } from '../api.js';
-import { $, $$, esc, fmt, guard, icon, toast, errorMessage, statusBadge, label, progressBar, animateBars, emptyState, skeletonCards, categoryLabel, t } from '../ui.js';
-import { tn, serverText } from '../i18n.js';
+import { $, $$, esc, guard, t, emptyState, skeletonCards, animateBars, errorMessage, icon, LABELS, FIELD_CATEGORIES, BUDGET_RANGES, budgetRange, csv, categoryLabel, cityLabel } from '../ui.js';
+import { tn } from '../i18n.js';
+import { oppCard, isTaken } from '../opp-card.js';
+import { prefsSummary, hasPrefs, loadNeighborhoods } from '../investor-prefs.js';
 import { createMap, bubbleIcon, pinIcon, keyboardMarker, SAUDI_BOUNDS } from '../maps.js';
 
 const user = await guard(['INVESTOR']);
-const verified = user.investorStatus === 'VERIFIED';
 const app = $('#app');
+const firstName = (user.fullName || '').split(/\s+/)[0];
+const CITY_ZOOM = 10; // below this, pins are grouped by city
+
+const state = { mode: location.hash === '#all' ? 'all' : 'mine', field: '', budget: '', all: [], open: [], relaxed: false };
 
 app.innerHTML = `
-  ${verified ? '' : `<div class="notice ${user.investorStatus === 'REJECTED' ? 'notice-error' : 'notice-warn'}" style="margin-bottom:20px">${icon.info}
-    <span>${user.investorStatus === 'REJECTED'
-      ? t('inv.bannerRejected')
-      : t('inv.bannerPending')}</span></div>`}
   <div class="page-head">
     <div class="stack" style="gap:8px">
-      <span class="eyebrow">${esc(t('inv.eyebrow'))}</span>
-      <h1>${t('inv.title')}</h1>
+      <span class="eyebrow">${esc(t('fy.hello', { name: firstName }))}</span>
+      <h1 id="fy-title">${t('fy.title')}</h1>
+      <p class="prefs-line" id="prefs-line"></p>
     </div>
-    <a class="btn btn-secondary" href="propose.html">${icon.spark} ${esc(t('inv.proposeOwn'))}</a>
+    <div class="segmented" role="group" aria-label="${esc(t('fy.modes'))}">
+      <button type="button" data-mode="mine" aria-pressed="true">${esc(t('fy.modeMine'))}</button>
+      <button type="button" data-mode="all" aria-pressed="false">${esc(t('fy.modeAll'))}</button>
+    </div>
   </div>
-  <div class="grid grid-4" style="margin-bottom:24px" id="kpis">${skeletonCards(4, 92)}</div>
-  <div class="split">
-    <div class="stack" style="gap:12px">
-      <nav class="crumbs" aria-label="${esc(t('inv.mapLevel'))}" id="crumbs"></nav>
-      <div class="map map-tall" id="map" aria-label="${esc(t('inv.mapLabel'))}"></div>
+  <div class="fy-layout">
+    <div class="stack fy-list" style="gap:24px">
+      <form class="map-filters hidden" id="filters" aria-label="${esc(t('map.filters'))}">
+        <div class="field"><label for="f-field">${esc(t('map.field'))}</label>
+          <select class="select" id="f-field"><option value="">${esc(t('map.any'))}</option>${Object.entries(LABELS.field).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></div>
+        <div class="field"><label for="f-budget">${esc(t('map.budget'))}</label>
+          <select class="select" id="f-budget"><option value="">${esc(t('map.any'))}</option>${Object.entries(LABELS.budget).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select></div>
+      </form>
+      <div id="list" class="stack" style="gap:28px"><div class="opp-grid">${skeletonCards(2, 260)}</div></div>
     </div>
-    <div class="stack" style="gap:14px" id="side"></div>
+    <div class="fy-map-wrap">
+      <div class="map fy-map" id="map" aria-label="${esc(t('inv.mapLabel'))}"></div>
+      <button type="button" class="btn btn-secondary btn-sm fy-map-reset hidden" id="map-reset">${esc(t('fy.mapAll'))}</button>
+    </div>
   </div>`;
 
 const map = createMap($('#map'), { zoom: 5, minZoom: 4 });
 map.fitBounds(SAUDI_BOUNDS);
 const layer = L.layerGroup().addTo(map);
-let cities = [];
-let chart = null;
-const view = { city: null, hood: null };
+const markers = new Map(); // opportunity id → marker (only when pins are shown)
+let shown = [];
 
-// ---------- Level 1: cities ----------
-async function showCountry() {
-  view.city = null;
-  view.hood = null;
-  crumbs();
+// ---------- Matching (Your fit) ----------
+
+function matcher(u) {
+  const areas = new Set(csv(u.investmentAreas).map(Number));
+  const cats = new Set([
+    ...csv(u.investmentFields).flatMap((f) => FIELD_CATEGORIES[f] || []),
+    ...csv(u.investmentFieldsOtherCategories),
+  ]);
+  // Words from "something else", matched against the title and category only when the AI couldn't map them
+  const words = csv(u.investmentFieldsOtherCategories).length ? []
+    : (u.investmentFieldsOther || '').toLowerCase().split(/[\s,،]+/).filter((w) => w.length > 2);
+  const range = budgetRange(u);
+
+  const areaOk = (o) => !areas.size || areas.has(o.neighborhoodId);
+  const fieldOk = (o) => {
+    if (!cats.size && !words.length) return true;
+    if (cats.has(o.category)) return true;
+    const text = `${o.title} ${o.category} ${categoryLabel(o.category)}`.toLowerCase();
+    return words.some((w) => text.includes(w));
+  };
+  const budgetOk = (o) => fitsBudget(o, range);
+  return { areaOk, fieldOk, budgetOk };
+}
+
+// Capital unknown → keep it; otherwise the opportunity's range must overlap the budget
+function fitsBudget(o, range) {
+  if (!range || o.estimatedCapitalMin == null) return true;
+  const [lo, hi] = range;
+  const oMax = o.estimatedCapitalMax ?? o.estimatedCapitalMin;
+  return (hi == null || Number(o.estimatedCapitalMin) <= hi) && (lo == null || Number(oMax) >= lo);
+}
+
+/** The strict matches, or (when none) the closest ones by dropping area, then budget. */
+function pickMine(list, u) {
+  if (!hasPrefs(u)) return { items: list, relaxed: false };
+  const { areaOk, fieldOk, budgetOk } = matcher(u);
+  const tries = [(o) => areaOk(o) && fieldOk(o) && budgetOk(o), (o) => fieldOk(o) && budgetOk(o), (o) => fieldOk(o), () => true];
+  for (let i = 0; i < tries.length; i += 1) {
+    const found = list.filter(tries[i]);
+    if (found.length) return { items: found, relaxed: i > 0 };
+  }
+  return { items: [], relaxed: false };
+}
+
+function pickAll(list) {
+  const range = state.budget ? BUDGET_RANGES[state.budget] : null;
+  return list.filter((o) => (!state.field || (FIELD_CATEGORIES[state.field] || []).includes(o.category)) && fitsBudget(o, range));
+}
+
+// ---------- List ----------
+
+function drawList() {
+  const mine = state.mode === 'mine';
+  const picked = mine ? pickMine(state.open, user) : { items: pickAll(state.all), relaxed: false };
+  shown = picked.items;
+  const byStatus = (s) => shown.filter((o) => (s === 'TAKEN' ? isTaken(o) : o.status === s && !isTaken(o)));
+  const ready = byStatus('COMPLETED').sort((a, b) => (b.gapScore ?? -1) - (a.gapScore ?? -1) || b.votePercent - a.votePercent);
+  const rising = byStatus('PUBLISHED').sort((a, b) => b.votePercent - a.votePercent);
+  const taken = mine ? [] : byStatus('TAKEN');
+
+  const section = (title, list) => (list.length ? `
+    <section class="stack" style="gap:14px" aria-label="${esc(title)}">
+      <h2 class="section-title">${esc(title)} <span class="count">${list.length}</span></h2>
+      <div class="opp-grid">${list.map((o) => oppCard(o)).join('')}</div>
+    </section>` : '');
+
+  const box = $('#list');
+  if (!shown.length) {
+    box.innerHTML = state.all.length && !mine
+      ? emptyState(t('ask.none'), t('ask.noneText'))
+      : emptyState(t('fy.empty'), t('fy.emptyText'));
+  } else {
+    box.innerHTML = `
+      ${picked.relaxed ? `<div class="notice notice-info">${icon.info}<span>${esc(t('fy.relaxed'))}</span></div>` : ''}
+      ${section(t('fy.sectionReady'), ready)}
+      ${section(t('fy.sectionRising'), rising)}
+      ${section(t('fy.sectionTaken'), taken)}`;
+  }
+  animateBars(box);
+  // Card ↔ pin: hovering or focusing a card lights its pin
+  $$('.opp-card', box).forEach((card) => {
+    const id = Number(card.id.replace('opp-', ''));
+    const on = (active) => markers.get(id)?.getElement()?.querySelector('.pin')?.classList.toggle('active', active);
+    card.addEventListener('mouseenter', () => on(true));
+    card.addEventListener('mouseleave', () => on(false));
+    card.addEventListener('focusin', () => on(true));
+    card.addEventListener('focusout', () => on(false));
+  });
+}
+
+// ---------- Map ----------
+
+const located = () => shown.filter((o) => o.latitude != null);
+
+function fitToShown() {
+  const pts = located().map((o) => [o.latitude, o.longitude]);
+  if (pts.length) map.flyToBounds(L.latLngBounds(pts).pad(0.25), { duration: 0.8, maxZoom: 14 });
+  else map.flyToBounds(SAUDI_BOUNDS, { duration: 0.8 });
+}
+
+function drawMarkers() {
   layer.clearLayers();
-  map.flyToBounds(SAUDI_BOUNDS, { duration: 0.8 });
-  const side = $('#side');
-  side.innerHTML = skeletonCards(2, 160);
-  try {
-    cities = await api.get('explore/cities');
-  } catch (err) {
-    side.innerHTML = `<div class="notice notice-error">${icon.x}<span>${esc(errorMessage(err))}</span></div>`;
+  markers.clear();
+  const pts = located();
+  const cities = [...new Set(pts.map((o) => o.city))];
+  $('#map-reset').classList.toggle('hidden', map.getZoom() < CITY_ZOOM || cities.length < 2);
+
+  if (map.getZoom() < CITY_ZOOM && cities.length > 1) {
+    // Zoomed out: one bubble per city, tap to zoom in
+    cities.forEach((city) => {
+      const list = pts.filter((o) => o.city === city);
+      const lat = list.reduce((s, o) => s + o.latitude, 0) / list.length;
+      const lng = list.reduce((s, o) => s + o.longitude, 0) / list.length;
+      keyboardMarker(L.marker([lat, lng], { icon: bubbleIcon(list.length) }), `${cityLabel(city)}, ${tn(list.length, 'count.opps')}`)
+        .bindTooltip(cityLabel(city), { className: 'nsj-label', direction: 'bottom', permanent: true, offset: [0, 18] })
+        .on('click', () => map.flyToBounds(L.latLngBounds(list.map((o) => [o.latitude, o.longitude])).pad(0.3), { duration: 0.9, maxZoom: 15 }))
+        .addTo(layer);
+    });
     return;
   }
-  kpis();
-  if (!cities.length) {
-    side.innerHTML = emptyState(t('inv.noOpps'), t('inv.noOppsText'));
-    return;
-  }
-  cities.filter((c) => c.latitude != null).forEach((c) => {
-    keyboardMarker(L.marker([c.latitude, c.longitude], { icon: bubbleIcon(c.opportunities) }), `${c.city}, ${tn(c.opportunities, 'count.opps')}`)
-      .bindTooltip(c.city, { className: 'nsj-label', direction: 'bottom', permanent: true, offset: [0, 16] })
-      .on('click', () => showCity(c.city))
+  pts.forEach((o) => {
+    const kind = isTaken(o) ? 'muted' : o.status === 'COMPLETED' ? 'in-range' : '';
+    const marker = keyboardMarker(L.marker([o.latitude, o.longitude], { icon: pinIcon(kind) }), o.title)
+      .bindTooltip(`<strong>${esc(o.title)}</strong><br>${esc(o.neighborhoodName || '')} · ${esc(t('inv.ofTarget', { p: o.votePercent }))}`, { className: 'nsj-tip', direction: 'top' })
+      .on('click', () => {
+        const card = $(`#opp-${o.id}`);
+        if (!card) return;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        $$('.opp-card.active').forEach((c) => c.classList.remove('active'));
+        card.classList.add('active');
+      })
       .addTo(layer);
-  });
-  side.innerHTML = `
-    <section class="card stack" style="gap:12px">
-      <div class="card-head" style="margin:0"><h2>${esc(t('inv.byCity'))}</h2><span class="small muted">${esc(t('inv.tapCity'))}</span></div>
-      <div style="height:${Math.max(160, cities.length * 34)}px"><canvas id="city-chart" aria-label="${esc(t('inv.chartLabel'))}" role="img"></canvas></div>
-    </section>
-    <ul class="list" aria-label="${esc(t('inv.cities'))}">
-      ${cities.map((c) => `<li><button type="button" class="btn btn-ghost btn-sm" data-city="${esc(c.city)}" style="padding:0">${esc(c.city)}</button><span class="muted small num">${esc(tn(c.opportunities, 'count.opps'))} · ${esc(tn(c.neighborhoods, 'count.hoods'))}</span></li>`).join('')}
-    </ul>`;
-  $$('[data-city]').forEach((b) => b.addEventListener('click', () => showCity(b.dataset.city)));
-  drawCityChart();
-}
-
-function drawCityChart() {
-  if (!window.Chart) return;
-  chart?.destroy();
-  const top = cities.slice(0, 10);
-  chart = new Chart($('#city-chart'), {
-    type: 'bar',
-    data: {
-      labels: top.map((c) => c.city),
-      datasets: [{ data: top.map((c) => c.opportunities), backgroundColor: '#5A7D66', hoverBackgroundColor: '#2F5444', borderRadius: 6, barThickness: 18 }],
-    },
-    options: {
-      indexAxis: 'y',
-      maintainAspectRatio: false,
-      animation: { duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700 },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => tn(ctx.parsed.x, 'count.opps') } } },
-      scales: {
-        x: { beginAtZero: true, ticks: { precision: 0, color: '#5E6A63' }, grid: { color: '#ECE6DC' } },
-        y: { ticks: { color: '#1F2A24', font: { weight: 600 } }, grid: { display: false } },
-      },
-      onClick: (_, els) => { if (els.length) showCity(top[els[0].index].city); },
-    },
+    markers.set(o.id, marker);
   });
 }
+map.on('zoomend', drawMarkers);
+$('#map-reset').addEventListener('click', fitToShown);
 
-function kpis() {
-  const total = cities.reduce((s, c) => s + c.opportunities, 0);
-  const hoods = cities.reduce((s, c) => s + c.neighborhoods, 0);
-  $('#kpis').innerHTML = [
-    [fmt.num(total), t('inv.kpiOpen')],
-    [fmt.num(cities.length), t('inv.kpiCities')],
-    [fmt.num(hoods), t('inv.kpiHoods')],
-    [label('investorStatus', user.investorStatus || 'PENDING'), t('inv.kpiStatus')],
-  ].map(([v, l]) => `<div class="card kpi"><span class="value" style="font-size:${String(v).length > 6 ? 26 : 40}px">${esc(v)}</span><span class="label">${esc(l)}</span></div>`).join('');
+// ---------- Modes and filters ----------
+
+function setMode(mode) {
+  state.mode = mode;
+  $$('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  $('#filters').classList.toggle('hidden', mode !== 'all');
+  $('#prefs-line').classList.toggle('hidden', mode !== 'mine');
+  $('#fy-title').innerHTML = mode === 'mine' ? t('fy.title') : t('map.title');
+  history.replaceState(null, '', mode === 'all' ? '#all' : location.pathname + location.search);
+  refresh();
 }
 
-// ---------- Level 2: a city's neighborhoods ----------
-async function showCity(city) {
-  view.city = city;
-  view.hood = null;
-  crumbs();
-  layer.clearLayers();
-  const side = $('#side');
-  side.innerHTML = skeletonCards(3, 70);
-  let hoods;
+function refresh() {
+  drawList();
+  drawMarkers();
+  fitToShown();
+}
+
+$$('[data-mode]').forEach((b) => b.addEventListener('click', () => { if (state.mode !== b.dataset.mode) setMode(b.dataset.mode); }));
+$$('#filters select').forEach((sel) => sel.addEventListener('change', () => {
+  state.field = $('#f-field').value;
+  state.budget = $('#f-budget').value;
+  refresh();
+}));
+
+// ---------- Load ----------
+
+async function load() {
   try {
-    hoods = await api.get(`explore/neighborhoods/${encodeURIComponent(city)}`);
+    state.all = (await api.get('explore/search', { limit: 100 })).filter((o) => !o.unlocked);
   } catch (err) {
-    side.innerHTML = `<div class="notice notice-error">${icon.x}<span>${esc(errorMessage(err))}</span></div>`;
+    $('#list').innerHTML = `<div class="notice notice-error">${icon.x}<span>${esc(errorMessage(err))}</span></div>`;
     return;
   }
-  const located = hoods.filter((h) => h.latitude != null);
-  if (located.length) {
-    map.flyToBounds(L.latLngBounds(located.map((h) => [h.latitude, h.longitude])).pad(0.35), { duration: 1.1, maxZoom: 14 });
-  }
-  located.forEach((h) => {
-    keyboardMarker(L.marker([h.latitude, h.longitude], { icon: bubbleIcon(h.opportunities, { size: 40 + Math.min(24, h.opportunities * 3) }) }), `${h.name}, ${tn(h.opportunities, 'count.opps')}`)
-      .bindTooltip(h.name, { className: 'nsj-label', direction: 'bottom', permanent: true, offset: [0, 22] })
-      .on('click', () => showNeighborhood(h))
-      .addTo(layer);
-  });
-  side.innerHTML = `
-    <div class="stack" style="gap:4px"><h2 style="font-size:28px">${esc(city)}</h2><span class="muted">${esc(t('inv.cityTotal', { opps: tn(hoods.reduce((s, h) => s + h.opportunities, 0), 'count.opps'), hoods: tn(hoods.length, 'count.hoods') }))}</span></div>
-    <ul class="list">${hoods.map((h) => `<li><button type="button" class="btn btn-ghost btn-sm" data-hood="${h.neighborhoodId}" style="padding:0">${esc(h.name)}</button><span class="badge">${fmt.num(h.opportunities)}</span></li>`).join('')}</ul>`;
-  $$('[data-hood]').forEach((b) => b.addEventListener('click', () => showNeighborhood(hoods.find((h) => h.neighborhoodId === Number(b.dataset.hood)))));
+  // "Your fit" only lists what can still be acted on; unlocked ones live in My projects
+  state.open = state.all.filter((o) => !isTaken(o) && (o.status === 'COMPLETED' || o.status === 'PUBLISHED'));
+
+  const hoods = await loadNeighborhoods().catch(() => []);
+  const parts = prefsSummary(user, hoods);
+  $('#prefs-line').innerHTML = hasPrefs(user) && parts.length
+    ? `<span class="muted">${esc(t('fy.basedOn'))}</span> ${parts.map((p) => `<span class="chip chip-static chip-sm">${esc(p)}</span>`).join(' ')} <a href="account.html#prefs">${esc(t('fy.edit'))}</a>`
+    : `<span class="muted">${esc(t('fy.noPrefs'))}</span> <a href="onboarding.html">${esc(t('fy.setPrefs'))}</a>`;
+
+  setMode(state.mode);
 }
 
-const isTaken = (o) => o.status === 'ADOPTED' || o.status === 'OPENED';
-
-// ---------- Level 3: one neighborhood's opportunities ----------
-async function showNeighborhood(hood) {
-  view.hood = hood;
-  crumbs();
-  layer.clearLayers();
-  const side = $('#side');
-  side.innerHTML = skeletonCards(3, 170);
-  let opps;
-  try {
-    opps = await api.get(`explore/opportunities/${hood.neighborhoodId}`);
-  } catch (err) {
-    side.innerHTML = `<div class="notice notice-error">${icon.x}<span>${esc(errorMessage(err))}</span></div>`;
-    return;
-  }
-  const points = opps.filter((o) => o.latitude != null).map((o) => [o.latitude, o.longitude]);
-  if (points.length) map.flyToBounds(L.latLngBounds(points).pad(0.5), { duration: 1, maxZoom: 16 });
-  else if (hood.latitude != null) map.flyTo([hood.latitude, hood.longitude], 15);
-
-  opps.filter((o) => o.latitude != null).forEach((o) => {
-    keyboardMarker(L.marker([o.latitude, o.longitude], { icon: pinIcon(isTaken(o) && !o.unlocked ? 'muted' : o.status === 'COMPLETED' ? 'in-range' : '') }), o.title)
-      .bindTooltip(`<strong>${esc(o.title)}</strong><br>${esc(t('inv.ofTarget', { p: o.votePercent }))}`, { className: 'nsj-tip', direction: 'top' })
-      .on('click', () => $(`#opp-${o.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
-      .addTo(layer);
-  });
-
-  side.innerHTML = `
-    <div class="stack" style="gap:4px"><h2 style="font-size:28px">${esc(hood.name)}</h2><span class="muted">${esc(tn(opps.length, 'count.opps'))} · ${esc(hood.city)}</span></div>
-    ${opps.length ? opps.map(oppCard).join('') : emptyState(t('inv.nothingHere'), t('inv.nothingHereText'))}`;
-  animateBars(side);
-}
-
-function oppCard(o) {
-  const unlock = o.unlocked
-    ? `<a class="btn btn-sm" href="projects.html">${esc(t('inv.inProjects'))}</a>`
-    : isTaken(o)
-      ? `<span class="badge badge-sand">${esc(t('inv.taken'))}</span>`
-      : o.canUnlock
-      ? `<a class="btn btn-sm" href="unlock.html?id=${o.id}">${esc(t('inv.unlock'))}</a>`
-      : `<button type="button" class="btn btn-sm" disabled title="${esc(!verified ? t('inv.afterVerify') : t('inv.opensAt100'))}">${icon.lock} ${esc(t('inv.unlock'))}</button>`;
-  return `
-    <article class="idea-card" id="opp-${o.id}">
-      <div class="row" style="justify-content:space-between;align-items:flex-start">
-        <div class="stack" style="gap:2px"><span class="title">${esc(o.title)}</span><span class="meta"><span>${esc(categoryLabel(o.category))}</span><span>${esc(serverText(o.locationLabel))}</span></span></div>
-        ${statusBadge(o.status)}
-      </div>
-      <div class="stack" style="gap:6px">
-        <div class="row small" style="justify-content:space-between"><strong>${esc(t('inv.ofTarget', { p: o.votePercent }))}</strong><span class="muted num">${fmt.num(o.votesCount)} / ${fmt.num(o.membershipThreshold)} ${esc(t('common.votes'))}</span></div>
-        ${progressBar(o.votePercent, t('common.voteTarget'))}
-      </div>
-      ${o.gapScore != null ? `<span class="small muted">${esc(t('inv.gapScore'))} <strong style="color:var(--ink)">${o.gapScore}</strong>/100</span>` : ''}
-      <div class="actions"><a class="btn btn-secondary btn-sm" href="idea.html?id=${o.id}">${esc(t('common.viewDetails'))}</a>${unlock}</div>
-    </article>`;
-}
-
-function crumbs() {
-  const parts = [`<button type="button" data-go="country">${esc(t('inv.ksa'))}</button>`];
-  if (view.city) parts.push(`<span aria-hidden="true" class="flip-rtl">›</span><button type="button" data-go="city">${esc(view.city)}</button>`);
-  if (view.hood) parts.push(`<span aria-hidden="true" class="flip-rtl">›</span><span style="color:var(--ink);font-weight:600" aria-current="location">${esc(view.hood.name)}</span>`);
-  $('#crumbs').innerHTML = parts.join('');
-  $('[data-go="country"]').onclick = showCountry;
-  const cityBtn = $('[data-go="city"]');
-  if (cityBtn) cityBtn.onclick = () => showCity(view.city);
-}
-
-showCountry().catch((err) => toast(errorMessage(err), 'error'));
+load();

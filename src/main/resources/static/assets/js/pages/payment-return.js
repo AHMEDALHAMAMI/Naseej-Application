@@ -28,7 +28,7 @@ if (!ideaId || (!moyasarPaymentId && !paymentId)) {
     const result = await api.post(`unlock/confirm-payment/${ideaId}`, paymentId ? { paymentId } : { moyasarPaymentId });
     done(`<span class="badge badge-solid">${icon.check} ${esc(t('pay.paid'))}</span><h1 style="font-size:34px">${t('pay.yours')}</h1>
       <p class="muted">${esc(serverText(result.message || ''))}<br>${esc(t('pay.contract', { n: result.contractNumber }))}</p>
-      <div class="row" style="justify-content:center"><a class="btn" href="projects.html">${esc(t('pay.goProjects'))}</a><a class="btn btn-secondary" href="idea.html?id=${ideaId}">${esc(t('pay.openStudy'))}</a></div>`);
+      <div class="row" style="justify-content:center"><a class="btn" href="${result.contractId ? `contract.html?id=${result.contractId}` : 'projects.html'}">${esc(t('pay.goProjects'))}</a><a class="btn btn-secondary" href="idea.html?id=${ideaId}">${esc(t('pay.openStudy'))}</a></div>`);
   } catch (err) {
     done(`<span class="badge badge-amber">${icon.warn} ${esc(t('pay.notConfirmed'))}</span><h1 style="font-size:30px">${esc(t('pay.couldNot'))}</h1>
       <p class="muted">${esc(errorMessage(err))}</p>

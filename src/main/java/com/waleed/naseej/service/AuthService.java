@@ -57,6 +57,7 @@ public class AuthService {
     private final OtpService otpService;
     private final UserService userService;
     private final LocationService locationService;
+    private final InvestorPreferenceService investorPreferenceService;
 
     @Value("${jwt.refresh-token-days}")
     private long refreshTokenDays;
@@ -236,16 +237,14 @@ public class AuthService {
         }
 
         boolean investorFields = request.getCrNumber() != null || request.getInvestmentBudget() != null
-                || request.getInvestmentFields() != null;
+                || request.getInvestmentFields() != null || request.getBudgetMin() != null
+                || request.getBudgetMax() != null || request.getInvestmentFieldsOther() != null
+                || request.getInvestmentAreas() != null;
         if (investorFields && user.getRole() != Role.INVESTOR) {
             throw new BadRequestException("Only investors have an investor profile");
         }
-        if (request.getInvestmentBudget() != null) {
-            user.setInvestmentBudget(request.getInvestmentBudget());
-        }
-        if (request.getInvestmentFields() != null) {
-            user.setInvestmentFields(request.getInvestmentFields());
-        }
+        // Budget, fields (with the investor's own words) and the neighborhoods they want to invest in
+        investorPreferenceService.apply(user, request);
         if (request.getCrNumber() != null) {
             String cr = request.getCrNumber().trim();
             boolean changed = !cr.equals(user.getCrNumber());
@@ -394,32 +393,34 @@ public class AuthService {
                         "Naseej isn't available in your area yet. Choose your neighborhood from the list"));
     }
 
+    // Nothing is required from an investor at sign-up any more: the CR is asked for before the first unlock,
+    // and the budget and fields come from the onboarding questions. The formats are checked on the request.
     private void validateInvestorProfile(Role role, String crNumber, String budget, String fields) {
         if (role != Role.INVESTOR) {
             return;
         }
-        if (crNumber == null || crNumber.isBlank()) {
-            throw new BadRequestException("Commercial registration number is required for investors");
-        }
-        if (budget == null || budget.isBlank()) {
-            throw new BadRequestException("Investment budget is required for investors");
-        }
-        if (fields == null || fields.isBlank()) {
-            throw new BadRequestException("Choose at least one investment field");
+        if ("CUSTOM".equals(budget)) {
+            throw new BadRequestException("Set a custom budget from your investor preferences");
         }
     }
 
-    // Investors start as PENDING until an admin checks the CR; other roles have no investor data
+    // Investors start as PENDING: with no CR that means "not submitted yet", with a CR it waits for the admin.
+    // Other roles have no investor data
     private void applyInvestorProfile(User user, Role role, String crNumber, String budget, String fields) {
         if (role == Role.INVESTOR) {
-            user.setCrNumber(crNumber.trim());
-            user.setInvestmentBudget(budget);
-            user.setInvestmentFields(fields);
+            user.setCrNumber(crNumber == null || crNumber.isBlank() ? null : crNumber.trim());
+            user.setInvestmentBudget(budget == null || budget.isBlank() ? null : budget);
+            user.setInvestmentFields(fields == null || fields.isBlank() ? null : fields);
             user.setInvestorStatus(InvestorStatus.PENDING);
         } else {
             user.setCrNumber(null);
             user.setInvestmentBudget(null);
+            user.setBudgetMin(null);
+            user.setBudgetMax(null);
             user.setInvestmentFields(null);
+            user.setInvestmentFieldsOther(null);
+            user.setInvestmentFieldsOtherCategories(null);
+            user.setInvestmentAreas(null);
             user.setInvestorStatus(null);
         }
     }

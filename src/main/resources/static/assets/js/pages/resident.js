@@ -1,9 +1,9 @@
 // Resident home: map centered on the user with the 2 km voting radius.
 // Pins show titles only; vote counts are never shown to residents.
 import { api, session } from '../api.js';
-import { $, $$, esc, fmt, guard, icon, toast, withLoading, errorMessage, statusBadge, emptyState, skeletonCards, categoryLabel, t } from '../ui.js';
+import { $, $$, esc, fmt, guard, icon, toast, withLoading, errorMessage, statusBadge, emptyState, skeletonCards, categoryLabel, lifeTrack, t } from '../ui.js';
 import { tn } from '../i18n.js';
-import { createMap, locate, lastLocation, pinIcon, meIcon, keyboardMarker } from '../maps.js';
+import { createMap, locate, lastLocation, pinIcon, meIcon, keyboardMarker, cardPopup } from '../maps.js';
 
 const VOTING_RADIUS_KM = 2;
 const user = await guard(['RESIDENT']);
@@ -28,6 +28,7 @@ app.innerHTML = `
           <span><i style="background:var(--green-800)"></i>${esc(t('res.legendCan'))}</span>
           <span><i style="background:var(--green-600)"></i>${esc(t('res.legendVoted'))}</span>
           <span><i style="background:#9C9384"></i>${esc(t('res.legendView'))}</span>
+          <span><i style="background:#C9A35A"></i>${esc(t('res.legendAdopted'))}</span>
           <span><i style="background:#2B6CB0"></i>${esc(t('res.legendYou'))}</span>
         </div>
       </div>
@@ -69,19 +70,50 @@ function pinKind(idea) {
   return 'muted';
 }
 
+function pinKindFor(idea) {
+  if (idea.status === 'ADOPTED' || idea.status === 'OPENED') return 'adopted';
+  return pinKind(idea);
+}
+
+// Small card on the map: what the idea is, where it stands, and what the resident can do
+function popupHtml(idea) {
+  const vote = idea.canVote
+    ? `<button type="button" class="btn btn-sm" data-pop-vote="${idea.id}" data-loading="${esc(t('res.voting'))}">${esc(t('res.vote'))}</button>`
+    : '';
+  return `
+    <div class="pop">
+      <div class="pop-tags"><span class="badge badge-sand">${esc(categoryLabel(idea.category))}</span>${idea.mine ? `<span class="badge badge-sand">${esc(t('res.yourIdea'))}</span>` : statusBadge(idea.status)}</div>
+      <strong class="pop-title">${esc(idea.title)}</strong>
+      ${idea.summary ? `<p class="pop-text">${esc(idea.summary)}</p>` : ''}
+      ${lifeTrack(idea, { compact: true })}
+      <div class="pop-meta">${icon.pin}<span>${esc(idea.neighborhoodName)} · ${esc(t('res.away', { d: fmt.km(idea.distanceKm) }))}</span></div>
+      <span class="pop-note${idea.canVote ? ' ok' : ''}">${esc(tipText(idea))}</span>
+      <div class="pop-actions">${vote}<a class="btn btn-secondary btn-sm" href="idea.html?id=${idea.id}">${esc(t('common.viewDetails'))}</a></div>
+    </div>`;
+}
+
 function renderMap() {
   pins.clearLayers();
   markers.clear();
   ideas.forEach((idea) => {
-    const m = keyboardMarker(L.marker([idea.latitude, idea.longitude], { icon: pinIcon(pinKind(idea)) }), idea.title)
-      .bindTooltip(`<strong>${esc(idea.title)}</strong><br>${esc(tipText(idea))}`, { className: 'nsj-tip', direction: 'top' })
-      .on('click', () => focusCard(idea.id))
+    const m = keyboardMarker(L.marker([idea.latitude, idea.longitude], { icon: pinIcon(pinKindFor(idea)), riseOnHover: true }), idea.title)
+      .bindTooltip(`<strong>${esc(idea.title)}</strong>`, { className: 'nsj-tip', direction: 'top' })
+      .bindPopup(cardPopup(popupHtml(idea)))
+      .on('click', () => focusCard(idea.id, false))
       .addTo(pins);
     markers.set(idea.id, m);
   });
 }
 
+// Vote straight from the map card
+map.on('popupopen', (e) => {
+  const btn = e.popup.getElement()?.querySelector('[data-pop-vote]');
+  if (btn) btn.addEventListener('click', () => vote(Number(btn.dataset.popVote), btn));
+});
+
 function card(idea) {
+  const stage = idea.stage && idea.status === 'ADOPTED'
+    ? `<span class="small muted">${esc(t('life.stageNow', { stage: t(`stage.${idea.stage}`) }))}</span>` : '';
   const voteBtn = idea.canVote
     ? `<button type="button" class="btn btn-sm" data-vote="${idea.id}" data-loading="${esc(t('res.voting'))}">${esc(t('res.vote'))}</button>`
     : `<button type="button" class="btn btn-sm" disabled title="${esc(tipText(idea))}">${idea.voted ? `${icon.check} ${esc(t('res.votedBtn'))}` : esc(t('res.vote'))}</button>`;
@@ -94,6 +126,8 @@ function card(idea) {
         </div>
         ${idea.mine ? `<span class="badge badge-sand">${esc(t('res.yourIdea'))}</span>` : statusBadge(idea.status)}
       </div>
+      ${idea.summary ? `<p class="small muted clamp-2">${esc(idea.summary)}</p>` : ''}
+      ${stage}
       <span class="small ${idea.canVote ? '' : 'muted'}" style="${idea.canVote ? 'color:var(--green-800);font-weight:600' : ''}">${esc(tipText(idea))}</span>
       <div class="actions">
         ${voteBtn}
@@ -115,6 +149,12 @@ function renderList() {
   $$('[data-vote]').forEach((btn) => btn.addEventListener('click', () => vote(Number(btn.dataset.vote), btn)));
   $$('.idea-card').forEach((el) => {
     el.addEventListener('mouseenter', () => highlight(Number(el.dataset.id)));
+    // Clicking the card (not its buttons) opens the idea's card on the map
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('a, button')) return;
+      const m = markers.get(Number(el.dataset.id));
+      if (m) { map.panTo(m.getLatLng()); m.openPopup(); }
+    });
   });
 }
 
@@ -125,7 +165,7 @@ function highlight(id) {
   });
 }
 
-function focusCard(id) {
+function focusCard(id, openPopup = true) {
   $$('.idea-card').forEach((el) => el.classList.toggle('active', Number(el.dataset.id) === id));
   const el = $(`#idea-${id}`);
   if (!el) {
@@ -135,6 +175,7 @@ function focusCard(id) {
   }
   $(`#idea-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   highlight(id);
+  if (openPopup) markers.get(id)?.openPopup();
 }
 
 async function vote(id, btn) {
@@ -149,6 +190,7 @@ async function vote(id, btn) {
       toast(errorMessage(err), 'error');
     }
   });
+  map.closePopup();
   renderMap();
   renderList();
   focusCard(id);

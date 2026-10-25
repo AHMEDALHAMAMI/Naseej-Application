@@ -22,6 +22,15 @@ export const fmt = {
   date: (v) => (v ? new Date(v).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'),
   dateTime: (v) => (v ? new Date(v).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'),
   money: (v) => (v === null || v === undefined ? '—' : t('fmt.sar', { v: NUM.format(Math.round(Number(v))) })),
+  /** Short money for chips and cards: 450000 → "450 ألف ر.س", 1200000 → "1.2 مليون ر.س". */
+  short: (v) => {
+    if (v === null || v === undefined || v === '') return '—';
+    const n = Number(v);
+    const trim = (x, d) => new Intl.NumberFormat(locale, { maximumFractionDigits: d }).format(x);
+    if (n >= 1e6) return t('fmt.m', { v: trim(n / 1e6, 2) });
+    if (n >= 1e3) return t('fmt.k', { v: trim(n / 1e3, 0) });
+    return t('fmt.sar', { v: NUM.format(Math.round(n)) });
+  },
 };
 
 /** Label for a value that comes from the server: label('status', 'PUBLISHED') → "Voting open" / "التصويت مفتوح". */
@@ -36,6 +45,7 @@ const groupKeys = (group, values) => Object.fromEntries(values.map((v) => [v, la
 export const LABELS = {
   role: groupKeys('role', ['RESIDENT', 'INVESTOR', 'ADMIN', 'LANDLORD', 'PENDING']),
   budget: groupKeys('budget', ['UP_TO_300K', 'FROM_300K_TO_700K', 'ABOVE_700K']),
+  budgetAll: groupKeys('budget', ['UP_TO_300K', 'FROM_300K_TO_700K', 'ABOVE_700K', 'CUSTOM']),
   field: groupKeys('field', ['FOOD', 'RETAIL', 'HEALTH', 'FITNESS', 'HOME_SERVICES', 'EDUCATION']),
   status: groupKeys('status', ['SCREENING', 'PUBLISHED', 'COMPLETED', 'ADOPTED', 'OPENED', 'REJECTED']),
   access: groupKeys('access', ['PAID', 'PARTNERSHIP', 'OWNER']),
@@ -47,6 +57,76 @@ export const CATEGORIES = [
   'Barber', 'Salon', 'Kids activities', 'School supplies', 'Car services', 'Other',
 ];
 export const categoryLabel = (value) => label('cat', value);
+
+// Which idea categories belong to each investment field (used to match opportunities to an investor)
+export const FIELD_CATEGORIES = {
+  FOOD: ['Grocery', 'Bakery', 'Cafe', 'Restaurant'],
+  RETAIL: ['Grocery', 'School supplies'],
+  HEALTH: ['Pharmacy', 'Clinic'],
+  FITNESS: ["Women's gym", 'Gym'],
+  HOME_SERVICES: ['Laundry', 'Car services', 'Barber', 'Salon'],
+  EDUCATION: ['Kids activities', 'School supplies'],
+};
+
+// Budget presets as SAR ranges
+export const BUDGET_RANGES = {
+  UP_TO_300K: [null, 300000],
+  FROM_300K_TO_700K: [300000, 700000],
+  ABOVE_700K: [700000, null],
+};
+
+/** The investor's budget as a [min, max] range in SAR (either end may be null), or null when not set. */
+export function budgetRange(user) {
+  if (!user?.investmentBudget) return null;
+  if (user.investmentBudget === 'CUSTOM') {
+    if (user.budgetMin == null && user.budgetMax == null) return null;
+    return [user.budgetMin ?? null, user.budgetMax ?? null];
+  }
+  return BUDGET_RANGES[user.investmentBudget] || null;
+}
+
+/** A money range in short form, sharing the unit when it can: "250 – 450 ألف ر.س". */
+export function shortRange(min, max) {
+  if (min == null && max == null) return '';
+  if (min == null || max == null || Number(min) === Number(max)) return fmt.short(min ?? max);
+  const lo = Number(min);
+  const hi = Number(max);
+  const n = (x, d) => new Intl.NumberFormat(locale, { maximumFractionDigits: d }).format(x);
+  if (lo >= 1e3 && hi < 1e6) return t('fmt.k', { v: `${n(lo / 1e3, 0)} – ${n(hi / 1e3, 0)}` });
+  if (lo >= 1e6) return t('fmt.m', { v: `${n(lo / 1e6, 2)} – ${n(hi / 1e6, 2)}` });
+  return t('pref.range', { min: fmt.short(lo), max: fmt.short(hi) });
+}
+
+/** The investor's budget in words: a preset label or the custom range. */
+export function budgetText(user) {
+  if (!user?.investmentBudget) return '';
+  if (user.investmentBudget !== 'CUSTOM') return label('budget', user.investmentBudget);
+  const { budgetMin: min, budgetMax: max } = user;
+  if (min != null && max != null) return shortRange(min, max);
+  if (max != null) return t('pref.upTo', { v: fmt.short(max) });
+  if (min != null) return t('pref.from', { v: fmt.short(min) });
+  return '';
+}
+
+/** Comma-separated text from the server as a list ("A,B" → ['A', 'B']). */
+export const csv = (value) => (value ? String(value).split(',').map((s) => s.trim()).filter(Boolean) : []);
+
+// Saudi city names are saved in English; show them in Arabic when the page is Arabic
+const CITY_AR = {
+  riyadh: 'الرياض', jeddah: 'جدة', jiddah: 'جدة', makkah: 'مكة المكرمة', mecca: 'مكة المكرمة',
+  madinah: 'المدينة المنورة', medina: 'المدينة المنورة', dammam: 'الدمام', khobar: 'الخبر', dhahran: 'الظهران',
+  taif: 'الطائف', tabuk: 'تبوك', abha: 'أبها', 'khamis mushait': 'خميس مشيط', buraidah: 'بريدة', buraydah: 'بريدة',
+  unaizah: 'عنيزة', hail: 'حائل', "ha'il": 'حائل', jazan: 'جازان', jizan: 'جازان', najran: 'نجران', ahsa: 'الأحساء',
+  hofuf: 'الهفوف', jubail: 'الجبيل', yanbu: 'ينبع', kharj: 'الخرج', qatif: 'القطيف', arar: 'عرعر', sakaka: 'سكاكا',
+  baha: 'الباحة', qassim: 'القصيم', diriyah: 'الدرعية',
+};
+export function cityLabel(city) {
+  if (!city || !isAr) return city || '';
+  const key = String(city).trim().toLowerCase().replace(/^al[\s-]+/, '').replace(/-/g, ' ');
+  return CITY_AR[key] || city;
+}
+/** "Neighborhood, City" with the city translated. */
+export const placeLabel = (hood, city) => [hood, cityLabel(city)].filter(Boolean).join(isAr ? '، ' : ', ');
 export const stageLabel = (value) => label('stage', value);
 
 // ---------- Icons ----------
@@ -188,7 +268,7 @@ export function homeFor(user) {
  * Checks the user is logged in with one of the roles, refreshes the profile from /auth/me,
  * and draws the header. Redirects when the user can't be on this page.
  */
-export async function guard(roles) {
+export async function guard(roles, { header = true } = {}) {
   initPage();
   if (!session.isLoggedIn()) {
     const here = location.pathname.split('/').pop() + location.search;
@@ -215,14 +295,15 @@ export async function guard(roles) {
     location.replace(homeFor(user));
     return new Promise(() => {});
   }
-  renderHeader(user);
+  if (header) renderHeader(user);
   return user;
 }
 
 const NAV = {
   RESIDENT: [['resident.html', 'nav.around'], ['propose.html', 'nav.propose'], ['projects.html', 'nav.myIdeas']],
-  INVESTOR: [['investor.html', 'nav.opportunities'], ['propose.html', 'nav.propose'], ['projects.html', 'nav.myProjects']],
-  ADMIN: [['admin.html', 'nav.dashboard'], ['admin.html#investors', 'nav.verification'], ['admin.html#neighborhoods', 'nav.neighborhoods']],
+  // Opportunities (list + map), AI search, projects (and ideas). The account is in the avatar menu
+  INVESTOR: [['investor.html', 'nav.forYou'], ['ask.html', 'nav.ask'], ['projects.html', 'nav.myProjects']],
+  ADMIN: [['admin.html', 'nav.dashboard'], ['admin.html#members', 'nav.members'], ['admin.html#investors', 'nav.verification'], ['admin.html#neighborhoods', 'nav.neighborhoods']],
 };
 
 export function renderHeader(user) {
@@ -246,6 +327,7 @@ export function renderHeader(user) {
         </button>
         <div class="menu" role="menu">
           <div class="small muted" style="padding:8px 12px">${esc(user.email)}</div>
+          ${user.role === 'INVESTOR' ? `<a role="menuitem" href="account.html">${esc(t('nav.account'))}</a>` : ''}
           <button type="button" role="menuitem" data-act="logout">${esc(t('nav.logout'))}</button>
         </div>
       </div>
@@ -306,6 +388,31 @@ export function skeletonCards(n = 3, height = 150) {
 export function statusBadge(status) {
   const cls = { PUBLISHED: '', COMPLETED: 'badge-solid', ADOPTED: 'badge-solid', OPENED: 'badge-solid', REJECTED: 'badge-red', SCREENING: 'badge-amber' }[status] ?? 'badge-sand';
   return `<span class="badge ${cls}">${esc(label('status', status))}</span>`;
+}
+
+/** An idea's name: its title, or "Pharmacy in Al Yasmin" for a confidential opportunity (investors before unlocking). */
+export function ideaName(idea) {
+  return idea.title || t('teaser.headline', { cat: categoryLabel(idea.category), hood: idea.neighborhoodName || '' });
+}
+
+const LIFE = ['PUBLISHED', 'COMPLETED', 'ADOPTED', 'OPENED'];
+
+/**
+ * Where an idea is in its life: voting → target reached → adopted (with the project stage) → opened.
+ * compact = small dots for map popups; otherwise labelled steps.
+ */
+export function lifeTrack(idea, { compact = false } = {}) {
+  const at = LIFE.indexOf(idea.status);
+  if (at < 0) return '';
+  const steps = LIFE.map((s, i) => {
+    const state = i < at ? 'done' : i === at ? 'now' : '';
+    let sub = '';
+    if (s === 'ADOPTED' && idea.stage && idea.status === 'ADOPTED') {
+      sub = `<small>${esc(stageLabel(idea.stage))}${idea.stageCount ? ` · ${idea.stageIndex}/${idea.stageCount - 1}` : ''}</small>`;
+    }
+    return `<li class="${state}"><i aria-hidden="true"></i><span>${esc(t(`life.${s}`))}</span>${sub}</li>`;
+  }).join('');
+  return `<ol class="life${compact ? ' compact' : ''}" aria-label="${esc(t('life.label'))}">${steps}</ol>`;
 }
 
 export function progressBar(percent, text) {

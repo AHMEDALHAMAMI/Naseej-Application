@@ -128,9 +128,13 @@ public class ExploreService {
             return List.of();
         }
         Map<Integer, Long> votes = voteCounts(ideas);
+        // With the place and the estimated capital, so the map's budget filter works here too
+        Map<Integer, BusinessModel> models = businessModels(ideas.stream().map(Idea::getId).toList());
 
         return ideas.stream()
-                .map(idea -> toOpportunity(idea, investor, votes.getOrDefault(idea.getId(), 0L)).build())
+                .map(idea -> withPlaceAndCapital(
+                        toOpportunity(idea, investor, votes.getOrDefault(idea.getId(), 0L)), idea, models.get(idea.getId()))
+                        .build())
                 .sorted(availableFirst())
                 .toList();
     }

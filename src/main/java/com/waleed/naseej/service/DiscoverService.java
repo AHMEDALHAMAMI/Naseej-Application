@@ -519,7 +519,9 @@ public class DiscoverService {
             }
 
             String blocked = null;
-            if (status != InvestorStatus.VERIFIED) {
+            if (status != InvestorStatus.VERIFIED && viewer.getCrNumber() == null) {
+                blocked = "Add your commercial registration number to unlock opportunities";
+            } else if (status != InvestorStatus.VERIFIED) {
                 blocked = status == InvestorStatus.REJECTED
                         ? "Your investor account wasn't approved"
                         : "Your account is under review. You can unlock after the admin verifies your CR";

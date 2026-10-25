@@ -40,6 +40,8 @@ public class IdeaService {
                         request.getMembershipThreshold() != null ? request.getMembershipThreshold() : 150)
                 .publishedAt(request.getPublishedAt())
                 .confirmedAt(request.getConfirmedAt())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .build();
         return toResponse(ideaRepository.save(entity));
     }
@@ -58,6 +60,11 @@ public class IdeaService {
         entity.setMembershipThreshold(request.getMembershipThreshold());
         entity.setPublishedAt(request.getPublishedAt());
         entity.setConfirmedAt(request.getConfirmedAt());
+        // Keep the current spot unless a new one is sent
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            entity.setLatitude(request.getLatitude());
+            entity.setLongitude(request.getLongitude());
+        }
         return toResponse(ideaRepository.save(entity));
     }
 

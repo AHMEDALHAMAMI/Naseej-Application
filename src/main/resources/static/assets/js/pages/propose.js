@@ -1,9 +1,13 @@
 // Propose an idea → the AI checks competitors and similar ideas → published (with business model) or rejected.
 // Investors also get a feasibility report and can adopt their own idea right away.
+// Residents place the idea near where they live; investors can place it anywhere in Saudi Arabia
+// (search a city or district, or tap the map) because they can invest in any neighborhood.
 import { api } from '../api.js';
 import { $, esc, fmt, guard, icon, toast, withLoading, applyFieldErrors, errorMessage, CATEGORIES, categoryLabel, modal, progressBar, animateBars, t } from '../ui.js';
 import { serverText } from '../i18n.js';
-import { createMap, locate, lastLocation, pinIcon, RIYADH } from '../maps.js';
+import { createMap, locate, lastLocation, pinIcon, RIYADH, SAUDI_BOUNDS, CITIES } from '../maps.js';
+
+const RESIDENT_RADIUS_KM = 5;
 
 const user = await guard(['RESIDENT', 'INVESTOR']);
 const isInvestor = user.role === 'INVESTOR';
@@ -22,8 +26,11 @@ app.innerHTML = `
 const stage = $('#stage');
 let map;
 let marker;
-let point = lastLocation() || (user.latitude != null ? { lat: user.latitude, lng: user.longitude } : null);
+const home = lastLocation() || (user.latitude != null ? { lat: user.latitude, lng: user.longitude } : null);
+// Investors start from the whole country and choose; residents start at home
+let point = isInvestor ? null : home;
 let neighborhoods = [];
+let homeCircle = null;
 
 function formView() {
   stage.innerHTML = `
@@ -56,16 +63,33 @@ function formView() {
         <button class="btn btn-block" type="submit">${icon.spark} ${esc(t('prop.check'))}</button>
       </div>
       <div class="stack" style="gap:12px">
+        ${isInvestor ? `
+        <div class="place-search" role="search">
+          <input class="input" id="place-q" type="search" autocomplete="off" placeholder="${esc(t('prop.searchPh'))}" aria-label="${esc(t('prop.searchPh'))}">
+          <ul class="place-results" id="place-results" role="listbox" hidden></ul>
+        </div>
+        <div class="chips" aria-label="${esc(t('prop.jumpCity'))}">
+          ${CITIES.map((c) => `<button type="button" class="chip" data-city-jump="${c.key}">${esc(t(`city.${c.key}`))}</button>`).join('')}
+        </div>` : ''}
         <div class="map" id="map" style="height:420px" aria-label="${esc(t('prop.spotLabel'))}"></div>
         <div class="row" style="justify-content:space-between">
-          <span class="small muted" id="spot">${esc(t('prop.drag'))}</span>
+          <span class="small muted" id="spot">${esc(isInvestor ? t('prop.anywhere') : t('prop.drag'))}</span>
           <button type="button" class="btn btn-secondary btn-sm" id="here" data-loading="${esc(t('loc.locating'))}">${icon.pin} ${esc(t('loc.useMine'))}</button>
         </div>
       </div>
     </form>`;
 
-  map = createMap($('#map'), { center: point || RIYADH, zoom: point ? 15 : 12 });
-  setMarker(point || RIYADH, !!point);
+  marker = null;
+  homeCircle = null;
+  map = createMap($('#map'), { center: point || home || RIYADH, zoom: point ? 15 : 12 });
+  if (isInvestor && !point) map.fitBounds(SAUDI_BOUNDS);
+  if (!isInvestor && home) {
+    // Where a resident can place their idea
+    homeCircle = L.circle([home.lat, home.lng], {
+      radius: RESIDENT_RADIUS_KM * 1000, color: '#2F5444', weight: 1.4, dashArray: '6 6', fillColor: '#5A7D66', fillOpacity: 0.06, interactive: false,
+    }).addTo(map);
+  }
+  if (point || !isInvestor) setMarker(point || RIYADH, !!point);
   map.on('click', (e) => setMarker({ lat: e.latlng.lat, lng: e.latlng.lng }, true));
 
   $('#here').addEventListener('click', (e) => withLoading(e.currentTarget, async () => {
@@ -78,16 +102,33 @@ function formView() {
     }
   }));
 
-  if (isInvestor) setupNeighborhoodPicker();
+  if (isInvestor) {
+    setupNeighborhoodPicker();
+    setupPlaceSearch();
+  }
   $('#idea-form').addEventListener('submit', submit);
 }
 
+// Residents keep the pin within RESIDENT_RADIUS_KM of home (the server checks the same rule)
+function outsideHome(loc) {
+  return !isInvestor && home && L.latLng(home.lat, home.lng).distanceTo([loc.lat, loc.lng]) > RESIDENT_RADIUS_KM * 1000;
+}
+
 function setMarker(loc, chosen) {
+  if (chosen && outsideHome(loc)) {
+    toast(t('prop.residentRadius', { km: RESIDENT_RADIUS_KM }), 'error');
+    return;
+  }
   point = chosen ? loc : point;
   if (!marker) {
     marker = L.marker([loc.lat, loc.lng], { icon: pinIcon('in-range'), draggable: true, autoPan: true }).addTo(map);
     marker.on('dragend', () => {
       const p = marker.getLatLng();
+      if (outsideHome({ lat: p.lat, lng: p.lng })) {
+        toast(t('prop.residentRadius', { km: RESIDENT_RADIUS_KM }), 'error');
+        marker.setLatLng([point.lat, point.lng]);
+        return;
+      }
       point = { lat: p.lat, lng: p.lng };
       describeSpot();
     });
@@ -95,6 +136,47 @@ function setMarker(loc, chosen) {
     marker.setLatLng([loc.lat, loc.lng]);
   }
   if (chosen) describeSpot();
+}
+
+// Investors: search any city or district in Saudi Arabia
+function setupPlaceSearch() {
+  const input = $('#place-q');
+  const list = $('#place-results');
+  let timer = null;
+  let ticket = 0;
+  const close = () => { list.hidden = true; list.innerHTML = ''; };
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { close(); return; }
+    timer = setTimeout(async () => {
+      const mine = ++ticket;
+      try {
+        const results = await api.get('public/search-places', { q }, { auth: false });
+        if (mine !== ticket) return;
+        list.innerHTML = results.length
+          ? results.map((r, i) => `<li role="option"><button type="button" data-i="${i}"><strong>${esc(r.name)}</strong><span>${esc(r.detail)}</span></button></li>`).join('')
+          : `<li class="muted small" style="padding:10px 12px">${esc(t('prop.noPlaces'))}</li>`;
+        list.hidden = false;
+        list.querySelectorAll('button[data-i]').forEach((b) => b.addEventListener('click', () => {
+          const r = results[Number(b.dataset.i)];
+          input.value = r.name;
+          close();
+          map.setView([r.latitude, r.longitude], 15);
+          setMarker({ lat: r.latitude, lng: r.longitude }, true);
+        }));
+      } catch {
+        close();
+      }
+    }, 400);
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); if (e.key === 'Enter') e.preventDefault(); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.place-search')) close(); });
+  document.querySelectorAll('[data-city-jump]').forEach((b) => b.addEventListener('click', () => {
+    const c = CITIES.find((x) => x.key === b.dataset.cityJump);
+    map.flyTo([c.lat, c.lng], 12, { duration: 0.8 });
+    toast(t('prop.tapToPlace'), 'info', 2500);
+  }));
 }
 
 let spotTimer = null;
@@ -106,7 +188,12 @@ function describeSpot() {
       const hood = await api.get('public/nearest-neighborhood', { lat: point.lat, lng: point.lng }, { auth: false });
       if (!$('#spot')) return;
       $('#spot').innerHTML = `${icon.pin} ${t('prop.inHood', { hood: `<strong>${esc(hood.name)}, ${esc(hood.city)}</strong>` })}`;
-      if (isInvestor && !$('#neighborhoodId').value) {
+      if (isInvestor) {
+        // The pin decides the neighborhood; it may be a district the server just added from the map
+        if (!neighborhoods.some((n) => n.id === hood.id)) neighborhoods.push(hood);
+        if (![...$('#city').options].some((o) => o.value === hood.city)) {
+          $('#city').insertAdjacentHTML('beforeend', `<option value="${esc(hood.city)}">${esc(hood.city)}</option>`);
+        }
         $('#city').value = hood.city;
         fillHoods(hood.city, hood.id);
       }
@@ -133,7 +220,7 @@ async function setupNeighborhoodPicker() {
     }
   }
   const cities = [...new Set(neighborhoods.map((n) => n.city))].sort();
-  $('#city').innerHTML = `<option value="">${esc(t('form.chooseCity'))}</option>` + cities.map((c) => `<option>${esc(c)}</option>`).join('');
+  $('#city').innerHTML = `<option value="">${esc(t('form.chooseCity'))}</option>` + cities.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
   $('#city').addEventListener('change', () => fillHoods($('#city').value));
   $('#neighborhoodId').addEventListener('change', () => {
     const n = neighborhoods.find((x) => x.id === Number($('#neighborhoodId').value));
@@ -279,7 +366,7 @@ function resultView(idea) {
     });
     if (result) {
       toast(serverText(result.message) || t('adopt.done'), 'success');
-      location.href = 'projects.html';
+      location.href = result.contractId ? `contract.html?id=${result.contractId}` : 'projects.html';
     }
   });
 }

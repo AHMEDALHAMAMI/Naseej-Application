@@ -101,7 +101,12 @@ public class UserService {
                 .longitude(user.getLongitude())
                 .crNumber(user.getCrNumber())
                 .investmentBudget(user.getInvestmentBudget())
+                .budgetMin(user.getBudgetMin())
+                .budgetMax(user.getBudgetMax())
                 .investmentFields(user.getInvestmentFields())
+                .investmentFieldsOther(user.getInvestmentFieldsOther())
+                .investmentFieldsOtherCategories(user.getInvestmentFieldsOtherCategories())
+                .investmentAreas(user.getInvestmentAreas())
                 .investorStatus(user.getInvestorStatus())
                 .build();
     }

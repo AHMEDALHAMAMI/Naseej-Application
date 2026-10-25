@@ -257,6 +257,22 @@
     {
       "key": "crudSubscriptionId",
       "value": "1"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@naseej.sa"
+    },
+    {
+      "key": "adminPassword",
+      "value": ""
+    },
+    {
+      "key": "demoPassword",
+      "value": "Demo12345"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
     }
   ],
   "event": [
@@ -3322,6 +3338,766 @@
                 "exec": [
                   "pm.test('Status is 200', function () {",
                   "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "16 - Investor demo dataset (بيانات تجريبية للمستثمر)",
+      "description": "بيانات تجريبية متكاملة لتجربة واجهة المستثمر: 11 حي في الرياض وجدة والخبر، 176 ساكن، 14 فكرة بنماذج عمل وفحص ومنافسين، أصوات حقيقية من السكان (7 أفكار مكتملة وجاهزة للفتح والباقي تجمع أصوات)، دراسات جدوى، و3 حسابات مستثمرين.\n\nقبل التشغيل: عبّي adminEmail و adminPassword في متغيرات الـ collection (نفس ADMIN_EMAIL و ADMIN_PASSWORD في .env). كلمة مرور كل الحسابات التجريبية = demoPassword (الافتراضي Demo12345).\n\nالتشغيل: كليك يمين على المجلد ← Run folder، وخلّ الخطوات بالترتيب. التشغيل مرة ثانية آمن: كل خطوة تتأكد من الموجود وما تكرر.\n\nFill adminEmail / adminPassword, then Run folder in order. Re-running is safe.",
+      "item": [
+        {
+          "name": "1. دخول المشرف (Admin login)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Logs in with the admin account from .env (ADMIN_EMAIL / ADMIN_PASSWORD). Fill adminEmail and adminPassword in the collection variables first.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin logged in', () => pm.response.to.have.status(200));",
+                  "const login = pm.response.json();",
+                  "pm.test('The account is an admin', () => pm.expect(login.user.role).to.eql('ADMIN'));",
+                  "pm.collectionVariables.set('adminToken', login.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. الأحياء (11 neighborhoods: Riyadh, Jeddah, Al Khobar)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/neighborhoods/get-all",
+            "description": "Creates the demo neighborhoods that don't exist yet (Arabic names, English city names) and remembers their ids."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "const HOODS = [{\"key\": \"malqa\", \"name\": \"الملقا\", \"city\": \"Riyadh\", \"lat\": 24.8126, \"lng\": 46.6178}, {\"key\": \"narjis\", \"name\": \"النرجس\", \"city\": \"Riyadh\", \"lat\": 24.854, \"lng\": 46.66}, {\"key\": \"yasmin\", \"name\": \"الياسمين\", \"city\": \"Riyadh\", \"lat\": 24.8253, \"lng\": 46.6467}, {\"key\": \"hittin\", \"name\": \"حطين\", \"city\": \"Riyadh\", \"lat\": 24.765, \"lng\": 46.6047}, {\"key\": \"olaya\", \"name\": \"العليا\", \"city\": \"Riyadh\", \"lat\": 24.6961, \"lng\": 46.6856}, {\"key\": \"sahafa\", \"name\": \"الصحافة\", \"city\": \"Riyadh\", \"lat\": 24.803, \"lng\": 46.637}, {\"key\": \"shatea\", \"name\": \"الشاطئ\", \"city\": \"Jeddah\", \"lat\": 21.596, \"lng\": 39.108}, {\"key\": \"rawdah\", \"name\": \"الروضة\", \"city\": \"Jeddah\", \"lat\": 21.564, \"lng\": 39.161}, {\"key\": \"obhur\", \"name\": \"أبحر الشمالية\", \"city\": \"Jeddah\", \"lat\": 21.76, \"lng\": 39.11}, {\"key\": \"aqrabiyah\", \"name\": \"العقربية\", \"city\": \"Al Khobar\", \"lat\": 26.292, \"lng\": 50.201}, {\"key\": \"rakah\", \"name\": \"الراكة\", \"city\": \"Al Khobar\", \"lat\": 26.353, \"lng\": 50.196}];",
+                  "",
+                  "run('Neighborhoods ready', async () => {",
+                  "  const existing = pm.response.json();",
+                  "  const ids = {};",
+                  "  let created = 0;",
+                  "  for (const h of HOODS) {",
+                  "    let found = existing.find((n) => n.name === h.name && n.city === h.city);",
+                  "    if (!found) {",
+                  "      found = must(await call('POST', 'neighborhoods/create', { name: h.name, city: h.city, latitude: h.lat, longitude: h.lng }, ADMIN), 'neighborhood ' + h.name);",
+                  "      created += 1;",
+                  "    }",
+                  "    ids[h.key] = found.id;",
+                  "  }",
+                  "  save('demoHoods', ids);",
+                  "  return created + ' created, ' + (HOODS.length - created) + ' already there';",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. السكان (16 residents per neighborhood)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/users/get-all",
+            "description": "Creates verified resident accounts in each demo neighborhood (demo.<neighborhood>.<n>@naseej.test, password = demoPassword). The first one in each neighborhood proposes the ideas; the rest vote."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "const HOODS = [{\"key\": \"malqa\", \"name\": \"الملقا\", \"city\": \"Riyadh\", \"lat\": 24.8126, \"lng\": 46.6178}, {\"key\": \"narjis\", \"name\": \"النرجس\", \"city\": \"Riyadh\", \"lat\": 24.854, \"lng\": 46.66}, {\"key\": \"yasmin\", \"name\": \"الياسمين\", \"city\": \"Riyadh\", \"lat\": 24.8253, \"lng\": 46.6467}, {\"key\": \"hittin\", \"name\": \"حطين\", \"city\": \"Riyadh\", \"lat\": 24.765, \"lng\": 46.6047}, {\"key\": \"olaya\", \"name\": \"العليا\", \"city\": \"Riyadh\", \"lat\": 24.6961, \"lng\": 46.6856}, {\"key\": \"sahafa\", \"name\": \"الصحافة\", \"city\": \"Riyadh\", \"lat\": 24.803, \"lng\": 46.637}, {\"key\": \"shatea\", \"name\": \"الشاطئ\", \"city\": \"Jeddah\", \"lat\": 21.596, \"lng\": 39.108}, {\"key\": \"rawdah\", \"name\": \"الروضة\", \"city\": \"Jeddah\", \"lat\": 21.564, \"lng\": 39.161}, {\"key\": \"obhur\", \"name\": \"أبحر الشمالية\", \"city\": \"Jeddah\", \"lat\": 21.76, \"lng\": 39.11}, {\"key\": \"aqrabiyah\", \"name\": \"العقربية\", \"city\": \"Al Khobar\", \"lat\": 26.292, \"lng\": 50.201}, {\"key\": \"rakah\", \"name\": \"الراكة\", \"city\": \"Al Khobar\", \"lat\": 26.353, \"lng\": 50.196}];",
+                  "const PER_HOOD = 16;",
+                  "",
+                  "run('Residents ready', async () => {",
+                  "  const hoods = read('demoHoods', {});",
+                  "  const users = pm.response.json();",
+                  "  const byEmail = {};",
+                  "  users.forEach((u) => { byEmail[u.email] = u; });",
+                  "  const residents = {};",
+                  "  let created = 0;",
+                  "  for (const h of HOODS) {",
+                  "    residents[h.key] = [];",
+                  "    for (let i = 1; i <= PER_HOOD; i += 1) {",
+                  "      const email = 'demo.' + h.key + '.' + i + '@naseej.test';",
+                  "      let u = byEmail[email];",
+                  "      if (!u) {",
+                  "        u = must(await call('POST', 'users/create', {",
+                  "          fullName: (i === 1 ? 'صاحب فكرة ' : 'ساكن ') + h.name + ' ' + i,",
+                  "          email, password: PASSWORD, authProvider: 'LOCAL', role: 'RESIDENT',",
+                  "          neighborhoodId: hoods[h.key], emailVerified: true, enabled: true, whatsappOptIn: false,",
+                  "        }, ADMIN), 'resident ' + email);",
+                  "        created += 1;",
+                  "      }",
+                  "      residents[h.key].push({ id: u.id, email });",
+                  "    }",
+                  "  }",
+                  "  save('demoResidents', residents);",
+                  "  return created + ' created';",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. الأفكار (14 ideas, published)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/get-all",
+            "description": "Creates the demo ideas as PUBLISHED with a vote target of 15, each at its own spot near the neighborhood center. The owner is the neighborhood's first resident."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "const HOODS = [{\"key\": \"malqa\", \"name\": \"الملقا\", \"city\": \"Riyadh\", \"lat\": 24.8126, \"lng\": 46.6178}, {\"key\": \"narjis\", \"name\": \"النرجس\", \"city\": \"Riyadh\", \"lat\": 24.854, \"lng\": 46.66}, {\"key\": \"yasmin\", \"name\": \"الياسمين\", \"city\": \"Riyadh\", \"lat\": 24.8253, \"lng\": 46.6467}, {\"key\": \"hittin\", \"name\": \"حطين\", \"city\": \"Riyadh\", \"lat\": 24.765, \"lng\": 46.6047}, {\"key\": \"olaya\", \"name\": \"العليا\", \"city\": \"Riyadh\", \"lat\": 24.6961, \"lng\": 46.6856}, {\"key\": \"sahafa\", \"name\": \"الصحافة\", \"city\": \"Riyadh\", \"lat\": 24.803, \"lng\": 46.637}, {\"key\": \"shatea\", \"name\": \"الشاطئ\", \"city\": \"Jeddah\", \"lat\": 21.596, \"lng\": 39.108}, {\"key\": \"rawdah\", \"name\": \"الروضة\", \"city\": \"Jeddah\", \"lat\": 21.564, \"lng\": 39.161}, {\"key\": \"obhur\", \"name\": \"أبحر الشمالية\", \"city\": \"Jeddah\", \"lat\": 21.76, \"lng\": 39.11}, {\"key\": \"aqrabiyah\", \"name\": \"العقربية\", \"city\": \"Al Khobar\", \"lat\": 26.292, \"lng\": 50.201}, {\"key\": \"rakah\", \"name\": \"الراكة\", \"city\": \"Al Khobar\", \"lat\": 26.353, \"lng\": 50.196}];",
+                  "const IDEAS = [{\"key\": \"pharmacy\", \"hood\": \"malqa\", \"title\": \"صيدلية على مدار الساعة\", \"category\": \"Pharmacy\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"أقرب صيدلية تبعد ٢٠ دقيقة بالسيارة وتقفل الساعة ١١. الحي فيه عوايل كثير وكبار سن ونحتاج صيدلية مفتوحة بالليل.\", \"capital\": [350000, 600000], \"gap\": 82, \"competitors\": [[\"صيدلية الشفاء\", 2.4], [\"صيدلية الدواء\", 3.1]], \"bm\": [\"صيدلية مفتوحة ٢٤ ساعة قريبة من البيوت\", \"سكان الملقا والأحياء المجاورة، خصوصًا العوايل وكبار السن\", \"مبيعات الأدوية ومنتجات العناية والمكملات\", \"إيجار محل ١٢٠م²، رواتب صيادلة بنظام ورديات، مخزون أولي\", \"الأعضاء المؤسسين، قروبات الحي، تطبيقات التوصيل\", \"فتح منافس على الطريق الرئيسي\"]}, {\"key\": \"laundry\", \"hood\": \"malqa\", \"title\": \"مغسلة ملابس بخدمة توصيل\", \"category\": \"Laundry\", \"votes\": 11, \"d\": [-0.002, 0.003], \"description\": \"ما فيه مغسلة قريبة تستلم من البيت. نبي مغسلة فيها توصيل واستلام بمواعيد مرنة.\", \"capital\": [120000, 250000], \"gap\": null, \"competitors\": [[\"مغسلة النظافة\", 1.8]], \"bm\": [\"غسيل وكوي مع استلام وتوصيل من البيت\", \"الموظفين والعوايل في الملقا\", \"رسوم الغسيل، اشتراكات شهرية للعوايل\", \"معدات غسيل وكوي، سيارة توصيل، عمالة\", \"تطبيق واتساب للطلبات، الأعضاء المؤسسين\", \"منافسة تطبيقات الغسيل الكبيرة\"]}, {\"key\": \"womengym\", \"hood\": \"narjis\", \"title\": \"نادي رياضي نسائي بحصص مسائية\", \"category\": \"Women's gym\", \"votes\": 15, \"d\": [0.002, 0.003], \"description\": \"أقرب نادي نسائي في حي ثاني وزحمة. نبي نادي فيه حصص مسائية ومنطقة أطفال.\", \"capital\": [700000, 1200000], \"gap\": 76, \"competitors\": [[\"نادي اللياقة النسائي\", 3.6]], \"bm\": [\"نادي نسائي بحصص جماعية مسائية ومنطقة أطفال\", \"نساء النرجس والأحياء المجاورة من ١٨ إلى ٥٠ سنة\", \"اشتراكات شهرية وسنوية، حصص خاصة\", \"إيجار مساحة ٤٠٠م²، أجهزة، مدربات\", \"الأعضاء المؤسسين، انستقرام، عروض الافتتاح\", \"تكلفة التجهيز العالية\"]}, {\"key\": \"bakery\", \"hood\": \"narjis\", \"title\": \"مخبز فرنسي صغير\", \"category\": \"Bakery\", \"votes\": 15, \"d\": [-0.003, -0.001], \"description\": \"نبي مخبز يطلع خبز طازج الصبح وكرواسون، بدل ما نروح للمولات.\", \"capital\": [400000, 650000], \"gap\": 64, \"competitors\": [[\"مخبز الحي\", 1.2]], \"bm\": [\"مخبز طازج يومي مع قهوة صباحية\", \"سكان النرجس، المدارس والمكاتب القريبة\", \"مبيعات المخبوزات والقهوة، طلبات المناسبات\", \"فرن ومعدات، خبّاز، إيجار ٨٠م²\", \"الأعضاء المؤسسين، طلبات مسبقة بالواتساب\", \"ارتفاع أسعار المواد الخام\"]}, {\"key\": \"cafe\", \"hood\": \"yasmin\", \"title\": \"ركن قهوة مختصة\", \"category\": \"Cafe\", \"votes\": 9, \"d\": [0.001, 0.003], \"description\": \"الحي ما فيه مكان هادي للقهوة والجلسات. نبي ركن قهوة صغير بجلسات خارجية.\", \"capital\": [180000, 320000], \"gap\": null, \"competitors\": [[\"قهوة الزاوية\", 2.2], [\"محمصة الحي\", 2.9]], \"bm\": [\"قهوة مختصة بجلسات هادية\", \"شباب الحي والموظفين\", \"مشروبات، حلويات، حبوب قهوة\", \"مكينة إسبريسو، تصميم داخلي، باريستا\", \"انستقرام، الأعضاء المؤسسين\", \"كثرة المقاهي في المدينة\"]}, {\"key\": \"dental\", \"hood\": \"yasmin\", \"title\": \"عيادة أسنان عائلية\", \"category\": \"Clinic\", \"votes\": 15, \"d\": [-0.002, -0.003], \"description\": \"مواعيد عيادات الأسنان القريبة بعيدة جدًا. نبي عيادة عائلية فيها طبيبة أطفال.\", \"capital\": [900000, 1500000], \"gap\": 88, \"competitors\": [[\"مجمع عيادات الصحة\", 4.2]], \"bm\": [\"عيادة أسنان عائلية بمواعيد مسائية وطبيبة أطفال\", \"عوايل الياسمين والنرجس\", \"الكشف والعلاج، تقويم وتجميل، تأمين طبي\", \"أجهزة وكراسي، رواتب أطباء، تراخيص\", \"الأعضاء المؤسسين، شركات التأمين\", \"طول مدة التراخيص الصحية\"]}, {\"key\": \"kids\", \"hood\": \"hittin\", \"title\": \"أنشطة أطفال بعد المدرسة\", \"category\": \"Kids activities\", \"votes\": 15, \"d\": [0.003, 0.002], \"description\": \"نبي مكان آمن للأطفال بعد المدرسة: رسم وروبوتات وسباحة، بدل الجوالات.\", \"capital\": [250000, 450000], \"gap\": 71, \"competitors\": [[\"مركز إبداع الطفل\", 3.3]], \"bm\": [\"أنشطة تعليمية وترفيهية بعد المدرسة\", \"أطفال حطين من ٥ إلى ١٢ سنة\", \"اشتراكات شهرية، ورش ومخيمات صيفية\", \"مدربين، أدوات، إيجار مساحة آمنة\", \"مدارس الحي، الأعضاء المؤسسين\", \"التزام الأهالي بالاشتراك الشهري\"]}, {\"key\": \"barber\", \"hood\": \"olaya\", \"title\": \"حلاق رجالي بحجز إلكتروني\", \"category\": \"Barber\", \"votes\": 6, \"d\": [-0.002, 0.002], \"description\": \"الانتظار عند الحلاقين طويل. نبي حلاق بحجز مواعيد من الجوال.\", \"capital\": [90000, 180000], \"gap\": null, \"competitors\": [[\"صالون الأناقة\", 0.9], [\"حلاق المدينة\", 1.4]], \"bm\": [\"حلاقة بحجز مسبق بدون انتظار\", \"موظفين العليا\", \"خدمات الحلاقة والعناية، باقات شهرية\", \"إيجار، كراسي، حلاقين\", \"نظام الحجز، قوقل ماب\", \"كثرة المنافسين في العليا\"]}, {\"key\": \"grocery\", \"hood\": \"sahafa\", \"title\": \"بقالة ٢٤ ساعة\", \"category\": \"Grocery\", \"votes\": 13, \"d\": [0.002, -0.003], \"description\": \"أقرب بقالة تقفل بدري، ونبي شي مفتوح طول الليل للأغراض السريعة.\", \"capital\": [150000, 300000], \"gap\": null, \"competitors\": [[\"تموينات الصحافة\", 1.6]], \"bm\": [\"بقالة مفتوحة ٢٤ ساعة مع توصيل سريع\", \"سكان الصحافة\", \"المبيعات اليومية، التوصيل\", \"مخزون، ثلاجات، عمالة ورديات\", \"تطبيقات التوصيل، الأعضاء المؤسسين\", \"هامش ربح منخفض\"]}, {\"key\": \"breakfast\", \"hood\": \"shatea\", \"title\": \"مطعم إفطار عائلي\", \"category\": \"Restaurant\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"نبي مطعم فطور عائلي قريب من الكورنيش يفتح بدري في الويكند.\", \"capital\": [500000, 850000], \"gap\": 69, \"competitors\": [[\"مطعم الفطور الشعبي\", 2.7]], \"bm\": [\"فطور عائلي قريب من الكورنيش\", \"عوايل جدة وزوار الكورنيش\", \"مبيعات المطعم، طلبات خارجية\", \"مطبخ مجهز، طاقم، إيجار\", \"الأعضاء المؤسسين، تطبيقات التوصيل\", \"موسمية الزوار\"]}, {\"key\": \"salon\", \"hood\": \"rawdah\", \"title\": \"صالون نسائي\", \"category\": \"Salon\", \"votes\": 10, \"d\": [-0.002, -0.002], \"description\": \"الصالونات القريبة زحمة ومواعيدها بعيدة. نبي صالون فيه حجز إلكتروني.\", \"capital\": [200000, 380000], \"gap\": null, \"competitors\": [[\"صالون الروضة\", 1.1]], \"bm\": [\"صالون نسائي بمواعيد مضبوطة\", \"نساء الروضة\", \"خدمات الشعر والعناية، باقات المناسبات\", \"تجهيز، أخصائيات، منتجات\", \"انستقرام، الأعضاء المؤسسين\", \"المنافسة على الأسعار\"]}, {\"key\": \"gym\", \"hood\": \"obhur\", \"title\": \"نادي رياضي\", \"category\": \"Gym\", \"votes\": 7, \"d\": [0.002, 0.002], \"description\": \"أبحر الشمالية تكبر بسرعة وما فيها نادي قريب.\", \"capital\": [600000, 1000000], \"gap\": null, \"competitors\": [[\"نادي الشاطئ\", 5.4]], \"bm\": [\"نادي رياضي متكامل بموقع قريب\", \"شباب أبحر الشمالية\", \"اشتراكات، تدريب شخصي\", \"أجهزة، إيجار، مدربين\", \"الأعضاء المؤسسين، العروض\", \"بطء نمو المشتركين في البداية\"]}, {\"key\": \"stationery\", \"hood\": \"aqrabiyah\", \"title\": \"قرطاسية ومستلزمات مدرسية\", \"category\": \"School supplies\", \"votes\": 15, \"d\": [0.002, -0.002], \"description\": \"مع بداية كل فصل نروح لمكتبات بعيدة. نبي قرطاسية قريبة من المدارس.\", \"capital\": [120000, 220000], \"gap\": 74, \"competitors\": [[\"مكتبة المعرفة\", 2.5]], \"bm\": [\"قرطاسية ومستلزمات مدرسية قريبة من المدارس\", \"طلاب وأهالي العقربية\", \"مبيعات الأدوات، الطباعة والتصوير\", \"مخزون، رفوف، طابعات\", \"المدارس القريبة، الأعضاء المؤسسين\", \"موسمية المبيعات\"]}, {\"key\": \"carservice\", \"hood\": \"rakah\", \"title\": \"مركز خدمة سيارات سريع\", \"category\": \"Car services\", \"votes\": 12, \"d\": [-0.003, 0.002], \"description\": \"تغيير الزيت والكفرات يحتاج مشوار طويل. نبي مركز سريع داخل الحي.\", \"capital\": [300000, 550000], \"gap\": null, \"competitors\": [[\"ورشة الخليج\", 3.8]], \"bm\": [\"خدمة سيارات سريعة: زيت، كفرات، غسيل\", \"سكان الراكة\", \"الخدمات، بيع القطع\", \"معدات، فنيين، تراخيص\", \"الأعضاء المؤسسين، قوقل ماب\", \"متطلبات السلامة والتراخيص\"]}];",
+                  "const THRESHOLD = 15;",
+                  "",
+                  "run('Ideas ready', async () => {",
+                  "  const hoods = read('demoHoods', {});",
+                  "  const residents = read('demoResidents', {});",
+                  "  const existing = pm.response.json();",
+                  "  const out = [];",
+                  "  let created = 0;",
+                  "  for (const idea of IDEAS) {",
+                  "    const hood = HOODS.find((h) => h.key === idea.hood);",
+                  "    let found = existing.find((i) => i.title === idea.title && i.neighborhoodId === hoods[idea.hood]);",
+                  "    if (!found) {",
+                  "      found = must(await call('POST', 'ideas/create', {",
+                  "        ownerId: residents[idea.hood][0].id,",
+                  "        neighborhoodId: hoods[idea.hood],",
+                  "        title: idea.title,",
+                  "        description: idea.description,",
+                  "        category: idea.category,",
+                  "        status: 'PUBLISHED',",
+                  "        membershipThreshold: THRESHOLD,",
+                  "        publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * (3 + out.length)).toISOString().slice(0, 19),",
+                  "        latitude: hood.lat + idea.d[0],",
+                  "        longitude: hood.lng + idea.d[1],",
+                  "      }, ADMIN), 'idea ' + idea.title);",
+                  "      created += 1;",
+                  "    }",
+                  "    out.push({ key: idea.key, id: found.id, hood: idea.hood });",
+                  "  }",
+                  "  save('demoIdeas', out);",
+                  "  return created + ' created';",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. نموذج العمل وفحص الفكرة والمنافسين (business models, checks, competitors)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/business-models/get-all",
+            "description": "Adds what the AI would normally write for each idea: the business model (with estimated capital), the idea check (FIT) and nearby competitors. Ideas that already have them are skipped."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "const IDEAS = [{\"key\": \"pharmacy\", \"hood\": \"malqa\", \"title\": \"صيدلية على مدار الساعة\", \"category\": \"Pharmacy\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"أقرب صيدلية تبعد ٢٠ دقيقة بالسيارة وتقفل الساعة ١١. الحي فيه عوايل كثير وكبار سن ونحتاج صيدلية مفتوحة بالليل.\", \"capital\": [350000, 600000], \"gap\": 82, \"competitors\": [[\"صيدلية الشفاء\", 2.4], [\"صيدلية الدواء\", 3.1]], \"bm\": [\"صيدلية مفتوحة ٢٤ ساعة قريبة من البيوت\", \"سكان الملقا والأحياء المجاورة، خصوصًا العوايل وكبار السن\", \"مبيعات الأدوية ومنتجات العناية والمكملات\", \"إيجار محل ١٢٠م²، رواتب صيادلة بنظام ورديات، مخزون أولي\", \"الأعضاء المؤسسين، قروبات الحي، تطبيقات التوصيل\", \"فتح منافس على الطريق الرئيسي\"]}, {\"key\": \"laundry\", \"hood\": \"malqa\", \"title\": \"مغسلة ملابس بخدمة توصيل\", \"category\": \"Laundry\", \"votes\": 11, \"d\": [-0.002, 0.003], \"description\": \"ما فيه مغسلة قريبة تستلم من البيت. نبي مغسلة فيها توصيل واستلام بمواعيد مرنة.\", \"capital\": [120000, 250000], \"gap\": null, \"competitors\": [[\"مغسلة النظافة\", 1.8]], \"bm\": [\"غسيل وكوي مع استلام وتوصيل من البيت\", \"الموظفين والعوايل في الملقا\", \"رسوم الغسيل، اشتراكات شهرية للعوايل\", \"معدات غسيل وكوي، سيارة توصيل، عمالة\", \"تطبيق واتساب للطلبات، الأعضاء المؤسسين\", \"منافسة تطبيقات الغسيل الكبيرة\"]}, {\"key\": \"womengym\", \"hood\": \"narjis\", \"title\": \"نادي رياضي نسائي بحصص مسائية\", \"category\": \"Women's gym\", \"votes\": 15, \"d\": [0.002, 0.003], \"description\": \"أقرب نادي نسائي في حي ثاني وزحمة. نبي نادي فيه حصص مسائية ومنطقة أطفال.\", \"capital\": [700000, 1200000], \"gap\": 76, \"competitors\": [[\"نادي اللياقة النسائي\", 3.6]], \"bm\": [\"نادي نسائي بحصص جماعية مسائية ومنطقة أطفال\", \"نساء النرجس والأحياء المجاورة من ١٨ إلى ٥٠ سنة\", \"اشتراكات شهرية وسنوية، حصص خاصة\", \"إيجار مساحة ٤٠٠م²، أجهزة، مدربات\", \"الأعضاء المؤسسين، انستقرام، عروض الافتتاح\", \"تكلفة التجهيز العالية\"]}, {\"key\": \"bakery\", \"hood\": \"narjis\", \"title\": \"مخبز فرنسي صغير\", \"category\": \"Bakery\", \"votes\": 15, \"d\": [-0.003, -0.001], \"description\": \"نبي مخبز يطلع خبز طازج الصبح وكرواسون، بدل ما نروح للمولات.\", \"capital\": [400000, 650000], \"gap\": 64, \"competitors\": [[\"مخبز الحي\", 1.2]], \"bm\": [\"مخبز طازج يومي مع قهوة صباحية\", \"سكان النرجس، المدارس والمكاتب القريبة\", \"مبيعات المخبوزات والقهوة، طلبات المناسبات\", \"فرن ومعدات، خبّاز، إيجار ٨٠م²\", \"الأعضاء المؤسسين، طلبات مسبقة بالواتساب\", \"ارتفاع أسعار المواد الخام\"]}, {\"key\": \"cafe\", \"hood\": \"yasmin\", \"title\": \"ركن قهوة مختصة\", \"category\": \"Cafe\", \"votes\": 9, \"d\": [0.001, 0.003], \"description\": \"الحي ما فيه مكان هادي للقهوة والجلسات. نبي ركن قهوة صغير بجلسات خارجية.\", \"capital\": [180000, 320000], \"gap\": null, \"competitors\": [[\"قهوة الزاوية\", 2.2], [\"محمصة الحي\", 2.9]], \"bm\": [\"قهوة مختصة بجلسات هادية\", \"شباب الحي والموظفين\", \"مشروبات، حلويات، حبوب قهوة\", \"مكينة إسبريسو، تصميم داخلي، باريستا\", \"انستقرام، الأعضاء المؤسسين\", \"كثرة المقاهي في المدينة\"]}, {\"key\": \"dental\", \"hood\": \"yasmin\", \"title\": \"عيادة أسنان عائلية\", \"category\": \"Clinic\", \"votes\": 15, \"d\": [-0.002, -0.003], \"description\": \"مواعيد عيادات الأسنان القريبة بعيدة جدًا. نبي عيادة عائلية فيها طبيبة أطفال.\", \"capital\": [900000, 1500000], \"gap\": 88, \"competitors\": [[\"مجمع عيادات الصحة\", 4.2]], \"bm\": [\"عيادة أسنان عائلية بمواعيد مسائية وطبيبة أطفال\", \"عوايل الياسمين والنرجس\", \"الكشف والعلاج، تقويم وتجميل، تأمين طبي\", \"أجهزة وكراسي، رواتب أطباء، تراخيص\", \"الأعضاء المؤسسين، شركات التأمين\", \"طول مدة التراخيص الصحية\"]}, {\"key\": \"kids\", \"hood\": \"hittin\", \"title\": \"أنشطة أطفال بعد المدرسة\", \"category\": \"Kids activities\", \"votes\": 15, \"d\": [0.003, 0.002], \"description\": \"نبي مكان آمن للأطفال بعد المدرسة: رسم وروبوتات وسباحة، بدل الجوالات.\", \"capital\": [250000, 450000], \"gap\": 71, \"competitors\": [[\"مركز إبداع الطفل\", 3.3]], \"bm\": [\"أنشطة تعليمية وترفيهية بعد المدرسة\", \"أطفال حطين من ٥ إلى ١٢ سنة\", \"اشتراكات شهرية، ورش ومخيمات صيفية\", \"مدربين، أدوات، إيجار مساحة آمنة\", \"مدارس الحي، الأعضاء المؤسسين\", \"التزام الأهالي بالاشتراك الشهري\"]}, {\"key\": \"barber\", \"hood\": \"olaya\", \"title\": \"حلاق رجالي بحجز إلكتروني\", \"category\": \"Barber\", \"votes\": 6, \"d\": [-0.002, 0.002], \"description\": \"الانتظار عند الحلاقين طويل. نبي حلاق بحجز مواعيد من الجوال.\", \"capital\": [90000, 180000], \"gap\": null, \"competitors\": [[\"صالون الأناقة\", 0.9], [\"حلاق المدينة\", 1.4]], \"bm\": [\"حلاقة بحجز مسبق بدون انتظار\", \"موظفين العليا\", \"خدمات الحلاقة والعناية، باقات شهرية\", \"إيجار، كراسي، حلاقين\", \"نظام الحجز، قوقل ماب\", \"كثرة المنافسين في العليا\"]}, {\"key\": \"grocery\", \"hood\": \"sahafa\", \"title\": \"بقالة ٢٤ ساعة\", \"category\": \"Grocery\", \"votes\": 13, \"d\": [0.002, -0.003], \"description\": \"أقرب بقالة تقفل بدري، ونبي شي مفتوح طول الليل للأغراض السريعة.\", \"capital\": [150000, 300000], \"gap\": null, \"competitors\": [[\"تموينات الصحافة\", 1.6]], \"bm\": [\"بقالة مفتوحة ٢٤ ساعة مع توصيل سريع\", \"سكان الصحافة\", \"المبيعات اليومية، التوصيل\", \"مخزون، ثلاجات، عمالة ورديات\", \"تطبيقات التوصيل، الأعضاء المؤسسين\", \"هامش ربح منخفض\"]}, {\"key\": \"breakfast\", \"hood\": \"shatea\", \"title\": \"مطعم إفطار عائلي\", \"category\": \"Restaurant\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"نبي مطعم فطور عائلي قريب من الكورنيش يفتح بدري في الويكند.\", \"capital\": [500000, 850000], \"gap\": 69, \"competitors\": [[\"مطعم الفطور الشعبي\", 2.7]], \"bm\": [\"فطور عائلي قريب من الكورنيش\", \"عوايل جدة وزوار الكورنيش\", \"مبيعات المطعم، طلبات خارجية\", \"مطبخ مجهز، طاقم، إيجار\", \"الأعضاء المؤسسين، تطبيقات التوصيل\", \"موسمية الزوار\"]}, {\"key\": \"salon\", \"hood\": \"rawdah\", \"title\": \"صالون نسائي\", \"category\": \"Salon\", \"votes\": 10, \"d\": [-0.002, -0.002], \"description\": \"الصالونات القريبة زحمة ومواعيدها بعيدة. نبي صالون فيه حجز إلكتروني.\", \"capital\": [200000, 380000], \"gap\": null, \"competitors\": [[\"صالون الروضة\", 1.1]], \"bm\": [\"صالون نسائي بمواعيد مضبوطة\", \"نساء الروضة\", \"خدمات الشعر والعناية، باقات المناسبات\", \"تجهيز، أخصائيات، منتجات\", \"انستقرام، الأعضاء المؤسسين\", \"المنافسة على الأسعار\"]}, {\"key\": \"gym\", \"hood\": \"obhur\", \"title\": \"نادي رياضي\", \"category\": \"Gym\", \"votes\": 7, \"d\": [0.002, 0.002], \"description\": \"أبحر الشمالية تكبر بسرعة وما فيها نادي قريب.\", \"capital\": [600000, 1000000], \"gap\": null, \"competitors\": [[\"نادي الشاطئ\", 5.4]], \"bm\": [\"نادي رياضي متكامل بموقع قريب\", \"شباب أبحر الشمالية\", \"اشتراكات، تدريب شخصي\", \"أجهزة، إيجار، مدربين\", \"الأعضاء المؤسسين، العروض\", \"بطء نمو المشتركين في البداية\"]}, {\"key\": \"stationery\", \"hood\": \"aqrabiyah\", \"title\": \"قرطاسية ومستلزمات مدرسية\", \"category\": \"School supplies\", \"votes\": 15, \"d\": [0.002, -0.002], \"description\": \"مع بداية كل فصل نروح لمكتبات بعيدة. نبي قرطاسية قريبة من المدارس.\", \"capital\": [120000, 220000], \"gap\": 74, \"competitors\": [[\"مكتبة المعرفة\", 2.5]], \"bm\": [\"قرطاسية ومستلزمات مدرسية قريبة من المدارس\", \"طلاب وأهالي العقربية\", \"مبيعات الأدوات، الطباعة والتصوير\", \"مخزون، رفوف، طابعات\", \"المدارس القريبة، الأعضاء المؤسسين\", \"موسمية المبيعات\"]}, {\"key\": \"carservice\", \"hood\": \"rakah\", \"title\": \"مركز خدمة سيارات سريع\", \"category\": \"Car services\", \"votes\": 12, \"d\": [-0.003, 0.002], \"description\": \"تغيير الزيت والكفرات يحتاج مشوار طويل. نبي مركز سريع داخل الحي.\", \"capital\": [300000, 550000], \"gap\": null, \"competitors\": [[\"ورشة الخليج\", 3.8]], \"bm\": [\"خدمة سيارات سريعة: زيت، كفرات، غسيل\", \"سكان الراكة\", \"الخدمات، بيع القطع\", \"معدات، فنيين، تراخيص\", \"الأعضاء المؤسسين، قوقل ماب\", \"متطلبات السلامة والتراخيص\"]}];",
+                  "",
+                  "run('Business models, checks and competitors ready', async () => {",
+                  "  const ideas = read('demoIdeas', []);",
+                  "  const models = pm.response.json();",
+                  "  const checks = must(await call('GET', 'idea-checks/get-all', undefined, ADMIN), 'idea checks');",
+                  "  const places = must(await call('GET', 'nearby-places/get-all', undefined, ADMIN), 'nearby places');",
+                  "  let n = 0;",
+                  "  for (const saved of ideas) {",
+                  "    const idea = IDEAS.find((i) => i.key === saved.key);",
+                  "    if (!models.some((m) => m.ideaId === saved.id)) {",
+                  "      must(await call('POST', 'business-models/create', {",
+                  "        ideaId: saved.id,",
+                  "        valueProposition: idea.bm[0], targetCustomers: idea.bm[1], revenueStreams: idea.bm[2],",
+                  "        costStructure: idea.bm[3], channels: idea.bm[4], risks: idea.bm[5],",
+                  "        estimatedCapitalMin: idea.capital[0], estimatedCapitalMax: idea.capital[1],",
+                  "      }, ADMIN), 'business model ' + idea.title);",
+                  "      n += 1;",
+                  "    }",
+                  "    if (!checks.some((c) => c.ideaId === saved.id)) {",
+                  "      const nearest = Math.min(...idea.competitors.map((c) => c[1]));",
+                  "      must(await call('POST', 'idea-checks/create', {",
+                  "        ideaId: saved.id, score: 70 + (idea.gap ? Math.round(idea.gap / 10) : 5), decision: 'FIT',",
+                  "        searchRadiusKm: 3, competitorsCount: idea.competitors.length, nearestCompetitorKm: nearest, scarcityFound: true,",
+                  "        feasibilitySummary: 'فيه شح واضح في النطاق: ' + idea.competitors.length + ' منافس فقط، وأقربهم على بعد ' + nearest + ' كم.',",
+                  "      }, ADMIN), 'idea check ' + idea.title);",
+                  "    }",
+                  "    if (!places.some((p) => p.ideaId === saved.id)) {",
+                  "      for (const [name, km] of idea.competitors) {",
+                  "        must(await call('POST', 'nearby-places/create', { ideaId: saved.id, name, category: idea.category, distanceKm: km }, ADMIN), 'competitor ' + name);",
+                  "      }",
+                  "    }",
+                  "  }",
+                  "  return n + ' business models added';",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. أصوات السكان (resident votes)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ideas/get-all",
+            "description": "Each resident logs in and votes from a spot near the idea (inside the 2 km radius). Ideas that reach 15 votes become COMPLETED (ready to unlock). Votes already cast are skipped."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "const HOODS = [{\"key\": \"malqa\", \"name\": \"الملقا\", \"city\": \"Riyadh\", \"lat\": 24.8126, \"lng\": 46.6178}, {\"key\": \"narjis\", \"name\": \"النرجس\", \"city\": \"Riyadh\", \"lat\": 24.854, \"lng\": 46.66}, {\"key\": \"yasmin\", \"name\": \"الياسمين\", \"city\": \"Riyadh\", \"lat\": 24.8253, \"lng\": 46.6467}, {\"key\": \"hittin\", \"name\": \"حطين\", \"city\": \"Riyadh\", \"lat\": 24.765, \"lng\": 46.6047}, {\"key\": \"olaya\", \"name\": \"العليا\", \"city\": \"Riyadh\", \"lat\": 24.6961, \"lng\": 46.6856}, {\"key\": \"sahafa\", \"name\": \"الصحافة\", \"city\": \"Riyadh\", \"lat\": 24.803, \"lng\": 46.637}, {\"key\": \"shatea\", \"name\": \"الشاطئ\", \"city\": \"Jeddah\", \"lat\": 21.596, \"lng\": 39.108}, {\"key\": \"rawdah\", \"name\": \"الروضة\", \"city\": \"Jeddah\", \"lat\": 21.564, \"lng\": 39.161}, {\"key\": \"obhur\", \"name\": \"أبحر الشمالية\", \"city\": \"Jeddah\", \"lat\": 21.76, \"lng\": 39.11}, {\"key\": \"aqrabiyah\", \"name\": \"العقربية\", \"city\": \"Al Khobar\", \"lat\": 26.292, \"lng\": 50.201}, {\"key\": \"rakah\", \"name\": \"الراكة\", \"city\": \"Al Khobar\", \"lat\": 26.353, \"lng\": 50.196}];",
+                  "const IDEAS = [{\"key\": \"pharmacy\", \"hood\": \"malqa\", \"title\": \"صيدلية على مدار الساعة\", \"category\": \"Pharmacy\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"أقرب صيدلية تبعد ٢٠ دقيقة بالسيارة وتقفل الساعة ١١. الحي فيه عوايل كثير وكبار سن ونحتاج صيدلية مفتوحة بالليل.\", \"capital\": [350000, 600000], \"gap\": 82, \"competitors\": [[\"صيدلية الشفاء\", 2.4], [\"صيدلية الدواء\", 3.1]], \"bm\": [\"صيدلية مفتوحة ٢٤ ساعة قريبة من البيوت\", \"سكان الملقا والأحياء المجاورة، خصوصًا العوايل وكبار السن\", \"مبيعات الأدوية ومنتجات العناية والمكملات\", \"إيجار محل ١٢٠م²، رواتب صيادلة بنظام ورديات، مخزون أولي\", \"الأعضاء المؤسسين، قروبات الحي، تطبيقات التوصيل\", \"فتح منافس على الطريق الرئيسي\"]}, {\"key\": \"laundry\", \"hood\": \"malqa\", \"title\": \"مغسلة ملابس بخدمة توصيل\", \"category\": \"Laundry\", \"votes\": 11, \"d\": [-0.002, 0.003], \"description\": \"ما فيه مغسلة قريبة تستلم من البيت. نبي مغسلة فيها توصيل واستلام بمواعيد مرنة.\", \"capital\": [120000, 250000], \"gap\": null, \"competitors\": [[\"مغسلة النظافة\", 1.8]], \"bm\": [\"غسيل وكوي مع استلام وتوصيل من البيت\", \"الموظفين والعوايل في الملقا\", \"رسوم الغسيل، اشتراكات شهرية للعوايل\", \"معدات غسيل وكوي، سيارة توصيل، عمالة\", \"تطبيق واتساب للطلبات، الأعضاء المؤسسين\", \"منافسة تطبيقات الغسيل الكبيرة\"]}, {\"key\": \"womengym\", \"hood\": \"narjis\", \"title\": \"نادي رياضي نسائي بحصص مسائية\", \"category\": \"Women's gym\", \"votes\": 15, \"d\": [0.002, 0.003], \"description\": \"أقرب نادي نسائي في حي ثاني وزحمة. نبي نادي فيه حصص مسائية ومنطقة أطفال.\", \"capital\": [700000, 1200000], \"gap\": 76, \"competitors\": [[\"نادي اللياقة النسائي\", 3.6]], \"bm\": [\"نادي نسائي بحصص جماعية مسائية ومنطقة أطفال\", \"نساء النرجس والأحياء المجاورة من ١٨ إلى ٥٠ سنة\", \"اشتراكات شهرية وسنوية، حصص خاصة\", \"إيجار مساحة ٤٠٠م²، أجهزة، مدربات\", \"الأعضاء المؤسسين، انستقرام، عروض الافتتاح\", \"تكلفة التجهيز العالية\"]}, {\"key\": \"bakery\", \"hood\": \"narjis\", \"title\": \"مخبز فرنسي صغير\", \"category\": \"Bakery\", \"votes\": 15, \"d\": [-0.003, -0.001], \"description\": \"نبي مخبز يطلع خبز طازج الصبح وكرواسون، بدل ما نروح للمولات.\", \"capital\": [400000, 650000], \"gap\": 64, \"competitors\": [[\"مخبز الحي\", 1.2]], \"bm\": [\"مخبز طازج يومي مع قهوة صباحية\", \"سكان النرجس، المدارس والمكاتب القريبة\", \"مبيعات المخبوزات والقهوة، طلبات المناسبات\", \"فرن ومعدات، خبّاز، إيجار ٨٠م²\", \"الأعضاء المؤسسين، طلبات مسبقة بالواتساب\", \"ارتفاع أسعار المواد الخام\"]}, {\"key\": \"cafe\", \"hood\": \"yasmin\", \"title\": \"ركن قهوة مختصة\", \"category\": \"Cafe\", \"votes\": 9, \"d\": [0.001, 0.003], \"description\": \"الحي ما فيه مكان هادي للقهوة والجلسات. نبي ركن قهوة صغير بجلسات خارجية.\", \"capital\": [180000, 320000], \"gap\": null, \"competitors\": [[\"قهوة الزاوية\", 2.2], [\"محمصة الحي\", 2.9]], \"bm\": [\"قهوة مختصة بجلسات هادية\", \"شباب الحي والموظفين\", \"مشروبات، حلويات، حبوب قهوة\", \"مكينة إسبريسو، تصميم داخلي، باريستا\", \"انستقرام، الأعضاء المؤسسين\", \"كثرة المقاهي في المدينة\"]}, {\"key\": \"dental\", \"hood\": \"yasmin\", \"title\": \"عيادة أسنان عائلية\", \"category\": \"Clinic\", \"votes\": 15, \"d\": [-0.002, -0.003], \"description\": \"مواعيد عيادات الأسنان القريبة بعيدة جدًا. نبي عيادة عائلية فيها طبيبة أطفال.\", \"capital\": [900000, 1500000], \"gap\": 88, \"competitors\": [[\"مجمع عيادات الصحة\", 4.2]], \"bm\": [\"عيادة أسنان عائلية بمواعيد مسائية وطبيبة أطفال\", \"عوايل الياسمين والنرجس\", \"الكشف والعلاج، تقويم وتجميل، تأمين طبي\", \"أجهزة وكراسي، رواتب أطباء، تراخيص\", \"الأعضاء المؤسسين، شركات التأمين\", \"طول مدة التراخيص الصحية\"]}, {\"key\": \"kids\", \"hood\": \"hittin\", \"title\": \"أنشطة أطفال بعد المدرسة\", \"category\": \"Kids activities\", \"votes\": 15, \"d\": [0.003, 0.002], \"description\": \"نبي مكان آمن للأطفال بعد المدرسة: رسم وروبوتات وسباحة، بدل الجوالات.\", \"capital\": [250000, 450000], \"gap\": 71, \"competitors\": [[\"مركز إبداع الطفل\", 3.3]], \"bm\": [\"أنشطة تعليمية وترفيهية بعد المدرسة\", \"أطفال حطين من ٥ إلى ١٢ سنة\", \"اشتراكات شهرية، ورش ومخيمات صيفية\", \"مدربين، أدوات، إيجار مساحة آمنة\", \"مدارس الحي، الأعضاء المؤسسين\", \"التزام الأهالي بالاشتراك الشهري\"]}, {\"key\": \"barber\", \"hood\": \"olaya\", \"title\": \"حلاق رجالي بحجز إلكتروني\", \"category\": \"Barber\", \"votes\": 6, \"d\": [-0.002, 0.002], \"description\": \"الانتظار عند الحلاقين طويل. نبي حلاق بحجز مواعيد من الجوال.\", \"capital\": [90000, 180000], \"gap\": null, \"competitors\": [[\"صالون الأناقة\", 0.9], [\"حلاق المدينة\", 1.4]], \"bm\": [\"حلاقة بحجز مسبق بدون انتظار\", \"موظفين العليا\", \"خدمات الحلاقة والعناية، باقات شهرية\", \"إيجار، كراسي، حلاقين\", \"نظام الحجز، قوقل ماب\", \"كثرة المنافسين في العليا\"]}, {\"key\": \"grocery\", \"hood\": \"sahafa\", \"title\": \"بقالة ٢٤ ساعة\", \"category\": \"Grocery\", \"votes\": 13, \"d\": [0.002, -0.003], \"description\": \"أقرب بقالة تقفل بدري، ونبي شي مفتوح طول الليل للأغراض السريعة.\", \"capital\": [150000, 300000], \"gap\": null, \"competitors\": [[\"تموينات الصحافة\", 1.6]], \"bm\": [\"بقالة مفتوحة ٢٤ ساعة مع توصيل سريع\", \"سكان الصحافة\", \"المبيعات اليومية، التوصيل\", \"مخزون، ثلاجات، عمالة ورديات\", \"تطبيقات التوصيل، الأعضاء المؤسسين\", \"هامش ربح منخفض\"]}, {\"key\": \"breakfast\", \"hood\": \"shatea\", \"title\": \"مطعم إفطار عائلي\", \"category\": \"Restaurant\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"نبي مطعم فطور عائلي قريب من الكورنيش يفتح بدري في الويكند.\", \"capital\": [500000, 850000], \"gap\": 69, \"competitors\": [[\"مطعم الفطور الشعبي\", 2.7]], \"bm\": [\"فطور عائلي قريب من الكورنيش\", \"عوايل جدة وزوار الكورنيش\", \"مبيعات المطعم، طلبات خارجية\", \"مطبخ مجهز، طاقم، إيجار\", \"الأعضاء المؤسسين، تطبيقات التوصيل\", \"موسمية الزوار\"]}, {\"key\": \"salon\", \"hood\": \"rawdah\", \"title\": \"صالون نسائي\", \"category\": \"Salon\", \"votes\": 10, \"d\": [-0.002, -0.002], \"description\": \"الصالونات القريبة زحمة ومواعيدها بعيدة. نبي صالون فيه حجز إلكتروني.\", \"capital\": [200000, 380000], \"gap\": null, \"competitors\": [[\"صالون الروضة\", 1.1]], \"bm\": [\"صالون نسائي بمواعيد مضبوطة\", \"نساء الروضة\", \"خدمات الشعر والعناية، باقات المناسبات\", \"تجهيز، أخصائيات، منتجات\", \"انستقرام، الأعضاء المؤسسين\", \"المنافسة على الأسعار\"]}, {\"key\": \"gym\", \"hood\": \"obhur\", \"title\": \"نادي رياضي\", \"category\": \"Gym\", \"votes\": 7, \"d\": [0.002, 0.002], \"description\": \"أبحر الشمالية تكبر بسرعة وما فيها نادي قريب.\", \"capital\": [600000, 1000000], \"gap\": null, \"competitors\": [[\"نادي الشاطئ\", 5.4]], \"bm\": [\"نادي رياضي متكامل بموقع قريب\", \"شباب أبحر الشمالية\", \"اشتراكات، تدريب شخصي\", \"أجهزة، إيجار، مدربين\", \"الأعضاء المؤسسين، العروض\", \"بطء نمو المشتركين في البداية\"]}, {\"key\": \"stationery\", \"hood\": \"aqrabiyah\", \"title\": \"قرطاسية ومستلزمات مدرسية\", \"category\": \"School supplies\", \"votes\": 15, \"d\": [0.002, -0.002], \"description\": \"مع بداية كل فصل نروح لمكتبات بعيدة. نبي قرطاسية قريبة من المدارس.\", \"capital\": [120000, 220000], \"gap\": 74, \"competitors\": [[\"مكتبة المعرفة\", 2.5]], \"bm\": [\"قرطاسية ومستلزمات مدرسية قريبة من المدارس\", \"طلاب وأهالي العقربية\", \"مبيعات الأدوات، الطباعة والتصوير\", \"مخزون، رفوف، طابعات\", \"المدارس القريبة، الأعضاء المؤسسين\", \"موسمية المبيعات\"]}, {\"key\": \"carservice\", \"hood\": \"rakah\", \"title\": \"مركز خدمة سيارات سريع\", \"category\": \"Car services\", \"votes\": 12, \"d\": [-0.003, 0.002], \"description\": \"تغيير الزيت والكفرات يحتاج مشوار طويل. نبي مركز سريع داخل الحي.\", \"capital\": [300000, 550000], \"gap\": null, \"competitors\": [[\"ورشة الخليج\", 3.8]], \"bm\": [\"خدمة سيارات سريعة: زيت، كفرات، غسيل\", \"سكان الراكة\", \"الخدمات، بيع القطع\", \"معدات، فنيين، تراخيص\", \"الأعضاء المؤسسين، قوقل ماب\", \"متطلبات السلامة والتراخيص\"]}];",
+                  "",
+                  "run('Votes cast', async () => {",
+                  "  const ideas = read('demoIdeas', []);",
+                  "  const residents = read('demoResidents', {});",
+                  "  const all = pm.response.json();",
+                  "  const tokens = {};",
+                  "  let cast = 0;",
+                  "  for (const saved of ideas) {",
+                  "    const idea = IDEAS.find((i) => i.key === saved.key);",
+                  "    const hood = HOODS.find((h) => h.key === idea.hood);",
+                  "    const current = all.find((i) => i.id === saved.id);",
+                  "    if (current && current.status !== 'PUBLISHED') continue; // already completed or adopted",
+                  "    const voters = residents[idea.hood].slice(1, 1 + idea.votes); // the first resident owns the idea",
+                  "    for (let v = 0; v < voters.length; v += 1) {",
+                  "      const r = voters[v];",
+                  "      if (!tokens[r.email]) {",
+                  "        tokens[r.email] = must(await call('POST', 'auth/login', { email: r.email, password: PASSWORD }), 'login ' + r.email).accessToken;",
+                  "      }",
+                  "      // A few hundred meters around the idea, so every vote is inside the radius",
+                  "      const jitter = () => (Math.random() - 0.5) * 0.004;",
+                  "      const res = await call('POST', 'discover/vote/' + saved.id, {",
+                  "        latitude: hood.lat + idea.d[0] + jitter(),",
+                  "        longitude: hood.lng + idea.d[1] + jitter(),",
+                  "      }, tokens[r.email]);",
+                  "      if (res.code === 409) continue; // voted before",
+                  "      if (res.code >= 400 && res.json && /closed/i.test(res.json.message || '')) break; // target reached",
+                  "      must(res, 'vote on ' + idea.title);",
+                  "      cast += 1;",
+                  "    }",
+                  "  }",
+                  "  return cast + ' votes';",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. دراسات الجدوى (feasibility reports for ready ideas)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/feasibility-reports/get-all",
+            "description": "Adds a feasibility report (gap score, peak demand, recommendation, risks) to the ideas that reached their vote target. The gap score shows on the investor cards."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "const IDEAS = [{\"key\": \"pharmacy\", \"hood\": \"malqa\", \"title\": \"صيدلية على مدار الساعة\", \"category\": \"Pharmacy\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"أقرب صيدلية تبعد ٢٠ دقيقة بالسيارة وتقفل الساعة ١١. الحي فيه عوايل كثير وكبار سن ونحتاج صيدلية مفتوحة بالليل.\", \"capital\": [350000, 600000], \"gap\": 82, \"competitors\": [[\"صيدلية الشفاء\", 2.4], [\"صيدلية الدواء\", 3.1]], \"bm\": [\"صيدلية مفتوحة ٢٤ ساعة قريبة من البيوت\", \"سكان الملقا والأحياء المجاورة، خصوصًا العوايل وكبار السن\", \"مبيعات الأدوية ومنتجات العناية والمكملات\", \"إيجار محل ١٢٠م²، رواتب صيادلة بنظام ورديات، مخزون أولي\", \"الأعضاء المؤسسين، قروبات الحي، تطبيقات التوصيل\", \"فتح منافس على الطريق الرئيسي\"]}, {\"key\": \"laundry\", \"hood\": \"malqa\", \"title\": \"مغسلة ملابس بخدمة توصيل\", \"category\": \"Laundry\", \"votes\": 11, \"d\": [-0.002, 0.003], \"description\": \"ما فيه مغسلة قريبة تستلم من البيت. نبي مغسلة فيها توصيل واستلام بمواعيد مرنة.\", \"capital\": [120000, 250000], \"gap\": null, \"competitors\": [[\"مغسلة النظافة\", 1.8]], \"bm\": [\"غسيل وكوي مع استلام وتوصيل من البيت\", \"الموظفين والعوايل في الملقا\", \"رسوم الغسيل، اشتراكات شهرية للعوايل\", \"معدات غسيل وكوي، سيارة توصيل، عمالة\", \"تطبيق واتساب للطلبات، الأعضاء المؤسسين\", \"منافسة تطبيقات الغسيل الكبيرة\"]}, {\"key\": \"womengym\", \"hood\": \"narjis\", \"title\": \"نادي رياضي نسائي بحصص مسائية\", \"category\": \"Women's gym\", \"votes\": 15, \"d\": [0.002, 0.003], \"description\": \"أقرب نادي نسائي في حي ثاني وزحمة. نبي نادي فيه حصص مسائية ومنطقة أطفال.\", \"capital\": [700000, 1200000], \"gap\": 76, \"competitors\": [[\"نادي اللياقة النسائي\", 3.6]], \"bm\": [\"نادي نسائي بحصص جماعية مسائية ومنطقة أطفال\", \"نساء النرجس والأحياء المجاورة من ١٨ إلى ٥٠ سنة\", \"اشتراكات شهرية وسنوية، حصص خاصة\", \"إيجار مساحة ٤٠٠م²، أجهزة، مدربات\", \"الأعضاء المؤسسين، انستقرام، عروض الافتتاح\", \"تكلفة التجهيز العالية\"]}, {\"key\": \"bakery\", \"hood\": \"narjis\", \"title\": \"مخبز فرنسي صغير\", \"category\": \"Bakery\", \"votes\": 15, \"d\": [-0.003, -0.001], \"description\": \"نبي مخبز يطلع خبز طازج الصبح وكرواسون، بدل ما نروح للمولات.\", \"capital\": [400000, 650000], \"gap\": 64, \"competitors\": [[\"مخبز الحي\", 1.2]], \"bm\": [\"مخبز طازج يومي مع قهوة صباحية\", \"سكان النرجس، المدارس والمكاتب القريبة\", \"مبيعات المخبوزات والقهوة، طلبات المناسبات\", \"فرن ومعدات، خبّاز، إيجار ٨٠م²\", \"الأعضاء المؤسسين، طلبات مسبقة بالواتساب\", \"ارتفاع أسعار المواد الخام\"]}, {\"key\": \"cafe\", \"hood\": \"yasmin\", \"title\": \"ركن قهوة مختصة\", \"category\": \"Cafe\", \"votes\": 9, \"d\": [0.001, 0.003], \"description\": \"الحي ما فيه مكان هادي للقهوة والجلسات. نبي ركن قهوة صغير بجلسات خارجية.\", \"capital\": [180000, 320000], \"gap\": null, \"competitors\": [[\"قهوة الزاوية\", 2.2], [\"محمصة الحي\", 2.9]], \"bm\": [\"قهوة مختصة بجلسات هادية\", \"شباب الحي والموظفين\", \"مشروبات، حلويات، حبوب قهوة\", \"مكينة إسبريسو، تصميم داخلي، باريستا\", \"انستقرام، الأعضاء المؤسسين\", \"كثرة المقاهي في المدينة\"]}, {\"key\": \"dental\", \"hood\": \"yasmin\", \"title\": \"عيادة أسنان عائلية\", \"category\": \"Clinic\", \"votes\": 15, \"d\": [-0.002, -0.003], \"description\": \"مواعيد عيادات الأسنان القريبة بعيدة جدًا. نبي عيادة عائلية فيها طبيبة أطفال.\", \"capital\": [900000, 1500000], \"gap\": 88, \"competitors\": [[\"مجمع عيادات الصحة\", 4.2]], \"bm\": [\"عيادة أسنان عائلية بمواعيد مسائية وطبيبة أطفال\", \"عوايل الياسمين والنرجس\", \"الكشف والعلاج، تقويم وتجميل، تأمين طبي\", \"أجهزة وكراسي، رواتب أطباء، تراخيص\", \"الأعضاء المؤسسين، شركات التأمين\", \"طول مدة التراخيص الصحية\"]}, {\"key\": \"kids\", \"hood\": \"hittin\", \"title\": \"أنشطة أطفال بعد المدرسة\", \"category\": \"Kids activities\", \"votes\": 15, \"d\": [0.003, 0.002], \"description\": \"نبي مكان آمن للأطفال بعد المدرسة: رسم وروبوتات وسباحة، بدل الجوالات.\", \"capital\": [250000, 450000], \"gap\": 71, \"competitors\": [[\"مركز إبداع الطفل\", 3.3]], \"bm\": [\"أنشطة تعليمية وترفيهية بعد المدرسة\", \"أطفال حطين من ٥ إلى ١٢ سنة\", \"اشتراكات شهرية، ورش ومخيمات صيفية\", \"مدربين، أدوات، إيجار مساحة آمنة\", \"مدارس الحي، الأعضاء المؤسسين\", \"التزام الأهالي بالاشتراك الشهري\"]}, {\"key\": \"barber\", \"hood\": \"olaya\", \"title\": \"حلاق رجالي بحجز إلكتروني\", \"category\": \"Barber\", \"votes\": 6, \"d\": [-0.002, 0.002], \"description\": \"الانتظار عند الحلاقين طويل. نبي حلاق بحجز مواعيد من الجوال.\", \"capital\": [90000, 180000], \"gap\": null, \"competitors\": [[\"صالون الأناقة\", 0.9], [\"حلاق المدينة\", 1.4]], \"bm\": [\"حلاقة بحجز مسبق بدون انتظار\", \"موظفين العليا\", \"خدمات الحلاقة والعناية، باقات شهرية\", \"إيجار، كراسي، حلاقين\", \"نظام الحجز، قوقل ماب\", \"كثرة المنافسين في العليا\"]}, {\"key\": \"grocery\", \"hood\": \"sahafa\", \"title\": \"بقالة ٢٤ ساعة\", \"category\": \"Grocery\", \"votes\": 13, \"d\": [0.002, -0.003], \"description\": \"أقرب بقالة تقفل بدري، ونبي شي مفتوح طول الليل للأغراض السريعة.\", \"capital\": [150000, 300000], \"gap\": null, \"competitors\": [[\"تموينات الصحافة\", 1.6]], \"bm\": [\"بقالة مفتوحة ٢٤ ساعة مع توصيل سريع\", \"سكان الصحافة\", \"المبيعات اليومية، التوصيل\", \"مخزون، ثلاجات، عمالة ورديات\", \"تطبيقات التوصيل، الأعضاء المؤسسين\", \"هامش ربح منخفض\"]}, {\"key\": \"breakfast\", \"hood\": \"shatea\", \"title\": \"مطعم إفطار عائلي\", \"category\": \"Restaurant\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"نبي مطعم فطور عائلي قريب من الكورنيش يفتح بدري في الويكند.\", \"capital\": [500000, 850000], \"gap\": 69, \"competitors\": [[\"مطعم الفطور الشعبي\", 2.7]], \"bm\": [\"فطور عائلي قريب من الكورنيش\", \"عوايل جدة وزوار الكورنيش\", \"مبيعات المطعم، طلبات خارجية\", \"مطبخ مجهز، طاقم، إيجار\", \"الأعضاء المؤسسين، تطبيقات التوصيل\", \"موسمية الزوار\"]}, {\"key\": \"salon\", \"hood\": \"rawdah\", \"title\": \"صالون نسائي\", \"category\": \"Salon\", \"votes\": 10, \"d\": [-0.002, -0.002], \"description\": \"الصالونات القريبة زحمة ومواعيدها بعيدة. نبي صالون فيه حجز إلكتروني.\", \"capital\": [200000, 380000], \"gap\": null, \"competitors\": [[\"صالون الروضة\", 1.1]], \"bm\": [\"صالون نسائي بمواعيد مضبوطة\", \"نساء الروضة\", \"خدمات الشعر والعناية، باقات المناسبات\", \"تجهيز، أخصائيات، منتجات\", \"انستقرام، الأعضاء المؤسسين\", \"المنافسة على الأسعار\"]}, {\"key\": \"gym\", \"hood\": \"obhur\", \"title\": \"نادي رياضي\", \"category\": \"Gym\", \"votes\": 7, \"d\": [0.002, 0.002], \"description\": \"أبحر الشمالية تكبر بسرعة وما فيها نادي قريب.\", \"capital\": [600000, 1000000], \"gap\": null, \"competitors\": [[\"نادي الشاطئ\", 5.4]], \"bm\": [\"نادي رياضي متكامل بموقع قريب\", \"شباب أبحر الشمالية\", \"اشتراكات، تدريب شخصي\", \"أجهزة، إيجار، مدربين\", \"الأعضاء المؤسسين، العروض\", \"بطء نمو المشتركين في البداية\"]}, {\"key\": \"stationery\", \"hood\": \"aqrabiyah\", \"title\": \"قرطاسية ومستلزمات مدرسية\", \"category\": \"School supplies\", \"votes\": 15, \"d\": [0.002, -0.002], \"description\": \"مع بداية كل فصل نروح لمكتبات بعيدة. نبي قرطاسية قريبة من المدارس.\", \"capital\": [120000, 220000], \"gap\": 74, \"competitors\": [[\"مكتبة المعرفة\", 2.5]], \"bm\": [\"قرطاسية ومستلزمات مدرسية قريبة من المدارس\", \"طلاب وأهالي العقربية\", \"مبيعات الأدوات، الطباعة والتصوير\", \"مخزون، رفوف، طابعات\", \"المدارس القريبة، الأعضاء المؤسسين\", \"موسمية المبيعات\"]}, {\"key\": \"carservice\", \"hood\": \"rakah\", \"title\": \"مركز خدمة سيارات سريع\", \"category\": \"Car services\", \"votes\": 12, \"d\": [-0.003, 0.002], \"description\": \"تغيير الزيت والكفرات يحتاج مشوار طويل. نبي مركز سريع داخل الحي.\", \"capital\": [300000, 550000], \"gap\": null, \"competitors\": [[\"ورشة الخليج\", 3.8]], \"bm\": [\"خدمة سيارات سريعة: زيت، كفرات، غسيل\", \"سكان الراكة\", \"الخدمات، بيع القطع\", \"معدات، فنيين، تراخيص\", \"الأعضاء المؤسسين، قوقل ماب\", \"متطلبات السلامة والتراخيص\"]}];",
+                  "",
+                  "run('Feasibility reports ready', async () => {",
+                  "  const ideas = read('demoIdeas', []);",
+                  "  const reports = pm.response.json();",
+                  "  let n = 0;",
+                  "  for (const saved of ideas) {",
+                  "    const idea = IDEAS.find((i) => i.key === saved.key);",
+                  "    if (!idea.gap || reports.some((r) => r.ideaId === saved.id)) continue;",
+                  "    must(await call('POST', 'feasibility-reports/create', {",
+                  "      ideaId: saved.id,",
+                  "      gapScore: idea.gap,",
+                  "      memberGrowthPercent: 100,",
+                  "      peakDemandTime: 'المساء ٦ – ١٠',",
+                  "      recommendation: 'الطلب موثّق من ' + idea.votes + ' ساكن والمنافسة قليلة في النطاق. ننصح بالافتتاح خلال ٩٠ يوم والتركيز على الأعضاء المؤسسين في أول شهر.',",
+                  "      risks: idea.bm[5],",
+                  "    }, ADMIN), 'report ' + idea.title);",
+                  "    n += 1;",
+                  "  }",
+                  "  return n + ' reports added';",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. المستثمرين (3 investor accounts)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/users/get-all",
+            "description": "Creates three investors to log in with (password = demoPassword):\n- investor.demo@naseej.test: verified, preferences set (health, fitness and home services in three Riyadh neighborhoods), and one draft contract (dental clinic) waiting in My projects.\n- investor.two@naseej.test: verified, has taken the bakery, so it shows as adopted by another investor.\n- investor.new@naseej.test: brand new, no CR and no preferences, to try onboarding and the CR step."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "const IDEAS = [{\"key\": \"pharmacy\", \"hood\": \"malqa\", \"title\": \"صيدلية على مدار الساعة\", \"category\": \"Pharmacy\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"أقرب صيدلية تبعد ٢٠ دقيقة بالسيارة وتقفل الساعة ١١. الحي فيه عوايل كثير وكبار سن ونحتاج صيدلية مفتوحة بالليل.\", \"capital\": [350000, 600000], \"gap\": 82, \"competitors\": [[\"صيدلية الشفاء\", 2.4], [\"صيدلية الدواء\", 3.1]], \"bm\": [\"صيدلية مفتوحة ٢٤ ساعة قريبة من البيوت\", \"سكان الملقا والأحياء المجاورة، خصوصًا العوايل وكبار السن\", \"مبيعات الأدوية ومنتجات العناية والمكملات\", \"إيجار محل ١٢٠م²، رواتب صيادلة بنظام ورديات، مخزون أولي\", \"الأعضاء المؤسسين، قروبات الحي، تطبيقات التوصيل\", \"فتح منافس على الطريق الرئيسي\"]}, {\"key\": \"laundry\", \"hood\": \"malqa\", \"title\": \"مغسلة ملابس بخدمة توصيل\", \"category\": \"Laundry\", \"votes\": 11, \"d\": [-0.002, 0.003], \"description\": \"ما فيه مغسلة قريبة تستلم من البيت. نبي مغسلة فيها توصيل واستلام بمواعيد مرنة.\", \"capital\": [120000, 250000], \"gap\": null, \"competitors\": [[\"مغسلة النظافة\", 1.8]], \"bm\": [\"غسيل وكوي مع استلام وتوصيل من البيت\", \"الموظفين والعوايل في الملقا\", \"رسوم الغسيل، اشتراكات شهرية للعوايل\", \"معدات غسيل وكوي، سيارة توصيل، عمالة\", \"تطبيق واتساب للطلبات، الأعضاء المؤسسين\", \"منافسة تطبيقات الغسيل الكبيرة\"]}, {\"key\": \"womengym\", \"hood\": \"narjis\", \"title\": \"نادي رياضي نسائي بحصص مسائية\", \"category\": \"Women's gym\", \"votes\": 15, \"d\": [0.002, 0.003], \"description\": \"أقرب نادي نسائي في حي ثاني وزحمة. نبي نادي فيه حصص مسائية ومنطقة أطفال.\", \"capital\": [700000, 1200000], \"gap\": 76, \"competitors\": [[\"نادي اللياقة النسائي\", 3.6]], \"bm\": [\"نادي نسائي بحصص جماعية مسائية ومنطقة أطفال\", \"نساء النرجس والأحياء المجاورة من ١٨ إلى ٥٠ سنة\", \"اشتراكات شهرية وسنوية، حصص خاصة\", \"إيجار مساحة ٤٠٠م²، أجهزة، مدربات\", \"الأعضاء المؤسسين، انستقرام، عروض الافتتاح\", \"تكلفة التجهيز العالية\"]}, {\"key\": \"bakery\", \"hood\": \"narjis\", \"title\": \"مخبز فرنسي صغير\", \"category\": \"Bakery\", \"votes\": 15, \"d\": [-0.003, -0.001], \"description\": \"نبي مخبز يطلع خبز طازج الصبح وكرواسون، بدل ما نروح للمولات.\", \"capital\": [400000, 650000], \"gap\": 64, \"competitors\": [[\"مخبز الحي\", 1.2]], \"bm\": [\"مخبز طازج يومي مع قهوة صباحية\", \"سكان النرجس، المدارس والمكاتب القريبة\", \"مبيعات المخبوزات والقهوة، طلبات المناسبات\", \"فرن ومعدات، خبّاز، إيجار ٨٠م²\", \"الأعضاء المؤسسين، طلبات مسبقة بالواتساب\", \"ارتفاع أسعار المواد الخام\"]}, {\"key\": \"cafe\", \"hood\": \"yasmin\", \"title\": \"ركن قهوة مختصة\", \"category\": \"Cafe\", \"votes\": 9, \"d\": [0.001, 0.003], \"description\": \"الحي ما فيه مكان هادي للقهوة والجلسات. نبي ركن قهوة صغير بجلسات خارجية.\", \"capital\": [180000, 320000], \"gap\": null, \"competitors\": [[\"قهوة الزاوية\", 2.2], [\"محمصة الحي\", 2.9]], \"bm\": [\"قهوة مختصة بجلسات هادية\", \"شباب الحي والموظفين\", \"مشروبات، حلويات، حبوب قهوة\", \"مكينة إسبريسو، تصميم داخلي، باريستا\", \"انستقرام، الأعضاء المؤسسين\", \"كثرة المقاهي في المدينة\"]}, {\"key\": \"dental\", \"hood\": \"yasmin\", \"title\": \"عيادة أسنان عائلية\", \"category\": \"Clinic\", \"votes\": 15, \"d\": [-0.002, -0.003], \"description\": \"مواعيد عيادات الأسنان القريبة بعيدة جدًا. نبي عيادة عائلية فيها طبيبة أطفال.\", \"capital\": [900000, 1500000], \"gap\": 88, \"competitors\": [[\"مجمع عيادات الصحة\", 4.2]], \"bm\": [\"عيادة أسنان عائلية بمواعيد مسائية وطبيبة أطفال\", \"عوايل الياسمين والنرجس\", \"الكشف والعلاج، تقويم وتجميل، تأمين طبي\", \"أجهزة وكراسي، رواتب أطباء، تراخيص\", \"الأعضاء المؤسسين، شركات التأمين\", \"طول مدة التراخيص الصحية\"]}, {\"key\": \"kids\", \"hood\": \"hittin\", \"title\": \"أنشطة أطفال بعد المدرسة\", \"category\": \"Kids activities\", \"votes\": 15, \"d\": [0.003, 0.002], \"description\": \"نبي مكان آمن للأطفال بعد المدرسة: رسم وروبوتات وسباحة، بدل الجوالات.\", \"capital\": [250000, 450000], \"gap\": 71, \"competitors\": [[\"مركز إبداع الطفل\", 3.3]], \"bm\": [\"أنشطة تعليمية وترفيهية بعد المدرسة\", \"أطفال حطين من ٥ إلى ١٢ سنة\", \"اشتراكات شهرية، ورش ومخيمات صيفية\", \"مدربين، أدوات، إيجار مساحة آمنة\", \"مدارس الحي، الأعضاء المؤسسين\", \"التزام الأهالي بالاشتراك الشهري\"]}, {\"key\": \"barber\", \"hood\": \"olaya\", \"title\": \"حلاق رجالي بحجز إلكتروني\", \"category\": \"Barber\", \"votes\": 6, \"d\": [-0.002, 0.002], \"description\": \"الانتظار عند الحلاقين طويل. نبي حلاق بحجز مواعيد من الجوال.\", \"capital\": [90000, 180000], \"gap\": null, \"competitors\": [[\"صالون الأناقة\", 0.9], [\"حلاق المدينة\", 1.4]], \"bm\": [\"حلاقة بحجز مسبق بدون انتظار\", \"موظفين العليا\", \"خدمات الحلاقة والعناية، باقات شهرية\", \"إيجار، كراسي، حلاقين\", \"نظام الحجز، قوقل ماب\", \"كثرة المنافسين في العليا\"]}, {\"key\": \"grocery\", \"hood\": \"sahafa\", \"title\": \"بقالة ٢٤ ساعة\", \"category\": \"Grocery\", \"votes\": 13, \"d\": [0.002, -0.003], \"description\": \"أقرب بقالة تقفل بدري، ونبي شي مفتوح طول الليل للأغراض السريعة.\", \"capital\": [150000, 300000], \"gap\": null, \"competitors\": [[\"تموينات الصحافة\", 1.6]], \"bm\": [\"بقالة مفتوحة ٢٤ ساعة مع توصيل سريع\", \"سكان الصحافة\", \"المبيعات اليومية، التوصيل\", \"مخزون، ثلاجات، عمالة ورديات\", \"تطبيقات التوصيل، الأعضاء المؤسسين\", \"هامش ربح منخفض\"]}, {\"key\": \"breakfast\", \"hood\": \"shatea\", \"title\": \"مطعم إفطار عائلي\", \"category\": \"Restaurant\", \"votes\": 15, \"d\": [0.003, -0.002], \"description\": \"نبي مطعم فطور عائلي قريب من الكورنيش يفتح بدري في الويكند.\", \"capital\": [500000, 850000], \"gap\": 69, \"competitors\": [[\"مطعم الفطور الشعبي\", 2.7]], \"bm\": [\"فطور عائلي قريب من الكورنيش\", \"عوايل جدة وزوار الكورنيش\", \"مبيعات المطعم، طلبات خارجية\", \"مطبخ مجهز، طاقم، إيجار\", \"الأعضاء المؤسسين، تطبيقات التوصيل\", \"موسمية الزوار\"]}, {\"key\": \"salon\", \"hood\": \"rawdah\", \"title\": \"صالون نسائي\", \"category\": \"Salon\", \"votes\": 10, \"d\": [-0.002, -0.002], \"description\": \"الصالونات القريبة زحمة ومواعيدها بعيدة. نبي صالون فيه حجز إلكتروني.\", \"capital\": [200000, 380000], \"gap\": null, \"competitors\": [[\"صالون الروضة\", 1.1]], \"bm\": [\"صالون نسائي بمواعيد مضبوطة\", \"نساء الروضة\", \"خدمات الشعر والعناية، باقات المناسبات\", \"تجهيز، أخصائيات، منتجات\", \"انستقرام، الأعضاء المؤسسين\", \"المنافسة على الأسعار\"]}, {\"key\": \"gym\", \"hood\": \"obhur\", \"title\": \"نادي رياضي\", \"category\": \"Gym\", \"votes\": 7, \"d\": [0.002, 0.002], \"description\": \"أبحر الشمالية تكبر بسرعة وما فيها نادي قريب.\", \"capital\": [600000, 1000000], \"gap\": null, \"competitors\": [[\"نادي الشاطئ\", 5.4]], \"bm\": [\"نادي رياضي متكامل بموقع قريب\", \"شباب أبحر الشمالية\", \"اشتراكات، تدريب شخصي\", \"أجهزة، إيجار، مدربين\", \"الأعضاء المؤسسين، العروض\", \"بطء نمو المشتركين في البداية\"]}, {\"key\": \"stationery\", \"hood\": \"aqrabiyah\", \"title\": \"قرطاسية ومستلزمات مدرسية\", \"category\": \"School supplies\", \"votes\": 15, \"d\": [0.002, -0.002], \"description\": \"مع بداية كل فصل نروح لمكتبات بعيدة. نبي قرطاسية قريبة من المدارس.\", \"capital\": [120000, 220000], \"gap\": 74, \"competitors\": [[\"مكتبة المعرفة\", 2.5]], \"bm\": [\"قرطاسية ومستلزمات مدرسية قريبة من المدارس\", \"طلاب وأهالي العقربية\", \"مبيعات الأدوات، الطباعة والتصوير\", \"مخزون، رفوف، طابعات\", \"المدارس القريبة، الأعضاء المؤسسين\", \"موسمية المبيعات\"]}, {\"key\": \"carservice\", \"hood\": \"rakah\", \"title\": \"مركز خدمة سيارات سريع\", \"category\": \"Car services\", \"votes\": 12, \"d\": [-0.003, 0.002], \"description\": \"تغيير الزيت والكفرات يحتاج مشوار طويل. نبي مركز سريع داخل الحي.\", \"capital\": [300000, 550000], \"gap\": null, \"competitors\": [[\"ورشة الخليج\", 3.8]], \"bm\": [\"خدمة سيارات سريعة: زيت، كفرات، غسيل\", \"سكان الراكة\", \"الخدمات، بيع القطع\", \"معدات، فنيين، تراخيص\", \"الأعضاء المؤسسين، قوقل ماب\", \"متطلبات السلامة والتراخيص\"]}];",
+                  "const INVESTORS = [{\"key\": \"a\", \"name\": \"مستثمر تجريبي\", \"email\": \"investor.demo@naseej.test\", \"cr\": \"1010000001\", \"verify\": true, \"prefs\": {\"investmentBudget\": \"CUSTOM\", \"budgetMin\": 200000, \"budgetMax\": 1500000, \"investmentFields\": \"HEALTH,FITNESS,HOME_SERVICES\", \"investmentAreas\": [\"malqa\", \"narjis\", \"yasmin\"]}, \"partnership\": \"dental\"}, {\"key\": \"b\", \"name\": \"مستثمر ثاني\", \"email\": \"investor.two@naseej.test\", \"cr\": \"1010000002\", \"verify\": true, \"prefs\": null, \"partnership\": \"bakery\"}, {\"key\": \"c\", \"name\": \"مستثمر جديد\", \"email\": \"investor.new@naseej.test\", \"cr\": null, \"verify\": false, \"prefs\": null, \"partnership\": null}];",
+                  "",
+                  "run('Investors ready', async () => {",
+                  "  const hoods = read('demoHoods', {});",
+                  "  const ideas = read('demoIdeas', []);",
+                  "  const users = pm.response.json();",
+                  "  const notes = [];",
+                  "  for (const inv of INVESTORS) {",
+                  "    let u = users.find((x) => x.email === inv.email);",
+                  "    if (!u) {",
+                  "      u = must(await call('POST', 'users/create', {",
+                  "        fullName: inv.name, email: inv.email, password: PASSWORD, authProvider: 'LOCAL', role: 'INVESTOR',",
+                  "        emailVerified: true, enabled: true, whatsappOptIn: false,",
+                  "      }, ADMIN), 'investor ' + inv.email);",
+                  "    }",
+                  "    const token = must(await call('POST', 'auth/login', { email: inv.email, password: PASSWORD }), 'login ' + inv.email).accessToken;",
+                  "    let me = must(await call('GET', 'auth/me', undefined, token), 'me ' + inv.email);",
+                  "    if (inv.prefs && !me.investmentBudget) {",
+                  "      const prefs = Object.assign({}, inv.prefs, { investmentAreas: inv.prefs.investmentAreas.map((k) => hoods[k]).join(',') });",
+                  "      me = must(await call('PUT', 'auth/me', prefs, token), 'preferences ' + inv.email);",
+                  "    }",
+                  "    if (inv.cr && !me.crNumber) {",
+                  "      me = must(await call('PUT', 'auth/me', { crNumber: inv.cr }, token), 'CR ' + inv.email);",
+                  "    }",
+                  "    if (inv.verify && me.investorStatus !== 'VERIFIED') {",
+                  "      must(await call('PUT', 'admin/investors/verify/' + me.id, undefined, ADMIN), 'verify ' + inv.email);",
+                  "    }",
+                  "    if (inv.partnership) {",
+                  "      const target = ideas.find((i) => i.key === inv.partnership);",
+                  "      const res = await call('POST', 'unlock/partnership/' + target.id, { termsAccepted: true, signedName: inv.name }, token);",
+                  "      if (res.code >= 400 && res.code !== 409) {",
+                  "        const msg = (res.json && res.json.message) || '';",
+                  "        // Already held by this investor (or taken) is fine on a second run",
+                  "        if (!/already|ended/i.test(msg)) must(res, 'partnership ' + inv.email);",
+                  "      }",
+                  "    }",
+                  "    notes.push(inv.email);",
+                  "  }",
+                  "  pm.collectionVariables.set('demoInvestorEmail', INVESTORS[0].email);",
+                  "  return notes.join(', ');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9. التحقق (what the investor sees)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Logs in as investor.demo@naseej.test and checks the opportunities the website will show.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"investor.demo@naseej.test\",\n  \"password\": \"{{demoPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const BASE = pm.variables.get('baseUrl') || 'http://localhost:8080/api/v1';",
+                  "const ADMIN = pm.collectionVariables.get('adminToken');",
+                  "const PASSWORD = pm.variables.get('demoPassword') || 'Demo12345';",
+                  "function call(method, path, body, token) {",
+                  "  return new Promise((resolve, reject) => {",
+                  "    const header = [{ key: 'Content-Type', value: 'application/json' }];",
+                  "    if (token) header.push({ key: 'Authorization', value: 'Bearer ' + token });",
+                  "    pm.sendRequest({",
+                  "      url: BASE + '/' + path,",
+                  "      method,",
+                  "      header,",
+                  "      body: body === undefined ? undefined : { mode: 'raw', raw: JSON.stringify(body) },",
+                  "    }, (err, res) => {",
+                  "      if (err) return reject(err);",
+                  "      let json = null;",
+                  "      try { json = res.json(); } catch (e) { /* not JSON */ }",
+                  "      resolve({ code: res.code, json });",
+                  "    });",
+                  "  });",
+                  "}",
+                  "function must(res, what) {",
+                  "  if (res.code >= 400) throw new Error(what + ' → ' + res.code + ' ' + JSON.stringify(res.json));",
+                  "  return res.json;",
+                  "}",
+                  "const read = (name, fallback) => { try { return JSON.parse(pm.collectionVariables.get(name)) || fallback; } catch (e) { return fallback; } };",
+                  "const save = (name, value) => pm.collectionVariables.set(name, JSON.stringify(value));",
+                  "function run(title, task) {",
+                  "  task().then((summary) => {",
+                  "    pm.test(title, () => true);",
+                  "    if (summary) console.log(title + ': ' + summary);",
+                  "  }).catch((e) => {",
+                  "    console.error(e);",
+                  "    pm.test(title, () => { throw e; });",
+                  "  });",
+                  "}",
+                  "",
+                  "pm.test('Demo investor logged in', () => pm.response.to.have.status(200));",
+                  "const token = pm.response.json().accessToken;",
+                  "run('Opportunities visible to investors', async () => {",
+                  "  const list = must(await call('GET', 'explore/search?limit=100', undefined, token), 'search');",
+                  "  const ready = list.filter((o) => o.status === 'COMPLETED').length;",
+                  "  const collecting = list.filter((o) => o.status === 'PUBLISHED').length;",
+                  "  const taken = list.filter((o) => o.status === 'ADOPTED' || o.status === 'OPENED').length;",
+                  "  pm.expect(ready, 'ready to unlock').to.be.above(0);",
+                  "  return ready + ' ready to unlock, ' + collecting + ' collecting votes, ' + taken + ' adopted';",
                   "});"
                 ]
               }

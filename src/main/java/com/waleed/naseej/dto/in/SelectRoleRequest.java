@@ -38,7 +38,8 @@ public class SelectRoleRequest {
     @DecimalMax(value = "180.0", message = "Longitude must be between -180 and 180")
     private Double longitude;
 
-    // ---------- Investors only (required when role is INVESTOR) ----------
+    // ---------- Investors only, all optional: the CR is added before the first unlock,
+    //            budget and fields come from the onboarding questions after sign-up ----------
 
     @Pattern(regexp = "^\\d{10}$", message = "Commercial registration number must be 10 digits")
     private String crNumber;

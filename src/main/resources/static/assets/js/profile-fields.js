@@ -1,7 +1,7 @@
-// Sign-up pieces shared by register.html and choose-role.html:
-// the neighborhood filled from the browser location, and the investor profile chips.
+// Sign-up pieces shared by register.html and choose-role.html: the resident's neighborhood filled
+// from the browser location. (Investor preferences live in investor-prefs.js.)
 import { api } from './api.js';
-import { $, esc, LABELS, withLoading, errorMessage, t } from './ui.js';
+import { $, esc, withLoading, errorMessage, t } from './ui.js';
 import { locate } from './maps.js';
 
 /** Location card: detects the nearest neighborhood, with city/neighborhood dropdowns as a fallback. */
@@ -48,6 +48,11 @@ export function setupLocationCard(root) {
       await ready;
       const hood = await api.get('public/nearest-neighborhood', { lat: loc.lat, lng: loc.lng }, { auth: false });
       state.neighborhoodId = hood.id;
+      // The server may have just added this district from the map, so it can be missing from the lists
+      if (!all.some((n) => n.id === hood.id)) all.push(hood);
+      if (![...citySel.options].some((o) => o.value === hood.city)) {
+        citySel.insertAdjacentHTML('beforeend', `<option value="${esc(hood.city)}">${esc(hood.city)}</option>`);
+      }
       citySel.value = hood.city;
       fillHoods(hood.city, hood.id);
       result.innerHTML = `<strong style="color:var(--ink);font-size:16px">${esc(hood.name)}, ${esc(hood.city)}</strong><br>${esc(t('loc.fromLocationHint'))}`;
@@ -68,48 +73,6 @@ export function setupLocationCard(root) {
       longitude: state.longitude,
     }),
   };
-}
-
-/** Budget (single choice) and fields (multiple) chips for investors. */
-export function setupInvestorFields(root) {
-  const budgetBox = $('#budget-chips', root);
-  const fieldBox = $('#field-chips', root);
-  const budgetInput = root.querySelector('[name="investmentBudget"]');
-  const fieldsInput = root.querySelector('[name="investmentFields"]');
-
-  budgetBox.innerHTML = Object.entries(LABELS.budget)
-    .map(([k, v]) => `<button type="button" class="chip" data-v="${k}" aria-pressed="false">${esc(v)}</button>`).join('');
-  fieldBox.innerHTML = Object.entries(LABELS.field)
-    .map(([k, v]) => `<button type="button" class="chip" data-v="${k}" aria-pressed="false">${esc(v)}</button>`).join('');
-
-  budgetBox.addEventListener('click', (e) => {
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    budgetBox.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
-    budgetInput.value = chip.dataset.v;
-  });
-  fieldBox.addEventListener('click', (e) => {
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    chip.setAttribute('aria-pressed', String(chip.getAttribute('aria-pressed') !== 'true'));
-    fieldsInput.value = [...fieldBox.querySelectorAll('.chip[aria-pressed="true"]')].map((c) => c.dataset.v).join(',');
-  });
-
-  return {
-    values: () => ({
-      crNumber: $('#crNumber', root).value.trim(),
-      investmentBudget: budgetInput.value || null,
-      investmentFields: fieldsInput.value || null,
-    }),
-  };
-}
-
-/** Client-side checks that mirror the server rules, so mistakes show before sending. */
-export function checkInvestor(values) {
-  if (!/^\d{10}$/.test(values.crNumber || '')) return ['crNumber', t('inv.crInvalid')];
-  if (!values.investmentBudget) return ['investmentBudget', t('inv.budgetRequired')];
-  if (!values.investmentFields) return ['investmentFields', t('inv.fieldsRequired')];
-  return null;
 }
 
 export function showFieldError(form, name, message) {

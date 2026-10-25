@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2F5444">
-<script>try{var l=localStorage.getItem('naseej.lang');if(l!=='ar'&&l!=='en'){l=(navigator.language||'').toLowerCase().indexOf('ar')===0?'ar':'en';}document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';}catch(e){}</script>
+<script>try{var l=localStorage.getItem('naseej.lang');if(l!=='ar'&&l!=='en'){l='ar';}document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';}catch(e){}</script>
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,26 +76,7 @@
             <button type="button" class="btn btn-secondary btn-sm" id="detect" style="align-self:flex-start" data-i18n="loc.useMine" data-i18n-attr="data-loading:loc.locating"></button>
           </div>
         </div>
-        <div id="investor-fields" class="stack hidden">
-          <div class="field">
-            <label for="crNumber" data-i18n="inv.cr"></label>
-            <input class="input" id="crNumber" name="crNumber" inputmode="numeric" maxlength="10" data-i18n-attr="placeholder:inv.crPlaceholder" dir="ltr">
-            <span class="error" aria-live="polite"></span>
-          </div>
-          <div class="field">
-            <span class="label" id="budget-label" data-i18n="inv.budget"></span>
-            <div class="chips" role="group" aria-labelledby="budget-label" id="budget-chips"></div>
-            <input type="hidden" name="investmentBudget">
-            <span class="error" aria-live="polite"></span>
-          </div>
-          <div class="field">
-            <span class="label" id="fields-label" data-i18n="inv.fields"></span>
-            <div class="chips" role="group" aria-labelledby="fields-label" id="field-chips"></div>
-            <input type="hidden" name="investmentFields">
-            <span class="error" aria-live="polite"></span>
-          </div>
-          <div class="notice notice-warn"><span data-i18n-html="inv.reviewNote"></span></div>
-        </div>
+        <div id="investor-fields" class="notice notice-info hidden"><span data-i18n="register.investorHint"></span></div>
         <label class="check"><input type="checkbox" id="terms" required><span data-i18n="form.terms"></span></label>
         <button class="btn btn-block" type="submit" data-i18n="choose.finish" data-i18n-attr="data-loading:common.saving"></button>
       </form>

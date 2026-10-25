@@ -11,7 +11,8 @@ function detect() {
     const saved = localStorage.getItem(KEY);
     if (saved === 'ar' || saved === 'en') return saved;
   } catch { /* storage blocked */ }
-  return (navigator.language || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+  // Arabic is the default for everyone; English is one tap away and remembered once chosen
+  return 'ar';
 }
 
 export const lang = detect();

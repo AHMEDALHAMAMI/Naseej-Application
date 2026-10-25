@@ -1,9 +1,9 @@
-// Admin dashboard: live numbers and charts from the database, and investor verification.
-import { api } from '../api.js';
+// Admin dashboard: live numbers and charts from the database, every member who signed up, and investor verification.
+import { api, ApiError } from '../api.js';
 import { $, $$, esc, fmt, guard, icon, toast, errorMessage, modal, skeletonCards, LABELS, label, withLoading, applyFieldErrors, t } from '../ui.js';
 import { locale, tn } from '../i18n.js';
 
-await guard(['ADMIN']);
+const me = await guard(['ADMIN']);
 const app = $('#app');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const PALETTE = ['#2F5444', '#5A7D66', '#A9C3B2', '#C9B386', '#E8E0D3', '#9C9384', '#C2543F'];
@@ -20,6 +20,37 @@ app.innerHTML = `
     <section class="card"><div class="card-head"><h2>${esc(t('adm.topHoods'))}</h2><span class="small muted">${esc(t('adm.publishedIdeas'))}</span></div><div style="height:240px"><canvas id="c-hoods" role="img" aria-label="${esc(t('adm.topHoods'))}"></canvas></div></section>
     <section class="card"><div class="card-head"><h2>${esc(t('adm.membersUnlocks'))}</h2></div><div class="grid" style="gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))"><div style="height:220px"><canvas id="c-roles" role="img" aria-label="${esc(t('adm.byRole'))}"></canvas></div><div style="height:220px"><canvas id="c-access" role="img" aria-label="${esc(t('adm.byType'))}"></canvas></div></div></section>
   </div>
+  <section class="card stack" id="members" style="gap:16px;margin-bottom:24px;scroll-margin-top:90px" aria-labelledby="mem-h">
+    <div class="card-head" style="margin:0;flex-wrap:wrap">
+      <div class="stack" style="gap:4px"><h2 id="mem-h">${esc(t('adm.members'))}</h2><span class="small muted">${esc(t('adm.membersText'))}</span></div>
+      <button type="button" class="btn btn-sm" id="add-member">+ ${esc(t('adm.addMember'))}</button>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <div class="segmented" role="group" aria-label="${esc(t('adm.roleFilter'))}" id="role-filter">
+        ${['ALL', 'RESIDENT', 'INVESTOR', 'PENDING', 'ADMIN'].map((r, i) => `<button type="button" data-role="${r}" aria-pressed="${i === 0}">${esc(r === 'ALL' ? t('res.all') : t(`adm.role.${r}`))} <span class="seg-count" data-role-count="${r}"></span></button>`).join('')}
+      </div>
+    </div>
+    <div class="row">
+      <label class="sr-only" for="mem-search">${esc(t('adm.searchMembers'))}</label>
+      <input class="input" id="mem-search" type="search" placeholder="${esc(t('adm.searchMembersPh'))}" style="max-width:380px">
+      <span class="small muted" id="mem-count" aria-live="polite"></span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr>
+          <th scope="col"><button type="button" data-msort="fullName">${esc(t('adm.member'))} ↕</button></th>
+          <th scope="col">${esc(t('adm.roleCol'))}</th>
+          <th scope="col"><button type="button" data-msort="neighborhoodName">${esc(t('form.hood'))} ↕</button></th>
+          <th scope="col">${esc(t('adm.signup'))}</th>
+          <th scope="col"><button type="button" data-msort="activity">${esc(t('adm.activity'))} ↕</button></th>
+          <th scope="col">${esc(t('adm.status'))}</th>
+          <th scope="col"><span class="sr-only">${esc(t('adm.actions'))}</span></th>
+        </tr></thead>
+        <tbody id="mem-rows"><tr><td colspan="7"><div class="skeleton" style="height:48px"></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="pager"><span id="mem-page-info"></span><div class="row"><button type="button" class="btn btn-secondary btn-sm" id="mem-prev">${esc(t('adm.prev'))}</button><button type="button" class="btn btn-secondary btn-sm" id="mem-next">${esc(t('adm.next'))}</button></div></div>
+  </section>
   <section class="card stack" id="investors" style="gap:16px;scroll-margin-top:90px" aria-labelledby="inv-h">
     <div class="card-head" style="margin:0;flex-wrap:wrap">
       <div class="stack" style="gap:4px"><h2 id="inv-h">${esc(t('adm.invTitle'))}</h2><span class="small muted">${esc(t('adm.invText'))}</span></div>
@@ -228,7 +259,7 @@ async function review(id, action) {
   });
   if (ok) {
     toast(t(action === 'verify' ? 'adm.verified' : 'adm.rejected', { name: u.fullName }), 'success');
-    await Promise.all([loadInvestors(), loadStats()]);
+    await Promise.all([loadInvestors(), loadStats(), loadMembers()]);
   }
 }
 
@@ -252,9 +283,275 @@ $('#next').addEventListener('click', () => { table.page += 1; renderTable(); });
 $('#refresh').addEventListener('click', async (e) => {
   const btn = e.currentTarget;
   btn.disabled = true;
-  try { await Promise.all([loadStats(), loadInvestors()]); } catch (err) { toast(errorMessage(err), 'error'); }
+  try { await Promise.all([loadStats(), loadMembers(), loadInvestors()]); } catch (err) { toast(errorMessage(err), 'error'); }
   btn.disabled = false;
 });
+
+// ---------- Members: everyone who signed up ----------
+const MEM_PAGE = 15;
+const members = { rows: [], role: 'ALL', query: '', sort: 'id', dir: -1, page: 0 };
+
+async function loadMembers() {
+  try {
+    members.rows = await api.get('admin/users');
+    ['ALL', 'RESIDENT', 'INVESTOR', 'PENDING', 'ADMIN'].forEach((r) => {
+      const n = r === 'ALL' ? members.rows.length : members.rows.filter((u) => u.role === r).length;
+      const el = document.querySelector(`[data-role-count="${r}"]`);
+      if (el) el.textContent = fmt.num(n);
+    });
+    renderMembers();
+  } catch (err) {
+    $('#mem-rows').innerHTML = `<tr><td colspan="7"><div class="notice notice-error">${icon.x}<span>${esc(errorMessage(err))}</span></div></td></tr>`;
+  }
+}
+
+const initials = (name) => (name || '?').split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+
+function renderMembers() {
+  const q = members.query.toLowerCase();
+  const value = (u) => (members.sort === 'activity' ? (u.ideasCount || 0) * 10 + (u.votesCount || 0)
+    : members.sort === 'id' ? u.id : (u[members.sort] || '').toLowerCase());
+  const rows = members.rows
+    .filter((u) => members.role === 'ALL' || u.role === members.role)
+    .filter((u) => !q || [u.fullName, u.email, u.phone, u.neighborhoodName, u.city, u.crNumber].some((v) => (v || '').toLowerCase().includes(q)))
+    .sort((a, b) => {
+      const av = value(a);
+      const bv = value(b);
+      return (typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv))) * members.dir;
+    });
+  const pages = Math.max(1, Math.ceil(rows.length / MEM_PAGE));
+  members.page = Math.min(members.page, pages - 1);
+  const shown = rows.slice(members.page * MEM_PAGE, (members.page + 1) * MEM_PAGE);
+
+  $('#mem-count').textContent = tn(rows.length, 'count.members');
+  $('#mem-page-info').textContent = rows.length ? t('adm.page', { p: members.page + 1, n: pages }) : '';
+  $('#mem-prev').disabled = members.page === 0;
+  $('#mem-next').disabled = members.page >= pages - 1;
+
+  const roleBadge = { RESIDENT: 'badge', INVESTOR: 'badge-solid', ADMIN: 'badge-lock', PENDING: 'badge-amber' };
+  const invBadge = { VERIFIED: 'badge-solid', REJECTED: 'badge-red', PENDING: 'badge-amber' };
+  $('#mem-rows').innerHTML = shown.length ? shown.map((u) => `<tr class="${u.enabled ? '' : 'is-suspended'}">
+      <td><div class="member">
+        <span class="member-avatar role-${u.role.toLowerCase()}" aria-hidden="true">${esc(initials(u.fullName))}</span>
+        <span class="stack" style="gap:1px;min-width:0"><strong>${esc(u.fullName)}</strong><span class="small muted">${esc(u.email)}${u.phone ? ' · <span class="num">' + esc(u.phone) + '</span>' : ''}</span></span>
+      </div></td>
+      <td><span class="badge ${roleBadge[u.role] || 'badge-sand'}">${esc(label('role', u.role))}</span>
+        ${u.investorStatus ? `<br><span class="badge ${invBadge[u.investorStatus]}" style="margin-top:4px">${esc(label('investorStatus', u.investorStatus))}</span>` : ''}</td>
+      <td>${u.neighborhoodName ? `${esc(u.neighborhoodName)}<br><span class="small muted">${esc(u.city || '')}</span>` : '<span class="muted">—</span>'}</td>
+      <td class="small">${esc(u.authProvider === 'GOOGLE' ? 'Google' : t('adm.emailSignup'))}<br>
+        <span class="${u.emailVerified ? 'ok-text' : 'muted'}">${esc(u.emailVerified ? t('adm.emailVerified') : t('adm.emailNotVerified'))}</span></td>
+      <td class="small"><span class="num"><strong>${fmt.num(u.ideasCount)}</strong></span> ${esc(t('adm.ideasShort'))} · <span class="num"><strong>${fmt.num(u.votesCount)}</strong></span> ${esc(t('adm.votesShort'))}</td>
+      <td><span class="dot-status ${u.enabled ? 'on' : 'off'}"><i></i>${esc(u.enabled ? t('adm.active') : t('adm.suspended'))}</span></td>
+      <td style="text-align:end"><button type="button" class="row-menu-btn" data-menu="${u.id}" aria-haspopup="menu" aria-label="${esc(t('adm.actionsFor', { name: u.fullName }))}">⋯</button></td>
+    </tr>`).join('')
+    : `<tr><td colspan="7"><div class="empty" style="padding:24px">${icon.info}<span>${esc(q ? t('adm.noMatch', { q: members.query }) : t('adm.noMembers'))}</span></div></td></tr>`;
+  $$('[data-menu]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); openRowMenu(b, members.rows.find((u) => u.id === Number(b.dataset.menu))); }));
+}
+
+// ---------- Member actions ----------
+
+// One floating menu, placed next to the row's button (the table scrolls, so it can't live inside it)
+let rowMenu = null;
+function closeRowMenu() {
+  rowMenu?.remove();
+  rowMenu = null;
+}
+function openRowMenu(button, u) {
+  closeRowMenu();
+  const self = u.id === me.id;
+  const items = [
+    ['edit', t('adm.edit'), false],
+    ['password', t('adm.setPassword'), u.authProvider === 'GOOGLE'],
+    u.enabled ? ['suspend', t('adm.suspend'), self] : ['reactivate', t('adm.reactivate'), false],
+    ['delete', t('adm.delete'), self],
+  ];
+  rowMenu = document.createElement('div');
+  rowMenu.className = 'row-menu';
+  rowMenu.setAttribute('role', 'menu');
+  rowMenu.innerHTML = items.map(([act, text, disabled]) => `<button type="button" role="menuitem" data-act="${act}"${disabled ? ' disabled' : ''} class="${act === 'delete' || act === 'suspend' ? 'danger' : ''}">${esc(text)}</button>`).join('');
+  document.body.appendChild(rowMenu);
+  const r = button.getBoundingClientRect();
+  const w = rowMenu.offsetWidth;
+  const left = document.dir === 'rtl' ? r.left : r.right - w;
+  rowMenu.style.top = `${Math.round(r.bottom + window.scrollY + 6)}px`;
+  rowMenu.style.left = `${Math.round(Math.max(8, left + window.scrollX))}px`;
+  rowMenu.querySelector('button:not([disabled])')?.focus();
+  rowMenu.addEventListener('click', (e) => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (!act) return;
+    closeRowMenu();
+    ({ edit: () => memberForm(u), password: () => setPassword(u), suspend: () => suspend(u), reactivate: () => reactivate(u), delete: () => removeMember(u) })[act]();
+  });
+}
+document.addEventListener('click', (e) => { if (rowMenu && !rowMenu.contains(e.target)) closeRowMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeRowMenu(); });
+window.addEventListener('resize', closeRowMenu);
+
+function replaceMember(updated) {
+  const i = members.rows.findIndex((u) => u.id === updated.id);
+  if (i >= 0) members.rows[i] = updated; else members.rows.unshift(updated);
+  renderMembers();
+  loadStats();
+}
+
+// Field errors from the server go next to the inputs and keep the dialog open
+async function submitIn(box, request) {
+  try {
+    return await request();
+  } catch (err) {
+    if (err instanceof ApiError && applyFieldErrors(box.querySelector('form'), err)) return false;
+    throw err;
+  }
+}
+
+function hoodOptions(city, selected) {
+  return hoods.rows.filter((h) => h.city === city)
+    .map((h) => `<option value="${h.id}"${h.id === selected ? ' selected' : ''}>${esc(h.name)}</option>`).join('');
+}
+
+// Add (u empty) or edit a member
+async function memberForm(u = null) {
+  const editing = !!u;
+  const cities = [...new Set(hoods.rows.map((h) => h.city))].sort();
+  const current = editing && u.neighborhoodId ? hoods.rows.find((h) => h.id === u.neighborhoodId) : null;
+  const role = editing ? u.role : 'RESIDENT';
+  const field = (id, text, input, hint = '') => `<div class="field"><label for="${id}">${esc(text)}</label>${input}${hint ? `<span class="hint">${esc(hint)}</span>` : ''}<span class="error" aria-live="polite"></span></div>`;
+  const body = `
+    <form class="stack member-form" style="gap:12px" novalidate>
+      ${field('m-name', t('adm.fullName'), `<input class="input" id="m-name" name="fullName" maxlength="100" value="${esc(u?.fullName || '')}">`)}
+      ${editing
+        ? field('m-email', t('adm.email'), `<input class="input" id="m-email" value="${esc(u.email)}" disabled>`, t('adm.emailLocked'))
+        : field('m-email', t('adm.email'), `<input class="input" id="m-email" name="email" type="email" autocomplete="off">`)}
+      ${editing ? '' : field('m-pass', t('adm.tempPassword'), `<input class="input" id="m-pass" name="password" type="text" autocomplete="new-password">`, t('adm.passwordRule'))}
+      ${field('m-phone', t('adm.phone'), `<input class="input num" id="m-phone" name="phone" inputmode="numeric" placeholder="9665XXXXXXXX" value="${esc(u?.phone || '')}">`)}
+      ${field('m-role', t('adm.roleCol'), `<select class="select" id="m-role" name="role">${['RESIDENT', 'INVESTOR', 'ADMIN', 'PENDING'].map((r) => `<option value="${r}"${r === role ? ' selected' : ''}>${esc(label('role', r))}</option>`).join('')}</select>`)}
+      <div class="grid" style="gap:10px;grid-template-columns:1fr 1fr" data-for="hood">
+        ${field('m-city', t('form.city'), `<select class="select" id="m-city"><option value="">${esc(t('form.chooseCity'))}</option>${cities.map((c) => `<option${current && current.city === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>`)}
+        ${field('m-hood', t('form.hood'), `<select class="select" id="m-hood" name="neighborhoodId"><option value="">${esc(t('form.chooseHood'))}</option>${current ? hoodOptions(current.city, current.id) : ''}</select>`)}
+      </div>
+      <div class="grid" style="gap:10px;grid-template-columns:1fr 1fr" data-for="investor">
+        ${field('m-cr', t('adm.cr'), `<input class="input num" id="m-cr" name="crNumber" inputmode="numeric" maxlength="10" value="${esc(u?.crNumber || '')}">`)}
+        ${field('m-inv', t('adm.status'), `<select class="select" id="m-inv" name="investorStatus">${['PENDING', 'VERIFIED', 'REJECTED'].map((s) => `<option value="${s}"${(u?.investorStatus || 'PENDING') === s ? ' selected' : ''}>${esc(label('investorStatus', s))}</option>`).join('')}</select>`)}
+      </div>
+      ${editing ? `<label class="check"><input type="checkbox" id="m-verified"${u.emailVerified ? ' checked' : ''}><span>${esc(t('adm.emailVerified'))}</span></label>` : `<span class="small muted">${esc(t('adm.addNote'))}</span>`}
+    </form>`;
+
+  const dialog = modal({
+    title: editing ? t('adm.editMember', { name: u.fullName }) : t('adm.addMember'),
+    body,
+    confirmText: editing ? t('common.save') : t('adm.addMember'),
+    onConfirm: (box) => {
+      const v = (id) => box.querySelector(id)?.value.trim() ?? '';
+      const data = {
+        fullName: v('#m-name'),
+        phone: v('#m-phone') || null,
+        role: v('#m-role'),
+        neighborhoodId: Number(v('#m-hood')) || null,
+        crNumber: v('#m-cr') || null,
+        investorStatus: v('#m-role') === 'INVESTOR' ? v('#m-inv') : null,
+      };
+      if (editing) {
+        data.emailVerified = box.querySelector('#m-verified').checked;
+        return submitIn(box, () => api.put(`admin/users/${u.id}`, data));
+      }
+      data.email = v('#m-email');
+      data.password = box.querySelector('#m-pass').value;
+      return submitIn(box, () => api.post('admin/users', data));
+    },
+  });
+  // The dialog is on screen as soon as modal() returns: show the fields that fit the chosen membership
+  const box = document.querySelector('.member-form');
+  const sync = () => {
+    const r = box.querySelector('#m-role').value;
+    box.querySelector('[data-for="investor"]').hidden = r !== 'INVESTOR';
+    box.querySelector('[data-for="hood"]').hidden = r === 'ADMIN';
+  };
+  box.querySelector('#m-role').addEventListener('change', sync);
+  box.querySelector('#m-city').addEventListener('change', (e) => {
+    box.querySelector('#m-hood').innerHTML = `<option value="">${esc(t('form.chooseHood'))}</option>${hoodOptions(e.target.value)}`;
+  });
+  sync();
+  const result = await dialog;
+  if (result) {
+    replaceMember(result);
+    toast(editing ? t('adm.memberSaved', { name: result.fullName }) : t('adm.memberAdded', { name: result.fullName }), 'success');
+    if (result.role === 'INVESTOR') loadInvestors();
+  }
+}
+
+async function setPassword(u) {
+  const result = await modal({
+    title: t('adm.setPasswordFor', { name: u.fullName }),
+    body: `<form class="stack" style="gap:12px" novalidate>
+      <div class="field"><label for="p-new">${esc(t('adm.newPassword'))}</label><input class="input" id="p-new" name="newPassword" type="text" autocomplete="new-password"><span class="hint">${esc(t('adm.passwordRule'))}</span><span class="error" aria-live="polite"></span></div>
+      <span class="small muted">${esc(t('adm.passwordNote'))}</span></form>`,
+    confirmText: t('adm.setPassword'),
+    onConfirm: (box) => submitIn(box, () => api.put(`admin/users/${u.id}/password`, { newPassword: box.querySelector('#p-new').value })),
+  });
+  if (result) toast(t('adm.passwordSet', { name: u.fullName }), 'success');
+}
+
+async function suspend(u) {
+  const result = await modal({
+    title: t('adm.suspendQ', { name: u.fullName }),
+    body: `<p class="muted">${esc(t('adm.suspendText'))}</p>`,
+    confirmText: t('adm.suspend'),
+    danger: true,
+    onConfirm: () => api.put(`admin/users/${u.id}/suspend`),
+  });
+  if (result) { replaceMember(result); toast(t('adm.suspendedToast', { name: u.fullName }), 'success'); }
+}
+
+async function reactivate(u) {
+  try {
+    replaceMember(await api.put(`admin/users/${u.id}/reactivate`));
+    toast(t('adm.reactivated', { name: u.fullName }), 'success');
+  } catch (err) {
+    toast(errorMessage(err), 'error');
+  }
+}
+
+async function removeMember(u) {
+  const ok = await modal({
+    title: t('adm.deleteMemberQ', { name: u.fullName }),
+    body: `<p class="muted">${esc(t('adm.deleteMemberText'))}</p>
+      ${u.votesCount ? `<div class="notice notice-warn small">${icon.warn}<span>${esc(t('adm.deleteVotes', { n: fmt.num(u.votesCount) }))}</span></div>` : ''}
+      <label class="check"><input type="checkbox" id="d-sure"><span>${esc(t('adm.deleteSure'))}</span></label>`,
+    confirmText: t('adm.delete'),
+    danger: true,
+    onConfirm: (box) => {
+      if (!box.querySelector('#d-sure').checked) throw new Error(t('adm.deleteSureFirst'));
+      return api.del(`admin/users/${u.id}`).then(() => true);
+    },
+  });
+  if (ok) {
+    members.rows = members.rows.filter((x) => x.id !== u.id);
+    renderMembers();
+    loadStats();
+    toast(t('adm.memberDeleted', { name: u.fullName }), 'success');
+  }
+}
+
+$('#add-member').addEventListener('click', () => memberForm());
+
+$$('#role-filter button').forEach((b) => b.addEventListener('click', () => {
+  members.role = b.dataset.role;
+  members.page = 0;
+  $$('#role-filter button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  renderMembers();
+}));
+let memTimer;
+$('#mem-search').addEventListener('input', (e) => {
+  clearTimeout(memTimer);
+  memTimer = setTimeout(() => { members.query = e.target.value.trim(); members.page = 0; renderMembers(); }, 200);
+});
+$$('[data-msort]').forEach((b) => b.addEventListener('click', () => {
+  members.dir = members.sort === b.dataset.msort ? -members.dir : (b.dataset.msort === 'activity' ? -1 : 1);
+  members.sort = b.dataset.msort;
+  renderMembers();
+}));
+$('#mem-prev').addEventListener('click', () => { members.page -= 1; renderMembers(); });
+$('#mem-next').addEventListener('click', () => { members.page += 1; renderMembers(); });
 
 // ---------- Neighborhoods ----------
 const hoods = { rows: [], query: '' };
@@ -339,5 +636,6 @@ $('#hood-form').addEventListener('submit', (e) => {
 });
 
 loadStats();
+loadMembers();
 loadInvestors();
 loadHoods();
