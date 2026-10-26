@@ -420,6 +420,7 @@ export function notifText(n) {
   if (n.type === 'VOTE_TARGET_REACHED') return t('notif.target', { title });
   if (n.type === 'PROJECT_STAGE') return t('notif.stage', { title, stage: stageLabel(n.detail) });
   if (n.type === 'CONTRACT_TO_SIGN') return t('notif.signContract', { title });
+  if (n.type === 'INVESTOR_REVIEWED') return t(n.detail === 'VERIFIED' ? 'notif.verified' : 'notif.rejected');
   if (n.type === 'CONTRACT_SIGNED') return t(n.detail === 'ACTIVE' ? 'notif.contractActive' : 'notif.ownerSigned', { title });
   return t('notif.generic', { title });
 }

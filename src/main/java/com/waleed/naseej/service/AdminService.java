@@ -42,6 +42,7 @@ public class AdminService {
     private final OpportunityAccessRepository opportunityAccessRepository;
     private final PaymentRepository paymentRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     // ---------- Investor verification ----------
 
@@ -146,7 +147,11 @@ public class AdminService {
         }
         user.setInvestorStatus(status);
         user.setInvestorReviewedAt(LocalDateTime.now());
-        return userService.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        // The investor hears the result on the website: verified → opportunities, rejected → the CR in their account
+        notificationService.notify(saved, NotificationService.INVESTOR_REVIEWED, null, status.name(),
+                status == InvestorStatus.VERIFIED ? "investor.html" : "account.html");
+        return userService.toResponse(saved);
     }
 
     // ---------- Dashboard ----------

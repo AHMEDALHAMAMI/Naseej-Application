@@ -1138,6 +1138,8 @@ export const STRINGS = {
   'notif.target': ['Your idea “{title}” reached its vote target. Investors can unlock it now.', 'فكرتك «{title}» اكتمل هدف تصويتها، والمستثمرين يقدرون يفتحونها الحين.'],
   'notif.stage': ['“{title}” moved to: {stage}.', '«{title}» وصلت لمرحلة: {stage}.'],
   'notif.generic': ['News about “{title}”.', 'جديد عن «{title}».'],
+  'notif.verified': ['Your account is verified 🎉 You can now unlock opportunities and adopt your ideas.', 'تم توثيق حسابك 🎉 تقدر الحين تفتح الفرص وتتبنّى أفكارك.'],
+  'notif.rejected': ['We couldn’t verify your commercial registration. Check the number in your account and send it again.', 'ما قدرنا نوثّق سجلك التجاري. راجع رقم السجل من حسابك وأرسله من جديد.'],
   'notif.contractActive': ['The idea owner signed “{title}”. The contract is active and the 90 days to open have started.', 'صاحب الفكرة وقّع عقد «{title}»، والعقد صار ساري وبدأت مهلة الـ 90 يوم للافتتاح.'],
   'notif.ownerSigned': ['The idea owner signed the contract for “{title}”.', 'صاحب الفكرة وقّع عقد «{title}».'],
   // The card step on the unlock page (investor wording)

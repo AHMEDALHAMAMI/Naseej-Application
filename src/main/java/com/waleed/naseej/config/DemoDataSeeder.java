@@ -68,6 +68,10 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Everything is saved in one transaction, so a failed run leaves nothing behind and runs again next startup.
  * Every demo account uses the password Demo12345. Set DEMO_DATA=false on a real deployment.
  *
+ * Everything people read is in Arabic (neighborhoods, names, ideas, AI text, project notes). Cities stay in English
+ * because they are the key the website translates and groups by (cityLabel), and categories and project stages stay
+ * as their keys (cat.* / stage.* in strings.js).
+ *
  * The data follows the same rules as the real flow: votes come only from residents of the neighborhood
  * (never the idea's owner), voting stops when the target is reached, and an adopted idea has a paid
  * access, both signatures, founding-member benefits and an ACTIVE contract with its 90 days, in that order.
@@ -115,41 +119,41 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     // Approximate district centers
     private static final List<Hood> HOODS = List.of(
-            new Hood("Al Narjis", "Riyadh", 24.8650, 46.6600),
-            new Hood("Al Yasmin", "Riyadh", 24.8238, 46.6400),
-            new Hood("Al Malqa", "Riyadh", 24.8095, 46.6050),
-            new Hood("Hittin", "Riyadh", 24.7650, 46.6000),
-            new Hood("Al Sahafa", "Riyadh", 24.8020, 46.6380),
-            new Hood("Al Aqiq", "Riyadh", 24.7730, 46.6290),
-            new Hood("Al Nakheel", "Riyadh", 24.7480, 46.6370),
-            new Hood("Al Olaya", "Riyadh", 24.6930, 46.6850),
-            new Hood("Al Sulimaniyah", "Riyadh", 24.7040, 46.7000),
-            new Hood("Al Wurud", "Riyadh", 24.7230, 46.6740),
-            new Hood("Al Murooj", "Riyadh", 24.7540, 46.6650),
-            new Hood("Al Rabwah", "Riyadh", 24.6950, 46.7600),
-            new Hood("Al Malaz", "Riyadh", 24.6650, 46.7330),
-            new Hood("Al Rawdah", "Riyadh", 24.7330, 46.7750),
-            new Hood("Qurtubah", "Riyadh", 24.8100, 46.7400),
-            new Hood("Al Nada", "Riyadh", 24.8120, 46.6900),
-            new Hood("Al Arid", "Riyadh", 24.8800, 46.6150),
-            new Hood("Al Muhammadiyah", "Riyadh", 24.7350, 46.6550),
-            new Hood("Laban", "Riyadh", 24.6400, 46.5600),
-            new Hood("Al Suwaidi", "Riyadh", 24.6000, 46.6650),
-            new Hood("Al Naseem", "Riyadh", 24.7350, 46.8250),
-            new Hood("Al Rawdah", "Jeddah", 21.5650, 39.1550),
-            new Hood("Al Zahra", "Jeddah", 21.5880, 39.1400),
-            new Hood("Al Salamah", "Jeddah", 21.5950, 39.1550),
-            new Hood("Al Naeem", "Jeddah", 21.6200, 39.1500),
-            new Hood("Al Safa", "Jeddah", 21.5800, 39.2000),
-            new Hood("Al Hamra", "Jeddah", 21.5250, 39.1650),
-            new Hood("Obhur Al Shamaliyah", "Jeddah", 21.7300, 39.1000),
-            new Hood("Al Shati", "Dammam", 26.4500, 50.1200),
-            new Hood("Al Faisaliyah", "Dammam", 26.4100, 50.0400),
-            new Hood("Al Mazruiyah", "Dammam", 26.4420, 50.0550),
-            new Hood("Al Ulaya", "Khobar", 26.2800, 50.1950),
-            new Hood("Al Aqrabiyah", "Khobar", 26.2950, 50.2000),
-            new Hood("Quba", "Madinah", 24.4400, 39.6170),
-            new Hood("Al Aziziyah", "Makkah", 21.4000, 39.8650));
+            new Hood("النرجس", "Riyadh", 24.8650, 46.6600),
+            new Hood("الياسمين", "Riyadh", 24.8238, 46.6400),
+            new Hood("الملقا", "Riyadh", 24.8095, 46.6050),
+            new Hood("حطين", "Riyadh", 24.7650, 46.6000),
+            new Hood("الصحافة", "Riyadh", 24.8020, 46.6380),
+            new Hood("العقيق", "Riyadh", 24.7730, 46.6290),
+            new Hood("النخيل", "Riyadh", 24.7480, 46.6370),
+            new Hood("العليا", "Riyadh", 24.6930, 46.6850),
+            new Hood("السليمانية", "Riyadh", 24.7040, 46.7000),
+            new Hood("الورود", "Riyadh", 24.7230, 46.6740),
+            new Hood("المروج", "Riyadh", 24.7540, 46.6650),
+            new Hood("الربوة", "Riyadh", 24.6950, 46.7600),
+            new Hood("الملز", "Riyadh", 24.6650, 46.7330),
+            new Hood("الروضة", "Riyadh", 24.7330, 46.7750),
+            new Hood("قرطبة", "Riyadh", 24.8100, 46.7400),
+            new Hood("الندى", "Riyadh", 24.8120, 46.6900),
+            new Hood("العارض", "Riyadh", 24.8800, 46.6150),
+            new Hood("المحمدية", "Riyadh", 24.7350, 46.6550),
+            new Hood("لبن", "Riyadh", 24.6400, 46.5600),
+            new Hood("السويدي", "Riyadh", 24.6000, 46.6650),
+            new Hood("النسيم", "Riyadh", 24.7350, 46.8250),
+            new Hood("الروضة", "Jeddah", 21.5650, 39.1550),
+            new Hood("الزهراء", "Jeddah", 21.5880, 39.1400),
+            new Hood("السلامة", "Jeddah", 21.5950, 39.1550),
+            new Hood("النعيم", "Jeddah", 21.6200, 39.1500),
+            new Hood("الصفا", "Jeddah", 21.5800, 39.2000),
+            new Hood("الحمراء", "Jeddah", 21.5250, 39.1650),
+            new Hood("أبحر الشمالية", "Jeddah", 21.7300, 39.1000),
+            new Hood("الشاطئ", "Dammam", 26.4500, 50.1200),
+            new Hood("الفيصلية", "Dammam", 26.4100, 50.0400),
+            new Hood("المزروعية", "Dammam", 26.4420, 50.0550),
+            new Hood("العليا", "Khobar", 26.2800, 50.1950),
+            new Hood("العقربية", "Khobar", 26.2950, 50.2000),
+            new Hood("قباء", "Madinah", 24.4400, 39.6170),
+            new Hood("العزيزية", "Makkah", 21.4000, 39.8650));
 
     /**
      * One idea: owner is "R" (a resident of the neighborhood) or "I" + an investor number.
@@ -161,97 +165,117 @@ public class DemoDataSeeder implements CommandLineRunner {
     }
 
     private static final List<Seed> IDEAS = List.of(
-            new Seed("24-hour pharmacy near the mosque",
-                    "The nearest pharmacy closes at midnight and families with small children have to drive to King Fahd Road at night. A 24-hour pharmacy next to the mosque parking would serve the whole north side.",
-                    "Pharmacy", "Al Narjis", "Riyadh", 30, 22, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("صيدلية 24 ساعة قريبة من الجامع",
+                    "أقرب صيدلية تقفل الساعة 12 بالليل، والعوايل اللي عندهم أطفال يضطرون يروحون لطريق الملك فهد. صيدلية 24 ساعة جنب مواقف الجامع تخدم شمال الحي كله.",
+                    "Pharmacy", "النرجس", "Riyadh", 30, 22, IdeaStatus.PUBLISHED, "R", null, null,
                     82, 2, 1.0, "pharmacy", 450_000, 750_000, 14_000),
-            new Seed("Specialty coffee with a quiet study corner",
-                    "Students and remote workers here have nowhere quiet to sit. A specialty coffee shop with a calm study area, good Wi-Fi and late hours.",
-                    "Cafe", "Al Narjis", "Riyadh", 25, 25, IdeaStatus.COMPLETED, "R", null, null,
+            new Seed("قهوة مختصة مع ركن هادئ للمذاكرة",
+                    "الطلاب واللي يشتغلون عن بعد ما عندهم مكان هادي يجلسون فيه. نبي قهوة مختصة فيها منطقة هادية للمذاكرة وإنترنت قوي وتفتح لوقت متأخر.",
+                    "Cafe", "النرجس", "Riyadh", 25, 25, IdeaStatus.COMPLETED, "R", null, null,
                     76, 4, 1.0, "cafe", 380_000, 620_000, 12_000),
-            new Seed("Women's gym with evening classes",
-                    "There is no women's gym within 4 km. Many of us want evening classes, a small pool and a kids' room while we train.",
-                    "Women's gym", "Al Yasmin", "Riyadh", 30, 30, IdeaStatus.COMPLETED, "R", null, null,
+            new Seed("نادي نسائي بحصص مسائية",
+                    "ما فيه نادي نسائي بحدود 4 كم. كثير منا تبي حصص مسائية ومسبح صغير وغرفة للأطفال وقت التمرين.",
+                    "Women's gym", "الياسمين", "Riyadh", 30, 30, IdeaStatus.COMPLETED, "R", null, null,
                     88, 1, 3.0, "gym", 900_000, 1_600_000, 28_000),
-            new Seed("Kids' indoor play and activity center",
-                    "Summer afternoons are too hot for the parks. An indoor play center with soft play, a climbing wall and birthday rooms.",
-                    "Kids activities", "Al Yasmin", "Riyadh", 35, 14, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("مركز ألعاب وأنشطة داخلي للأطفال",
+                    "العصريات بالصيف حارة والحدائق ما تنفع. نبي مركز ألعاب داخلي فيه ألعاب ناعمة وجدار تسلق وقاعات لأعياد الميلاد.",
+                    "Kids activities", "الياسمين", "Riyadh", 35, 14, IdeaStatus.PUBLISHED, "R", null, null,
                     79, 1, 3.0, "child_care_agency", 700_000, 1_200_000, 18_000),
-            new Seed("Fresh bakery with Saudi breakfast",
-                    "A bakery that opens at 5 am with fresh bread, samoli, ful and tamees for people going to work and school.",
-                    "Bakery", "Al Malqa", "Riyadh", 20, 20, IdeaStatus.ADOPTED, "R", 1, "Fit-out",
+            new Seed("مخبز طازج بفطور سعودي",
+                    "مخبز يفتح الساعة 5 الفجر، فيه خبز طازج وصامولي وفول وتميس للي رايحين الدوامات والمدارس.",
+                    "Bakery", "الملقا", "Riyadh", 20, 20, IdeaStatus.ADOPTED, "R", 1, "Fit-out",
                     84, 2, 1.0, "bakery", 300_000, 520_000, 9_000),
-            new Seed("Laundry with pickup and delivery",
-                    "Working families need a laundry that picks up and delivers through an app, with ironing for thobes and abayas.",
-                    "Laundry", "Al Malqa", "Riyadh", 25, 9, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("مغسلة ملابس باستلام وتوصيل",
+                    "العوايل اللي تشتغل تحتاج مغسلة تستلم وتوصّل عن طريق تطبيق، مع كوي للثياب والعبايات.",
+                    "Laundry", "الملقا", "Riyadh", 25, 9, IdeaStatus.PUBLISHED, "R", null, null,
                     71, 3, 1.0, "laundry", 180_000, 320_000, 6_000),
-            new Seed("Family amusement park for small kids",
-                    "A small outdoor amusement park with a mini Ferris wheel, carousel and shaded seating for parents, open in the evenings.",
-                    "Kids activities", "Hittin", "Riyadh", 40, 31, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("ملاهي عائلية للأطفال الصغار",
+                    "ملاهي صغيرة مفتوحة فيها عجلة دوّارة صغيرة ودوّامة وجلسات مظللة للأهل، تفتح بالمساء.",
+                    "Kids activities", "حطين", "Riyadh", 40, 31, IdeaStatus.PUBLISHED, "R", null, null,
                     86, 0, 5.0, "child_care_agency", 2_500_000, 4_000_000, 45_000),
-            new Seed("Pediatric clinic open on weekends",
-                    "Parents wait hours at the hospital on Fridays. A pediatric clinic that is open on weekends and evenings.",
-                    "Clinic", "Hittin", "Riyadh", 30, 30, IdeaStatus.ADOPTED, "R", 2, "Licensing",
+            new Seed("عيادة أطفال تفتح نهاية الأسبوع",
+                    "الأهل ينتظرون ساعات في المستشفى يوم الجمعة. نبي عيادة أطفال تفتح نهاية الأسبوع وبالمساء.",
+                    "Clinic", "حطين", "Riyadh", 30, 30, IdeaStatus.ADOPTED, "R", 2, "Licensing",
                     90, 1, 3.0, "doctor", 1_200_000, 2_000_000, 32_000),
-            new Seed("Neighborhood supermarket with fresh produce",
-                    "The closest supermarket is across the highway. We need a mid-size market with fresh vegetables, meat and daily needs.",
-                    "Grocery", "Al Sahafa", "Riyadh", 30, 18, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("سوبرماركت للحي بخضار طازجة",
+                    "أقرب سوبرماركت ورا الطريق السريع. نحتاج سوق متوسط فيه خضار ولحوم طازجة واحتياجات البيت اليومية.",
+                    "Grocery", "الصحافة", "Riyadh", 30, 18, IdeaStatus.PUBLISHED, "R", null, null,
                     80, 2, 1.0, "supermarket", 1_000_000, 1_800_000, 22_000),
-            new Seed("Healthy fast-casual restaurant",
-                    "Office workers around Olaya want quick healthy lunches: bowls, grills and salads, with good delivery.",
-                    "Restaurant", "Al Olaya", "Riyadh", 25, 25, IdeaStatus.OPENED, "R", 1, "Opened",
+            new Seed("مطعم أكل صحي سريع",
+                    "موظفين المكاتب حول العليا يبون غدا صحي وسريع: بولات ومشويات وسلطات، مع توصيل سريع.",
+                    "Restaurant", "العليا", "Riyadh", 25, 25, IdeaStatus.OPENED, "R", 1, "Opened",
                     78, 9, 1.0, "restaurant", 600_000, 950_000, 15_000),
-            new Seed("Barber shop with online booking",
-                    "A clean, modern barber shop where you can book a time from your phone instead of waiting.",
-                    "Barber", "Al Nakheel", "Riyadh", 20, 7, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("حلاق بحجز من الجوال",
+                    "محل حلاقة نظيف وحديث تحجز موعدك فيه من جوالك بدل الانتظار.",
+                    "Barber", "النخيل", "Riyadh", 20, 7, IdeaStatus.PUBLISHED, "R", null, null,
                     68, 3, 1.5, "barber_shop", 120_000, 220_000, 4_000),
-            new Seed("Car wash and quick service",
-                    "A car wash with oil change and tire service so we don't have to go to the industrial area.",
-                    "Car services", "Qurtubah", "Riyadh", 25, 12, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("مغسلة سيارات وخدمة سريعة",
+                    "مغسلة سيارات فيها تغيير زيت وخدمة كفرات عشان ما نضطر نروح للصناعية.",
+                    "Car services", "قرطبة", "Riyadh", 25, 12, IdeaStatus.PUBLISHED, "R", null, null,
                     73, 1, 2.0, "car_wash", 400_000, 700_000, 8_000),
-            new Seed("School supplies and print shop",
-                    "Before every term parents drive far for stationery and printing. A shop near the schools would save a lot of time.",
-                    "School supplies", "Al Rawdah", "Riyadh", 20, 16, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("قرطاسية ومركز طباعة",
+                    "قبل كل فصل دراسي الأهل يروحون بعيد عشان القرطاسية والطباعة. محل قريب من المدارس بيوفر وقت كثير.",
+                    "School supplies", "الروضة", "Riyadh", 20, 16, IdeaStatus.PUBLISHED, "R", null, null,
                     70, 1, 1.5, "book_store", 150_000, 260_000, 4_500),
             new Seed("مغسلة سيارات متنقلة",
                     "خدمة غسيل سيارات تأتي إلى البيت بموعد مسبق، بدون الحاجة للانتظار في المغاسل البعيدة.",
-                    "Car services", "Al Yasmin", "Riyadh", 20, 6, IdeaStatus.PUBLISHED, "R", null, null,
+                    "Car services", "الياسمين", "Riyadh", 20, 6, IdeaStatus.PUBLISHED, "R", null, null,
                     66, 2, 2.0, "car_wash", 90_000, 160_000, 3_000),
             new Seed("مخبز فرنسي وحلويات",
                     "مخبز يقدم الكرواسون والخبز الفرنسي والحلويات الطازجة مع جلسات صغيرة للعائلات.",
-                    "Bakery", "Hittin", "Riyadh", 25, 13, IdeaStatus.PUBLISHED, "R", null, null,
+                    "Bakery", "حطين", "Riyadh", 25, 13, IdeaStatus.PUBLISHED, "R", null, null,
                     74, 2, 1.0, "bakery", 350_000, 600_000, 9_500),
-            new Seed("Premium co-working cafe",
-                    "A café with private booths, meeting rooms and a membership plan for freelancers in north Riyadh.",
-                    "Cafe", "Al Malqa", "Riyadh", 30, 10, IdeaStatus.PUBLISHED, "I1", null, null,
+            new Seed("مقهى عمل مشترك",
+                    "مقهى فيه كبائن خاصة وغرف اجتماعات واشتراك شهري للي يشتغلون لحسابهم في شمال الرياض.",
+                    "Cafe", "الملقا", "Riyadh", 30, 10, IdeaStatus.PUBLISHED, "I1", null, null,
                     77, 3, 1.0, "cafe", 700_000, 1_100_000, 16_000),
-            new Seed("Juice and dessert corner",
-                    "Families walking on the corniche in the evening want fresh juice and desserts closer to home.",
-                    "Cafe", "Al Zahra", "Jeddah", 25, 11, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("ركن عصيرات وحلى",
+                    "العوايل اللي يتمشّون على الكورنيش بالمساء يبون عصير طازج وحلى قريب من البيت.",
+                    "Cafe", "الزهراء", "Jeddah", 25, 11, IdeaStatus.PUBLISHED, "R", null, null,
                     72, 3, 1.0, "juice_shop", 200_000, 350_000, 6_000),
-            new Seed("Physiotherapy clinic",
-                    "Many older residents and athletes need physiotherapy but the nearest center has a three-week waiting list.",
-                    "Clinic", "Al Salamah", "Jeddah", 30, 30, IdeaStatus.COMPLETED, "R", null, null,
+            new Seed("عيادة علاج طبيعي",
+                    "كثير من كبار السن والرياضيين يحتاجون علاج طبيعي، وأقرب مركز قائمة الانتظار فيه ثلاث أسابيع.",
+                    "Clinic", "السلامة", "Jeddah", 30, 30, IdeaStatus.COMPLETED, "R", null, null,
                     85, 1, 3.0, "physiotherapist", 800_000, 1_300_000, 24_000),
-            new Seed("Ladies' salon with home service",
-                    "A ladies' salon that also sends stylists to homes for weddings and events.",
-                    "Salon", "Al Rawdah", "Jeddah", 25, 19, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("صالون نسائي مع خدمة منزلية",
+                    "صالون نسائي يرسل مختصات للبيوت وقت الزواجات والمناسبات.",
+                    "Salon", "الروضة", "Jeddah", 25, 19, IdeaStatus.PUBLISHED, "R", null, null,
                     75, 4, 1.5, "beauty_salon", 250_000, 450_000, 7_000),
-            new Seed("Pharmacy with home delivery",
-                    "A pharmacy that delivers prescriptions to the door within an hour, for families and elderly residents.",
-                    "Pharmacy", "Al Shati", "Dammam", 25, 8, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("صيدلية بتوصيل للبيت",
+                    "صيدلية توصّل الوصفات للباب خلال ساعة، للعوايل وكبار السن.",
+                    "Pharmacy", "الشاطئ", "Dammam", 25, 8, IdeaStatus.PUBLISHED, "R", null, null,
                     74, 2, 1.0, "pharmacy", 420_000, 700_000, 11_000),
-            new Seed("Indoor trampoline park",
-                    "Teenagers have nothing to do on weekends. A trampoline and ninja course park would be packed every evening.",
-                    "Kids activities", "Al Ulaya", "Khobar", 35, 21, IdeaStatus.PUBLISHED, "R", null, null,
+            new Seed("صالة ترامبولين داخلية",
+                    "المراهقين ما عندهم شي يسوونه بنهاية الأسبوع. صالة ترامبولين ومسار نينجا بتكون زحمة كل مساء.",
+                    "Kids activities", "العليا", "Khobar", 35, 21, IdeaStatus.PUBLISHED, "R", null, null,
                     83, 0, 5.0, "sports_club", 1_800_000, 3_000_000, 38_000));
 
-    private static final String[] FIRST = {"Abdullah", "Sara", "Mohammed", "Noura", "Fahad", "Reem", "Khalid", "Lama",
-            "Saud", "Hessa", "Turki", "Maha", "Sultan", "Dana", "Nasser", "Joud", "Omar", "Lujain", "Yousef", "Ghada",
-            "Faisal", "Amal", "Bandar", "Shahad", "Majed", "Rana", "Hamad", "Wejdan", "Rakan", "Deema"};
-    private static final String[] LAST = {"Al-Otaibi", "Al-Qahtani", "Al-Shehri", "Al-Harbi", "Al-Dosari",
-            "Al-Ghamdi", "Al-Zahrani", "Al-Mutairi", "Al-Anazi", "Al-Subaie", "Al-Shammari", "Al-Malki"};
-    private static final String[] COMPETITOR_PREFIX = {"Al Nahdi", "Al Dawaa", "Corner", "City", "Family", "Golden", "Green", "Prime", "Star"};
+    private static final String[] FIRST = {"عبدالله", "سارة", "محمد", "نورة", "فهد", "ريم", "خالد", "لمى",
+            "سعود", "حصة", "تركي", "مها", "سلطان", "دانة", "ناصر", "جود", "عمر", "لجين", "يوسف", "غادة",
+            "فيصل", "أمل", "بندر", "شهد", "ماجد", "رنا", "حمد", "وجدان", "راكان", "ديمة"};
+    private static final String[] LAST = {"العتيبي", "القحطاني", "الشهري", "الحربي", "الدوسري",
+            "الغامدي", "الزهراني", "المطيري", "العنزي", "السبيعي", "الشمري", "المالكي"};
+    // Made-up shop names for the competitors the AI check "found" ("صيدلية الريان")
+    private static final String[] COMPETITOR_NAME = {"الريان", "الواحة", "الركن", "المدينة", "الأسرة", "اللؤلؤة",
+            "النخبة", "الصفوة", "النجمة"};
+    // The shop word in a competitor's name, by idea category
+    private static final Map<String, String> SHOP_WORD = Map.ofEntries(
+            Map.entry("Pharmacy", "صيدلية"), Map.entry("Cafe", "مقهى"), Map.entry("Women's gym", "نادي"),
+            Map.entry("Gym", "نادي"), Map.entry("Kids activities", "مركز"), Map.entry("Bakery", "مخبز"),
+            Map.entry("Laundry", "مغسلة"), Map.entry("Clinic", "عيادة"), Map.entry("Grocery", "أسواق"),
+            Map.entry("Restaurant", "مطعم"), Map.entry("Barber", "صالون"), Map.entry("Salon", "مشغل"),
+            Map.entry("Car services", "مغسلة"), Map.entry("School supplies", "مكتبة"));
+    // What the idea is, in Arabic, for the business model text
+    private static final Map<String, String> CATEGORY_AR = Map.ofEntries(
+            Map.entry("Pharmacy", "صيدلية"), Map.entry("Cafe", "مقهى"), Map.entry("Women's gym", "نادي رياضي نسائي"),
+            Map.entry("Gym", "نادي رياضي"), Map.entry("Kids activities", "مكان لأنشطة الأطفال"), Map.entry("Bakery", "مخبز"),
+            Map.entry("Laundry", "مغسلة ملابس"), Map.entry("Clinic", "عيادة"), Map.entry("Grocery", "سوبرماركت"),
+            Map.entry("Restaurant", "مطعم"), Map.entry("Barber", "حلاق"), Map.entry("Salon", "صالون نسائي"),
+            Map.entry("Car services", "خدمات سيارات"), Map.entry("School supplies", "قرطاسية"));
+    // ProjectService.STAGES in Arabic, for the project notes
+    private static final Map<String, String> STAGE_AR = Map.of(
+            "Unlocked", "فتح الفرصة", "Licensing", "التراخيص", "Location secured", "تأمين الموقع",
+            "Fit-out", "التجهيز", "Hiring", "التوظيف", "Soft opening", "الافتتاح التجريبي", "Opened", "الافتتاح");
 
     /** What the seed produced, plus the real dates for rows whose created_at Hibernate stamps as "now". */
     record Result(int ideas, int residents, List<Object[]> voteDates, List<Object[]> updateDates) {
@@ -268,7 +292,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             Result result = Objects.requireNonNull(transactionTemplate.execute(status -> seed()));
             backdate(result);
             log.info("Demo data created: {} ideas and {} residents. Log in as investor1{} (verified investor) "
-                            + "or resident1{} (resident in Al Narjis), password {}",
+                            + "or resident1{} (resident in النرجس), password {}",
                     result.ideas(), result.residents(), DOMAIN, DOMAIN, PASSWORD);
         } catch (RuntimeException e) {
             log.warn("Demo data wasn't created, it will be tried again on the next startup: {}", e.getMessage(), e);
@@ -297,10 +321,10 @@ public class DemoDataSeeder implements CommandLineRunner {
         }
 
         List<User> investors = List.of(
-                investor(1, "Faisal Al-Qahtani", "ABOVE_700K", "FOOD,HEALTH,FITNESS", InvestorStatus.VERIFIED, hash, now),
-                investor(2, "Nora Al-Harbi", "FROM_300K_TO_700K", "HEALTH,EDUCATION", InvestorStatus.VERIFIED, hash, now),
-                investor(3, "Majed Al-Dosari", "UP_TO_300K", "RETAIL,HOME_SERVICES", InvestorStatus.PENDING, hash, now),
-                investor(4, "Rana Al-Malki", "UP_TO_300K", "FOOD", InvestorStatus.REJECTED, hash, now));
+                investor(1, "فيصل القحطاني", "ABOVE_700K", "FOOD,HEALTH,FITNESS", InvestorStatus.VERIFIED, hash, now),
+                investor(2, "نورة الحربي", "FROM_300K_TO_700K", "HEALTH,EDUCATION", InvestorStatus.VERIFIED, hash, now),
+                investor(3, "ماجد الدوسري", "UP_TO_300K", "RETAIL,HOME_SERVICES", InvestorStatus.PENDING, hash, now),
+                investor(4, "رنا المالكي", "UP_TO_300K", "FOOD", InvestorStatus.REJECTED, hash, now));
 
         // Enough residents in each neighborhood with ideas to cast the votes (plus the idea owners)
         Map<String, Integer> needed = new HashMap<>();
@@ -309,9 +333,9 @@ public class DemoDataSeeder implements CommandLineRunner {
         }
         List<String> hoodKeys = new ArrayList<>(needed.keySet());
         hoodKeys.sort(String::compareTo);
-        // Al Narjis first so resident1 is easy to find
-        hoodKeys.remove(key("Al Narjis", "Riyadh"));
-        hoodKeys.add(0, key("Al Narjis", "Riyadh"));
+        // النرجس first so resident1 is easy to find
+        hoodKeys.remove(key("النرجس", "Riyadh"));
+        hoodKeys.add(0, key("النرجس", "Riyadh"));
 
         Map<String, List<User>> residentsByHood = new HashMap<>();
         List<User> allResidents = new ArrayList<>();
@@ -373,7 +397,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .executionScore(Math.min(95, s.score() - 4))
                     .successScore(Math.min(95, s.score() + 2))
                     .opportunityScore(Math.min(98, s.score() + (reached ? 6 : 0)))
-                    .priceReasoning("Strong verified demand and few competitors nearby. The price reflects the expected capital and the size of the neighborhood.")
+                    .priceReasoning("طلب موثّق وقوي ومنافسين قليلين حول المكان. السعر يعكس رأس المال المتوقع وحجم الحي.")
                     .priceQuotedAt(published.plusDays(1))
                     .build());
 
@@ -407,10 +431,10 @@ public class DemoDataSeeder implements CommandLineRunner {
                         .idea(idea)
                         .gapScore(Math.min(96, s.score() + 3))
                         .memberGrowthPercent(Math.min(100.0, s.votes() * 100.0 / s.threshold()))
-                        .peakDemandTime("Evenings and weekends")
-                        .recommendation("Demand is verified and competition is limited within " + s.radiusKm()
-                                + " km. Open within 90 days and offer the founding members an opening discount.")
-                        .risks("Rent in the area is rising; secure a lease before fit-out.")
+                        .peakDemandTime("المساء ونهاية الأسبوع")
+                        .recommendation("الطلب موثّق والمنافسة محدودة في نطاق " + km(s.radiusKm())
+                                + " كم. الأفضل الافتتاح خلال 90 يوم مع خصم افتتاح للأعضاء المؤسسين.")
+                        .risks("الإيجارات في المنطقة ترتفع، فالأفضل توقيع عقد الإيجار قبل التجهيز.")
                         .build());
             }
             if (s.adoptedBy() != null) {
@@ -453,16 +477,17 @@ public class DemoDataSeeder implements CommandLineRunner {
                 .nearestCompetitorKm(s.competitors() == 0 ? null : LocationService.round2(s.radiusKm() * 0.55))
                 .scarcityFound(true)
                 .placeType(s.placeType())
-                .feasibilitySummary("Only " + s.competitors() + " similar businesses within " + s.radiusKm()
-                        + " km, below the city average, and no similar idea is open nearby. A shop of 120 to 250 m² "
-                        + "on a main street fits; it needs a municipal license.")
+                .feasibilitySummary(similarCount(s.competitors()) + " في نطاق " + km(s.radiusKm())
+                        + " كم، أقل من متوسط المدينة، وما فيه فكرة مشابهة مفتوحة قريب. يناسبها محل من 120 إلى 250 م² "
+                        + "على شارع رئيسي، وتحتاج رخصة بلدية.")
                 .build());
         List<NearbyPlace> places = new ArrayList<>();
         for (int k = 0; k < s.competitors(); k++) {
             places.add(NearbyPlace.builder()
                     .idea(idea)
                     .googlePlaceId("demo:" + idea.getId() + "-" + k)
-                    .name(COMPETITOR_PREFIX[(index + k) % COMPETITOR_PREFIX.length] + " " + s.category())
+                    .name(SHOP_WORD.getOrDefault(s.category(), "محل") + " "
+                            + COMPETITOR_NAME[(index + k) % COMPETITOR_NAME.length])
                     .category(s.placeType())
                     .distanceKm(LocationService.round2(s.radiusKm() * (0.55 + k * 0.12)))
                     .build());
@@ -473,15 +498,15 @@ public class DemoDataSeeder implements CommandLineRunner {
     private void seedBusinessModel(Idea idea, Seed s) {
         businessModelRepository.save(BusinessModel.builder()
                 .idea(idea)
-                .valueProposition("A " + s.category().toLowerCase(Locale.ROOT) + " the neighborhood is missing, backed by "
-                        + s.votes() + " residents who asked for it.")
-                .targetCustomers("Families and working residents of " + s.hood() + " and the streets around it.")
-                .revenueStreams("Walk-in sales, app orders and delivery, and memberships or packages for regulars.")
-                .costStructure("Rent for a 120–250 m² shop, fit-out and equipment, staff salaries, utilities and licenses.")
-                .channels("Founding members on Naseej, neighborhood WhatsApp groups, delivery apps and Google Maps.")
+                .valueProposition("يلبّي طلب " + s.votes() + " من سكان " + s.hood() + " على "
+                        + CATEGORY_AR.getOrDefault(s.category(), "خدمة") + " في حيّهم.")
+                .targetCustomers("العوايل والموظفين من سكان " + s.hood() + " والشوارع اللي حوله.")
+                .revenueStreams("البيع المباشر، والطلبات من التطبيقات والتوصيل، واشتراكات أو باقات للعملاء الدائمين.")
+                .costStructure("إيجار محل من 120 إلى 250 م²، والتجهيز والمعدات، ورواتب الموظفين، والفواتير والتراخيص.")
+                .channels("الأعضاء المؤسسين في نسيج، وقروبات واتساب الحي، وتطبيقات التوصيل، وخرائط قوقل.")
                 .estimatedCapitalMin(BigDecimal.valueOf(s.capitalMin()))
                 .estimatedCapitalMax(BigDecimal.valueOf(s.capitalMax()))
-                .risks("Competitors may lower prices when it opens; rent increases in the area.")
+                .risks("ممكن المنافسين ينزّلون أسعارهم وقت الافتتاح، والإيجارات في المنطقة ترتفع.")
                 .build());
     }
 
@@ -529,7 +554,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 // The real flow requires a members' discount or benefits note, and the owner's discount >= the members'
                 .foundingMemberDiscount(new BigDecimal("10.00"))
                 .ideaOwnerDiscount(new BigDecimal("15.00"))
-                .benefitsNote("Founding members get 10% off for the first year and priority booking at the opening.")
+                .benefitsNote("الأعضاء المؤسسين لهم خصم 10% أول سنة، وأولوية الحجز وقت الافتتاح.")
                 .benefitsSetAt(adoptedAt.plusHours(2))
                 .openingDeadline(activatedAt.toLocalDate().plusDays(OPENING_DEADLINE_DAYS))
                 .build();
@@ -550,7 +575,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         for (int k = 1; k <= last; k++) {
             String stage = ProjectService.STAGES.get(k);
             ProjectUpdate update = projectUpdateRepository.save(contract.addUpdate(stage,
-                    "Demo update: " + stage.toLowerCase(Locale.ROOT) + " done."));
+                    "تحديث تجريبي: خلّصنا مرحلة " + STAGE_AR.getOrDefault(stage, stage) + "."));
             updateDates.add(row(between(activatedAt, end, k, last), update.getId()));
         }
     }
@@ -580,6 +605,25 @@ public class DemoDataSeeder implements CommandLineRunner {
     }
 
     // ---------- Helpers ----------
+
+    // "1.5" / "3" for a distance in km (no trailing ".0")
+    private static String km(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value) : String.valueOf(value);
+    }
+
+    // "ما فيه منشآت مشابهة" / "فيه منشأة مشابهة وحدة بس" / "فيه 3 منشآت مشابهة بس"
+    private static String similarCount(int n) {
+        if (n == 0) {
+            return "ما فيه أي منشأة مشابهة";
+        }
+        if (n == 1) {
+            return "فيه منشأة مشابهة وحدة بس";
+        }
+        if (n == 2) {
+            return "فيه منشأتين مشابهة بس";
+        }
+        return "فيه " + n + (n <= 10 ? " منشآت" : " منشأة") + " مشابهة بس";
+    }
 
     private static String key(String name, String city) {
         return (name.trim() + "|" + city.trim()).toLowerCase(Locale.ROOT);

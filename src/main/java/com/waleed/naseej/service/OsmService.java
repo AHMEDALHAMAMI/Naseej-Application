@@ -46,7 +46,7 @@ public class OsmService {
                 .build();
     }
 
-    /** A district (neighborhood) and its city, e.g. "Al Yasmin", "Riyadh". */
+    /** A district (neighborhood) in Arabic and its city in English (the key the website groups by), e.g. "الياسمين", "Riyadh". */
     public record District(String name, String city, String countryCode, double latitude, double longitude) {
     }
 
@@ -58,10 +58,13 @@ public class OsmService {
     public record SearchResult(String name, String detail, double latitude, double longitude) {
     }
 
-    /** The district a point belongs to, in English. Empty when OSM has no district there or doesn't answer. */
+    /**
+     * The district a point belongs to: its name in Arabic (like the rest of the neighborhoods) and its city as the
+     * English key (Riyadh, Jeddah…). Empty when OSM has no district there or doesn't answer.
+     */
     public Optional<District> reverse(double latitude, double longitude) {
         String url = String.format(Locale.ROOT,
-                "%s/reverse?format=jsonv2&zoom=14&addressdetails=1&accept-language=en&lat=%.6f&lon=%.6f",
+                "%s/reverse?format=jsonv2&zoom=14&addressdetails=1&accept-language=ar&lat=%.6f&lon=%.6f",
                 BASE_URL, latitude, longitude);
         NominatimPlace place = get(url, NominatimPlace.class);
         if (place == null || place.address() == null) {
@@ -152,9 +155,25 @@ public class OsmService {
         if (name == null) {
             return null;
         }
-        String cleaned = name.replaceAll("(?i)\\s+(district|dist\\.?|neighborhood|neighbourhood)$", "").trim();
+        String cleaned = name.replaceAll("(?i)\\s+(district|dist\\.?|neighborhood|neighbourhood)$", "")
+                // "حي النرجس" → "النرجس"
+                .replaceAll("^حي\\s+", "")
+                .trim();
         return cleaned.isEmpty() ? null : cleaned;
     }
+
+    // Arabic city names from OSM → the English key the website uses for cities (it shows them in Arabic again)
+    private static final Map<String, String> CITY_KEYS = Map.ofEntries(
+            Map.entry("الرياض", "Riyadh"), Map.entry("جدة", "Jeddah"), Map.entry("الدمام", "Dammam"),
+            Map.entry("الخبر", "Khobar"), Map.entry("الظهران", "Dhahran"), Map.entry("مكة المكرمة", "Makkah"),
+            Map.entry("مكة", "Makkah"), Map.entry("المدينة المنورة", "Madinah"), Map.entry("المدينة", "Madinah"),
+            Map.entry("الطائف", "Taif"), Map.entry("تبوك", "Tabuk"), Map.entry("أبها", "Abha"),
+            Map.entry("خميس مشيط", "Khamis Mushait"), Map.entry("بريدة", "Buraidah"), Map.entry("عنيزة", "Unaizah"),
+            Map.entry("حائل", "Hail"), Map.entry("جازان", "Jazan"), Map.entry("جيزان", "Jazan"),
+            Map.entry("نجران", "Najran"), Map.entry("الأحساء", "Al Ahsa"), Map.entry("الهفوف", "Hofuf"),
+            Map.entry("الجبيل", "Jubail"), Map.entry("ينبع", "Yanbu"), Map.entry("الخرج", "Kharj"),
+            Map.entry("القطيف", "Qatif"), Map.entry("عرعر", "Arar"), Map.entry("سكاكا", "Sakaka"),
+            Map.entry("الباحة", "Baha"), Map.entry("الدرعية", "Diriyah"));
 
     // "Riyadh governorate" / "Riyadh Region" / "Municipality of Jeddah" -> "Riyadh" / "Jeddah"
     private static String cleanCity(String city) {
@@ -163,8 +182,13 @@ public class OsmService {
         }
         String cleaned = city.replaceAll("(?i)\\s+(governorate|region|province|municipality)$", "")
                 .replaceAll("(?i)^(municipality|governorate) of\\s+", "")
+                // "منطقة الرياض" / "محافظة جدة" / "أمانة الدمام" → the city
+                .replaceAll("^(منطقة|محافظة|أمانة|مدينة)\\s+", "")
                 .trim();
-        return cleaned.isEmpty() ? null : cleaned;
+        if (cleaned.isEmpty()) {
+            return null;
+        }
+        return CITY_KEYS.getOrDefault(cleaned, cleaned);
     }
 
     private static boolean containsArabic(String text) {
