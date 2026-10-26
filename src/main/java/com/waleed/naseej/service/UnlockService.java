@@ -85,7 +85,6 @@ public class UnlockService {
     private static final BigDecimal VAT_RATE = new BigDecimal("0.15");
     private static final BigDecimal MIN_PRICE = new BigDecimal("500");
     private static final BigDecimal MAX_PRICE = new BigDecimal("100000");
-    private static final int OPENING_DEADLINE_DAYS = 90;
 
     // Early access pays this share of the full price at 0% of the vote target, rising to 100% at the target
     private static final BigDecimal EARLY_MIN_FACTOR = new BigDecimal("0.60");
@@ -391,7 +390,7 @@ public class UnlockService {
                 .feeTotal(fee != null ? fee.add(vat) : null)
                 .paidPaymentId(unusedPaidFee(investor, idea).map(Payment::getId).orElse(null))
                 .termsVersion(OWNER_TERMS_VERSION)
-                .openingDeadlineDays(OPENING_DEADLINE_DAYS)
+                .openingDeadlineDays(ContractFlowService.OPENING_DEADLINE_DAYS)
                 .blockedReason(ownerLaunchBlock(investor, idea))
                 .available(ownerLaunchBlock(investor, idea) == null)
                 .build();
@@ -573,7 +572,7 @@ public class UnlockService {
 
     /**
      * Access + a DRAFT contract. The investor then sets the idea owner's benefits and both parties sign
-     * (ContractFlowService); the contract becomes ACTIVE, and the 90 days start, after the last signature.
+     * (ContractFlowService) within 14 days; the contract becomes ACTIVE, and the 180 days start, after the last signature.
      */
     private UnlockResultResponse grant(User investor, Idea idea, AccessType type, Payment payment, String message) {
         OpportunityAccess access = opportunityAccessRepository.save(OpportunityAccess.builder()
@@ -592,9 +591,9 @@ public class UnlockService {
                 .ideaOwnerDiscount(BigDecimal.ZERO)
                 // An investor launching their own idea has no one else to give benefits to: that step is skipped
                 .benefitsSetAt(type == AccessType.OWNER ? LocalDateTime.now() : null)
-                // Until it is signed, the 90 days count from adoption, so an unsigned contract can't hold the idea
-                // forever; signing restarts them from activation
-                .openingDeadline(LocalDate.now().plusDays(OPENING_DEADLINE_DAYS))
+                // Until both parties sign, the contract holds the idea for 14 days only; the 180 days to open
+                // start when it becomes ACTIVE
+                .signingDeadline(LocalDate.now().plusDays(ContractFlowService.SIGNING_DEADLINE_DAYS))
                 .status(ContractStatus.DRAFT)
                 .build();
         contract = contractRepository.save(contract);

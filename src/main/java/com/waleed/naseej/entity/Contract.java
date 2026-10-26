@@ -60,8 +60,17 @@ public class Contract {
     @Column(name = "terms_version", length = 40)
     private String termsVersion;
 
+    // Set when the contract becomes ACTIVE (ContractFlowService.OPENING_DEADLINE_DAYS later); moved once by an extension
     @Column(name = "opening_deadline")
     private LocalDate openingDeadline;
+
+    // Until both parties sign, the contract holds the idea only until this day (SIGNING_DEADLINE_DAYS after adoption)
+    @Column(name = "signing_deadline")
+    private LocalDate signingDeadline;
+
+    // When the investor used their one extension of the opening deadline (null = not used)
+    @Column(name = "extended_at")
+    private LocalDateTime extendedAt;
 
     @Column(name = "pdf_url", length = 512)
     private String pdfUrl;

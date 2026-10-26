@@ -50,9 +50,10 @@ import org.springframework.web.util.HtmlUtils;
  * 1. Adoption creates a DRAFT contract (UnlockService).
  * 2. The investor sets the idea owner's benefits (required; skipped when the investor adopted their own idea).
  * 3. The investor signs (typed name + drawn signature + emailed code) → INVESTOR_SIGNED.
- * 4. The idea owner signs the same way → ACTIVE, and the 90-day opening deadline starts.
- * An investor who adopts their own idea signs once. Contracts that don't open in time are terminated
- * and the idea goes back to the other investors.
+ * 4. The idea owner signs the same way → ACTIVE, and the 180-day opening deadline starts.
+ * 5. Once, near the deadline, an investor who keeps posting progress can extend it by 60 days.
+ * An investor who adopts their own idea signs once. Contracts not signed within 14 days of the adoption, or
+ * not opened in time, are terminated and the idea goes back to the other investors.
  */
 @Service
 @RequiredArgsConstructor
@@ -61,7 +62,15 @@ public class ContractFlowService {
     public static final String ROLE_INVESTOR = "INVESTOR";
     public static final String ROLE_IDEA_OWNER = "IDEA_OWNER";
 
-    private static final int OPENING_DEADLINE_DAYS = 90;
+    // The project opens within 180 days of activation; the investor can extend that once, by 60 days
+    public static final int OPENING_DEADLINE_DAYS = 180;
+    public static final int EXTENSION_DAYS = 60;
+    // The extension can be asked for in the last 30 days before the deadline, by an investor who posted
+    // a progress update in the last 30 days (ProjectService.extensionBlock)
+    public static final int EXTENSION_WINDOW_DAYS = 30;
+    public static final int RECENT_UPDATE_DAYS = 30;
+    // Until both parties sign, an adopted idea is held for 14 days only
+    public static final int SIGNING_DEADLINE_DAYS = 14;
     private static final List<String> IMAGE_PREFIXES = List.of("data:image/png;base64,", "data:image/jpeg;base64,");
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -187,27 +196,37 @@ public class ContractFlowService {
         return renderContract(contract);
     }
 
-    // ---------- 4. 90-day rule ----------
+    // ---------- 4. Deadlines: 14 days to sign, 180 days to open ----------
 
     /**
-     * Terminates every contract whose opening deadline passed without the project opening, and gives the idea
-     * back: COMPLETED (open to other investors) when it has its votes, otherwise PUBLISHED.
+     * Terminates every contract that wasn't signed by both parties within SIGNING_DEADLINE_DAYS, or whose opening
+     * deadline passed without the project opening, and gives the idea back: COMPLETED (open to other investors)
+     * when it has its votes, otherwise PUBLISHED.
      * Runs every night (ContractExpiryJob) and can be triggered by the admin or n8n.
      */
     @Transactional
     public ExpiredContractsResponse expireOverdue() {
-        List<Contract> overdue = contractRepository.findByStatusInAndOpenedAtIsNullAndOpeningDeadlineBefore(
-                List.of(ContractStatus.DRAFT, ContractStatus.INVESTOR_SIGNED, ContractStatus.ACTIVE),
-                LocalDate.now());
+        LocalDate today = LocalDate.now();
+        Map<Integer, Contract> overdue = new LinkedHashMap<>();
+        // Not opened in time (contracts made before the signing deadline existed also carry one while unsigned)
+        contractRepository.findByStatusInAndOpenedAtIsNullAndOpeningDeadlineBefore(
+                        List.of(ContractStatus.DRAFT, ContractStatus.INVESTOR_SIGNED, ContractStatus.ACTIVE), today)
+                .forEach(contract -> overdue.put(contract.getId(), contract));
+        // Not signed by both parties in time
+        contractRepository.findByStatusInAndSigningDeadlineBefore(
+                        List.of(ContractStatus.DRAFT, ContractStatus.INVESTOR_SIGNED), today)
+                .forEach(contract -> overdue.putIfAbsent(contract.getId(), contract));
 
         List<String> numbers = new ArrayList<>();
         List<Integer> reopened = new ArrayList<>();
-        for (Contract contract : overdue) {
+        for (Contract contract : overdue.values()) {
+            String reason = contract.getStatus() == ContractStatus.ACTIVE ? "NOT_OPENED" : "NOT_SIGNED";
             Idea idea = endContract(contract);
             numbers.add(contract.getContractNumber());
             reopened.add(idea.getId());
 
             Map<String, Object> data = contractEventData(contract);
+            data.put("reason", reason);
             data.put("ideaStatus", idea.getStatus().name());
             n8nService.sendEvent("CONTRACT_EXPIRED", data);
         }
@@ -220,7 +239,7 @@ public class ContractFlowService {
     }
 
     /**
-     * Terminates the contract and frees the idea for other investors. Used by the 90-day rule and by refunds.
+     * Terminates the contract and frees the idea for other investors. Used by the deadlines and by refunds.
      * The access and the contract stay in the database as a record; only live contracts block an idea.
      */
     public Idea endContract(Contract contract) {
@@ -234,6 +253,32 @@ public class ContractFlowService {
             ideaRepository.save(idea);
         }
         return idea;
+    }
+
+    // ---------- 5. Extension ----------
+
+    /**
+     * The investor moves the opening deadline EXTENSION_DAYS later, once: in the last EXTENSION_WINDOW_DAYS before
+     * it, with a progress update in the last RECENT_UPDATE_DAYS (ProjectService.extensionBlock). The idea owner is told.
+     */
+    public ProjectResponse extend(User currentUser, Integer contractId) {
+        User investor = getUser(currentUser.getId());
+        Contract contract = getContract(contractId);
+        if (!contract.getInvestor().getId().equals(investor.getId())) {
+            throw new ForbiddenException("Only the project's investor can extend the opening deadline");
+        }
+        String blocked = projectService.extensionBlock(contract);
+        if (blocked != null) {
+            throw new BadRequestException(blocked);
+        }
+        contract.setOpeningDeadline(contract.getOpeningDeadline().plusDays(EXTENSION_DAYS));
+        contract.setExtendedAt(LocalDateTime.now());
+        contractRepository.save(contract);
+        if (!isSelfOwned(contract)) {
+            notificationService.notify(contract.getIdeaOwner(), NotificationService.CONTRACT_EXTENDED,
+                    contract.getIdea(), contract.getOpeningDeadline().toString(), "projects.html");
+        }
+        return projectService.toResponseFor(investor, contract);
     }
 
     // ---------- Rules ----------
@@ -344,6 +389,8 @@ public class ContractFlowService {
         data.put("ideaOwnerDiscount", contract.getIdeaOwnerDiscount());
         data.put("benefitsNote", contract.getBenefitsNote());
         data.put("openingDeadline", contract.getOpeningDeadline() != null ? contract.getOpeningDeadline().toString() : null);
+        data.put("signingDeadline", contract.getSigningDeadline() != null ? contract.getSigningDeadline().toString() : null);
+        data.put("extended", contract.getExtendedAt() != null);
         data.put("documentUrl", contract.getPdfUrl());
         return data;
     }
@@ -425,15 +472,22 @@ public class ContractFlowService {
 
         html.append("<h2>البنود</h2><table>")
                 .append(row("التزامات المستثمر", "الافتتاح خلال " + OPENING_DEADLINE_DAYS
-                        + " يومًا من تفعيل العقد، "
+                        + " يومًا من تفعيل العقد (قابلة للتمديد مرة واحدة " + EXTENSION_DAYS
+                        + " يومًا إذا كان المستثمر يحدّث حالة المشروع بانتظام)، "
                         + (isSelfOwned(contract) ? "" : "وتقديم مزايا صاحب الفكرة المذكورة أعلاه، ونسب الفكرة لصاحبها، ")
                         + "وتحديث حالة المشروع في المنصة كل أسبوعين"))
                 .append(row("حقوق صاحب الفكرة", "لقب «صاحب الفكرة» في المشروع، وأعلى مستوى من المزايا عند الافتتاح"))
                 .append(row("التزامات صاحب الفكرة", "عدم عرض الفكرة على مستثمر آخر طوال مدة العقد، والمحافظة على سرية بيانات المشروع"))
-                .append(row("أحكام عامة", "يُفسخ العقد تلقائيًا إذا لم يُفتتح المشروع في المدة، "
-                        + "ورسوم المنصة حسب طريقة الاطلاع، ولا تُشارك بيانات الأعضاء إلا مجمّعة"))
-                .append(row("آخر موعد للافتتاح", contract.getOpeningDeadline() != null
-                        ? contract.getOpeningDeadline().toString() : "يُحدد عند تفعيل العقد"))
+                .append(row("أحكام عامة", "يُفسخ العقد تلقائيًا إذا لم يوقّعه الطرفان خلال " + SIGNING_DEADLINE_DAYS
+                        + " يومًا من التبنّي، أو إذا لم يُفتتح المشروع في المدة، "
+                        + "ورسوم المنصة حسب طريقة الاطلاع، ولا تُشارك بيانات الأعضاء إلا مجمّعة"));
+        boolean activated = contract.getActivatedAt() != null && contract.getOpeningDeadline() != null;
+        if (!activated && contract.getSigningDeadline() != null) {
+            html.append(row("آخر موعد للتوقيع", contract.getSigningDeadline().toString()));
+        }
+        html.append(row("آخر موعد للافتتاح", activated
+                        ? contract.getOpeningDeadline() + (contract.getExtendedAt() != null ? " (بعد التمديد)" : "")
+                        : OPENING_DEADLINE_DAYS + " يومًا من تفعيل العقد"))
                 .append("</table>");
 
         html.append("<h2>التوقيعات</h2>");

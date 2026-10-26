@@ -1,9 +1,10 @@
 // The contract after unlocking or adopting: its own flow, one step at a time.
-// 1 benefits (investor) → 2 investor signs → 3 idea owner signs → 4 active (90 days to open).
+// 1 benefits (investor) → 2 investor signs → 3 idea owner signs (both within 14 days) → 4 active (180 days to open,
+// extendable once by 60 days near the deadline).
 // Until the investor signs, they can go back from signing to the benefits (back button or the step name).
 // Signing = typed name + drawn signature + a code emailed to the signer. Calm, plain wording.
 import { api } from '../api.js';
-import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, applyFieldErrors, cityLabel, placeLabel, t } from '../ui.js';
+import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, applyFieldErrors, cityLabel, placeLabel, modal, t } from '../ui.js';
 import { serverText, tn } from '../i18n.js';
 import { stepper } from '../components.js';
 
@@ -89,13 +90,24 @@ function body() {
 
   if (investor && (step === 'SET_BENEFITS' || editing)) return benefitsForm(box);
   if (p.canSign) return signForm(box);
-  if (step === 'FOUNDER_SIGN') return info(box, 'ctr.waitingTitle', 'ctr.waitingText', 'amber');
-  if (step === 'WAITING_PAYMENT') return info(box, 'ctr.paymentTitle', 'ctr.paymentText', 'amber');
+  if (step === 'FOUNDER_SIGN') return info(box, 'ctr.waitingTitle', 'ctr.waitingText', 'amber', signDeadline());
+  if (step === 'WAITING_PAYMENT') return info(box, 'ctr.paymentTitle', 'ctr.paymentText', 'amber', signDeadline());
   if (step === 'IN_PROGRESS') return active(box);
   if (step === 'OPENED') return info(box, 'ctr.openedTitle', null, 'solid', `<a class="btn" href="projects.html">${esc(t('nav.myProjects'))}</a>`);
   if (step === 'ENDED') return info(box, 'ctr.endedTitle', null, 'red');
   // The idea owner waits while the investor prepares the contract
-  return info(box, 'ctr.waitTitle', 'ctr.investorFirst', 'amber', benefitsSummary());
+  return info(box, 'ctr.waitTitle', 'ctr.investorFirst', 'amber', benefitsSummary() + signDeadline());
+}
+
+const daysUntil = (date) => Math.ceil((new Date(`${date}T23:59:59`) - new Date()) / 86400000);
+
+// Until both parties sign: the last day to sign (14 days after the adoption)
+function signDeadline() {
+  const p = project;
+  if (!p.signingDeadline) return '';
+  const days = daysUntil(p.signingDeadline);
+  if (days < 0) return `<div class="notice notice-warn small">${icon.info}<span>${esc(t('proj.signPassed'))}</span></div>`;
+  return `<div class="notice ${days <= 3 ? 'notice-warn' : 'notice-info'} small">${icon.info}<span><strong>${esc(t('ctr.signBy', { date: fmt.date(p.signingDeadline), d: tn(days, 'count.days') }))}</strong><br>${esc(t('ctr.signByHint'))}</span></div>`;
 }
 
 function info(box, titleKey, textKey, tone, extra = '') {
@@ -119,14 +131,56 @@ function benefitsSummary() {
 
 function active(box) {
   const p = project;
-  const days = p.openingDeadline ? Math.ceil((new Date(`${p.openingDeadline}T23:59:59`) - new Date()) / 86400000) : null;
+  const days = p.openingDeadline ? daysUntil(p.openingDeadline) : null;
   box.innerHTML = `
     <section class="card stack contract-card" style="gap:12px">
       <span class="badge badge-solid" style="align-self:flex-start">${esc(t('ctr.activeTitle'))}</span>
-      ${p.openingDeadline ? `<p><strong>${esc(t('ctr.deadline', { date: fmt.date(p.openingDeadline) }))}</strong>${days != null ? ` · <span class="muted">${esc(days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed'))}</span>` : ''}</p>` : ''}
+      ${p.openingDeadline ? `<p><strong>${esc(t('ctr.deadline', { date: fmt.date(p.openingDeadline) }))}</strong>${p.extended ? ` <span class="badge badge-sand">${esc(t('proj.extendedTag'))}</span>` : ''}${days != null ? ` · <span class="muted">${esc(days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed'))}</span>` : ''}</p>` : ''}
       ${benefitsSummary()}
+      ${extension()}
       <a class="btn" href="projects.html" style="align-self:flex-start">${esc(t('ctr.goProjects'))}</a>
     </section>`;
+  $('#extend')?.addEventListener('click', extend);
+}
+
+// ---------- The one 60-day extension (investor, near the deadline, with recent progress) ----------
+
+function extension() {
+  const p = project;
+  if (p.myRole !== 'INVESTOR' || p.nextStep !== 'IN_PROGRESS') return '';
+  if (p.extended) return `<p class="small muted">${esc(t('ctr.alreadyExtended'))}</p>`;
+  let action = '';
+  if (p.canExtend) {
+    action = `<button type="button" class="btn btn-secondary btn-sm" id="extend" style="align-self:flex-start" data-loading="${esc(t('ctr.extending'))}">${esc(t('ctr.extendBtn'))}</button>`;
+  } else if (p.extensionBlockedReason) {
+    action = `<span class="small" style="color:var(--amber-800)">${esc(serverText(p.extensionBlockedReason))}</span>`;
+  } else if (p.extensionOpensOn) {
+    action = `<span class="small muted">${esc(t('ctr.extendFrom', { date: fmt.date(p.extensionOpensOn) }))}</span>`;
+  } else {
+    return '';
+  }
+  return `<div class="surface-sand stack" style="gap:8px">
+    <strong class="small">${esc(t('ctr.extendTitle'))}</strong>
+    <span class="small muted">${esc(t('ctr.extendText'))}</span>
+    ${action}
+  </div>`;
+}
+
+async function extend() {
+  const next = new Date(`${project.openingDeadline}T12:00:00`);
+  next.setDate(next.getDate() + 60);
+  const nextDate = next.toISOString().slice(0, 10);
+  const result = await modal({
+    title: t('ctr.extendTitle'),
+    body: `<p class="muted">${esc(t('ctr.extendConfirm', { date: fmt.date(nextDate) }))}</p>`,
+    confirmText: t('ctr.extendBtn'),
+    onConfirm: () => api.post(`projects/${id}/extend`),
+  });
+  if (result) {
+    project = result;
+    toast(t('ctr.extendedDone'), 'success');
+    render();
+  }
 }
 
 // ---------- 1. Benefits ----------
@@ -137,6 +191,7 @@ function benefitsForm(box) {
     <section class="card stack contract-card" style="gap:16px" aria-labelledby="ben-h">
       ${editing ? `<button type="button" class="btn btn-ghost btn-sm" id="back-sign" style="align-self:flex-start;padding-inline-start:0">${icon.back} ${esc(t('ctr.backToSign'))}</button>` : ''}
       <div class="stack" style="gap:4px"><h2 id="ben-h">${esc(t('ctr.benefitsTitle'))}</h2><p class="small muted">${esc(t('ctr.benefitsText'))}</p></div>
+      ${editing ? '' : signDeadline()}
       <form id="benefits" class="stack" style="gap:14px" novalidate>
         <div class="field"><label for="ideaOwnerDiscount">${esc(t('ctr.ownerDiscount'))}</label>
           <input class="input" id="ideaOwnerDiscount" name="ideaOwnerDiscount" inputmode="decimal" dir="ltr" placeholder="15" value="${p.benefitsSet ? (p.ideaOwnerDiscount ?? '') : ''}" style="max-width:220px"><span class="hint">${esc(t('ctr.ownerHint'))}</span><span class="error" aria-live="polite"></span></div>
@@ -179,6 +234,7 @@ function signForm(box) {
     <section class="card stack contract-card" style="gap:18px" aria-labelledby="sign-h">
       ${canGoBack() ? `<button type="button" class="btn btn-ghost btn-sm" id="back-benefits" style="align-self:flex-start;padding-inline-start:0">${icon.back} ${esc(t('ctr.backToBenefits'))}</button>` : ''}
       <h2 id="sign-h">${esc(t(investor ? 'ctr.signTitle' : 'ctr.founderTurn'))}</h2>
+      ${signDeadline()}
       ${investor ? '' : `<span class="small" style="font-weight:600">${esc(t('ctr.founderBenefits'))}</span>`}
       ${benefitsSummary()}
       <div class="surface-sand stack" style="gap:8px">

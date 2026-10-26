@@ -40,6 +40,7 @@ import com.waleed.naseej.repository.VoteRepository;
 import com.waleed.naseej.service.ContractFlowService;
 import com.waleed.naseej.service.LocationService;
 import com.waleed.naseej.service.ProjectService;
+import com.waleed.naseej.service.VoteTarget;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
@@ -74,7 +75,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * The data follows the same rules as the real flow: votes come only from residents of the neighborhood
  * (never the idea's owner), voting stops when the target is reached, and an adopted idea has a paid
- * access, both signatures, the idea owner's benefits and an ACTIVE contract with its 90 days, in that order.
+ * access, both signatures, the idea owner's benefits and an ACTIVE contract with its 180 days, in that order.
  */
 @Slf4j
 @Component
@@ -85,8 +86,6 @@ public class DemoDataSeeder implements CommandLineRunner {
     public static final String PASSWORD = "Demo12345";
     private static final String DOMAIN = "@demo.naseej.sa";
     private static final String MARKER_EMAIL = "investor1" + DOMAIN;
-    // Same as ContractFlowService: the 90 days start when the contract becomes ACTIVE
-    private static final int OPENING_DEADLINE_DAYS = 90;
 
     private final UserRepository userRepository;
     private final NeighborhoodRepository neighborhoodRepository;
@@ -158,10 +157,24 @@ public class DemoDataSeeder implements CommandLineRunner {
     /**
      * One idea: owner is "R" (a resident of the neighborhood) or "I" + an investor number.
      * adoptedBy/stage: which demo investor adopted it and the project stage they reached (a ProjectService.STAGES name).
+     * threshold/votes are hand-written progress (e.g. 22 of 30); the real target comes from the capital like any
+     * idea (target()), and the votes keep the same share of it (votes()).
      */
     record Seed(String title, String description, String category, String hood, String city, int threshold, int votes,
                 IdeaStatus status, String owner, Integer adoptedBy, String stage, int score, int competitors,
                 double radiusKm, String placeType, long capitalMin, long capitalMax, int priceSar) {
+
+        int target() {
+            return VoteTarget.forCapital(BigDecimal.valueOf(capitalMin), BigDecimal.valueOf(capitalMax));
+        }
+
+        int votesForTarget() {
+            int target = target();
+            if (votes >= threshold) {
+                return target;
+            }
+            return Math.min(target - 1, (int) Math.round(votes * (double) target / threshold));
+        }
     }
 
     private static final List<Seed> IDEAS = List.of(
@@ -329,7 +342,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         // Enough residents in each neighborhood with ideas to cast the votes (plus the idea owners)
         Map<String, Integer> needed = new HashMap<>();
         for (Seed s : IDEAS) {
-            needed.merge(key(s.hood(), s.city()), s.votes() + 3, Math::max);
+            needed.merge(key(s.hood(), s.city()), s.votesForTarget() + 3, Math::max);
         }
         List<String> hoodKeys = new ArrayList<>(needed.keySet());
         hoodKeys.sort(String::compareTo);
@@ -378,7 +391,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                     : residents.get(ownersUsed.merge(hoodKey, 1, Integer::sum) - 1);
             double[] spot = jitter(n.getLatitude(), n.getLongitude(), index * 7, 0.5);
             LocalDateTime published = now.minusDays(10 + index * 2L);
-            boolean reached = s.votes() >= s.threshold();
+            boolean reached = s.votesForTarget() >= s.target();
             LocalDateTime confirmed = reached ? published.plusDays(8) : null;
 
             Idea idea = ideaRepository.save(Idea.builder()
@@ -388,7 +401,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .description(s.description())
                     .category(s.category())
                     .status(s.status())
-                    .membershipThreshold(s.threshold())
+                    .membershipThreshold(s.target())
                     .latitude(spot[0])
                     .longitude(spot[1])
                     .publishedAt(published)
@@ -407,7 +420,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             // Votes from neighbors (never the owner), cast between publishing and the target being reached
             List<Vote> votes = new ArrayList<>();
             for (User voter : residents) {
-                if (votes.size() >= s.votes()) {
+                if (votes.size() >= s.votesForTarget()) {
                     break;
                 }
                 if (voter.getId().equals(owner.getId())) {
@@ -430,10 +443,10 @@ public class DemoDataSeeder implements CommandLineRunner {
                 feasibilityReportRepository.save(FeasibilityReport.builder()
                         .idea(idea)
                         .gapScore(Math.min(96, s.score() + 3))
-                        .memberGrowthPercent(Math.min(100.0, s.votes() * 100.0 / s.threshold()))
+                        .memberGrowthPercent(Math.min(100.0, s.votesForTarget() * 100.0 / s.target()))
                         .peakDemandTime("المساء ونهاية الأسبوع")
                         .recommendation("الطلب موثّق والمنافسة محدودة في نطاق " + km(s.radiusKm())
-                                + " كم. الأفضل الافتتاح خلال 90 يوم مع خصم افتتاح للأعضاء المؤسسين.")
+                                + " كم. الأفضل التجهيز للافتتاح خلال 6 شهور من توقيع العقد.")
                         .risks("الإيجارات في المنطقة ترتفع، فالأفضل توقيع عقد الإيجار قبل التجهيز.")
                         .build());
             }
@@ -498,7 +511,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private void seedBusinessModel(Idea idea, Seed s) {
         businessModelRepository.save(BusinessModel.builder()
                 .idea(idea)
-                .valueProposition("يلبّي طلب " + s.votes() + " من سكان " + s.hood() + " على "
+                .valueProposition("يلبّي طلب " + s.votesForTarget() + " من سكان " + s.hood() + " على "
                         + CATEGORY_AR.getOrDefault(s.category(), "خدمة") + " في حيّهم.")
                 .targetCustomers("العوايل والموظفين من سكان " + s.hood() + " والشوارع اللي حوله.")
                 .revenueStreams("البيع المباشر، والطلبات من التطبيقات والتوصيل، واشتراكات أو باقات للعملاء الدائمين.")
@@ -512,7 +525,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     /**
      * The state the real flow ends in (UnlockService + ContractFlowService): the investor pays the unlock fee,
-     * sets the idea owner's benefits, both parties sign, and the contract becomes ACTIVE with 90 days to open.
+     * sets the idea owner's benefits, both parties sign, and the contract becomes ACTIVE with 180 days to open.
      */
     private void seedAdoption(Idea idea, User investor, Seed s, LocalDateTime confirmed, LocalDateTime now,
                               List<Object[]> updateDates) {
@@ -555,7 +568,8 @@ public class DemoDataSeeder implements CommandLineRunner {
                 .ideaOwnerDiscount(new BigDecimal("15.00"))
                 .benefitsNote("صاحب الفكرة له أولوية الحجز وقت الافتتاح.")
                 .benefitsSetAt(adoptedAt.plusHours(2))
-                .openingDeadline(activatedAt.toLocalDate().plusDays(OPENING_DEADLINE_DAYS))
+                .signingDeadline(adoptedAt.toLocalDate().plusDays(ContractFlowService.SIGNING_DEADLINE_DAYS))
+                .openingDeadline(activatedAt.toLocalDate().plusDays(ContractFlowService.OPENING_DEADLINE_DAYS))
                 .build();
         contract.activate();
         contract.setActivatedAt(activatedAt);

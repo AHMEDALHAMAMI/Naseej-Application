@@ -34,8 +34,11 @@ public interface ContractRepository extends JpaRepository<Contract, Integer> {
     // This investor currently holds the idea (a live contract, not an ended one)
     boolean existsByIdeaIdAndInvestorIdAndStatusNot(Integer ideaId, Integer investorId, ContractStatus status);
 
-    // Contracts past their opening deadline whose project never opened (the 90-day rule)
+    // Contracts past their opening deadline whose project never opened (the 180-day rule)
     List<Contract> findByStatusInAndOpenedAtIsNullAndOpeningDeadlineBefore(
             Collection<ContractStatus> statuses, LocalDate date);
+
+    // Contracts nobody finished signing in time (the 14-day signing rule)
+    List<Contract> findByStatusInAndSigningDeadlineBefore(Collection<ContractStatus> statuses, LocalDate date);
     boolean existsByInvestorIdOrIdeaOwnerId(Integer investorId, Integer ideaOwnerId);
 }

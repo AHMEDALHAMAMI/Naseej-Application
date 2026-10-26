@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-/** Admin dashboard: numbers, member management, investor verification, moderation, refunds and the 90-day check (ADMIN only). */
+/** Admin dashboard: numbers, member management, investor verification, moderation, refunds and the contract deadline check (ADMIN only). */
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor

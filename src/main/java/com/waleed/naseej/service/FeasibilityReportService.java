@@ -39,7 +39,7 @@ public class FeasibilityReportService {
     private final OpportunityAccessRepository opportunityAccessRepository;
     private final ClaudeService claudeService;
 
-    private static final int DEFAULT_MEMBERSHIP_THRESHOLD = 150;
+    private static final int DEFAULT_MEMBERSHIP_THRESHOLD = VoteTarget.FALLBACK;
     private static final double COMPETITORS_RADIUS_KM = 2.0;
 
     private static final String FEASIBILITY_PROMPT = """

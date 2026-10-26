@@ -44,7 +44,7 @@ public class ProjectController {
         return projectService.addStage(user, contractId, request);
     }
 
-    // ----- Contract: benefits → investor signs → founder signs → ACTIVE -----
+    // ----- Contract: benefits → investor signs → founder signs → ACTIVE (→ one extension) -----
 
     @PutMapping("/{contractId}/benefits")
     public ProjectResponse setBenefits(@AuthenticationPrincipal User user,
@@ -64,6 +64,12 @@ public class ProjectController {
                                 @Valid @RequestBody SignContractRequest request,
                                 HttpServletRequest http) {
         return contractFlowService.sign(user, contractId, request, http.getRemoteAddr());
+    }
+
+    // The one 60-day extension of the opening deadline (investor, near the deadline, with recent progress)
+    @PostMapping("/{contractId}/extend")
+    public ProjectResponse extend(@AuthenticationPrincipal User user, @PathVariable Integer contractId) {
+        return contractFlowService.extend(user, contractId);
     }
 
     // Print-ready contract page (Arabic); "Save as PDF" in the browser gives the PDF

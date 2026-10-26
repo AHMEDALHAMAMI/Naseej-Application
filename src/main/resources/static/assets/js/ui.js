@@ -422,6 +422,7 @@ export function notifText(n) {
   if (n.type === 'CONTRACT_TO_SIGN') return t('notif.signContract', { title });
   if (n.type === 'INVESTOR_REVIEWED') return t(n.detail === 'VERIFIED' ? 'notif.verified' : 'notif.rejected');
   if (n.type === 'CONTRACT_SIGNED') return t(n.detail === 'ACTIVE' ? 'notif.contractActive' : 'notif.ownerSigned', { title });
+  if (n.type === 'CONTRACT_EXTENDED') return t('notif.extended', { title, date: n.detail ? fmt.date(n.detail) : '' });
   return t('notif.generic', { title });
 }
 

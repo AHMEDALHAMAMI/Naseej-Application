@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Result of the 90-day check: contracts terminated because the project didn't open in time. */
+/** Result of the deadline check: contracts terminated because they weren't signed in 14 days or didn't open in time. */
 @Getter
 @Setter
 @NoArgsConstructor

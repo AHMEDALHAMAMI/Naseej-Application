@@ -37,7 +37,7 @@ public class IdeaService {
                 .category(request.getCategory())
                 .status(request.getStatus() != null ? request.getStatus() : IdeaStatus.SCREENING)
                 .membershipThreshold(
-                        request.getMembershipThreshold() != null ? request.getMembershipThreshold() : 150)
+                        request.getMembershipThreshold() != null ? request.getMembershipThreshold() : VoteTarget.FALLBACK)
                 .publishedAt(request.getPublishedAt())
                 .confirmedAt(request.getConfirmedAt())
                 .latitude(request.getLatitude())

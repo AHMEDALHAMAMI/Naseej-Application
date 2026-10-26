@@ -16,6 +16,7 @@ import com.waleed.naseej.repository.ContractRepository;
 import com.waleed.naseej.repository.ContractSignatureRepository;
 import com.waleed.naseej.repository.IdeaRepository;
 import com.waleed.naseej.repository.ProjectUpdateRepository;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,8 +28,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * "My projects": adopted ideas with their execution progress, for the investor and for the founder.
- * The investor moves the project forward one stage at a time (at most once every 14 days, the team's rule
- * in ProjectUpdateService). Reaching "Opened" marks the idea as OPENED.
+ * The investor moves the project forward one stage at a time, or posts progress on the current stage (with a note),
+ * so a long stage can still be updated regularly. Reaching "Opened" marks the idea as OPENED.
  */
 @Service
 @RequiredArgsConstructor
@@ -67,14 +68,19 @@ public class ProjectService {
                 .orElseThrow(() -> new BadRequestException("Stage must be one of " + STAGES));
         int current = currentIndex(updatesOf(contract.getId()));
         int next = STAGES.indexOf(stage);
-        if (next <= current) {
+        String note = request.getNote() == null || request.getNote().isBlank() ? null : request.getNote().trim();
+        if (next < current) {
             throw new BadRequestException("The project is already at \"" + STAGES.get(current) + "\". Choose a later stage");
         }
+        // Progress on the current stage needs a note saying what changed
+        boolean sameStage = next == current;
+        if (sameStage && note == null) {
+            throw new BadRequestException("Write what changed to post progress on the current stage");
+        }
 
-        String note = request.getNote() == null || request.getNote().isBlank() ? null : request.getNote().trim();
         projectUpdateService.createForActiveContract(contract.getId(), stage, note);
-        // The founder follows the opening (no notification when the founder is the investor)
-        if (!contract.getIdeaOwner().getId().equals(contract.getInvestor().getId())) {
+        // The founder follows the opening when it reaches a new stage (not when the founder is the investor)
+        if (!sameStage && !contract.getIdeaOwner().getId().equals(contract.getInvestor().getId())) {
             notificationService.notify(contract.getIdeaOwner(), NotificationService.PROJECT_STAGE, contract.getIdea(),
                     stage, "projects.html");
         }
@@ -110,6 +116,12 @@ public class ProjectService {
         boolean benefitsSet = contract.getBenefitsSetAt() != null;
         String nextStep = nextStep(contract, benefitsSet, investorSigned, founderSigned);
         boolean investorView = "INVESTOR".equals(myRole);
+        // The extension: only the investor sees whether they can ask for it
+        String extensionBlock = investorView ? extensionBlock(contract, updates) : null;
+        LocalDate extensionOpensOn = contract.getOpeningDeadline() != null && contract.getExtendedAt() == null
+                ? contract.getOpeningDeadline().minusDays(ContractFlowService.EXTENSION_WINDOW_DAYS) : null;
+        boolean running = active && contract.getOpenedAt() == null;
+        boolean windowOpen = running && extensionOpensOn != null && !LocalDate.now().isBefore(extensionOpensOn);
 
         return ProjectResponse.builder()
                 .contractId(contract.getId())
@@ -139,11 +151,50 @@ public class ProjectService {
                 .investorSigned(investorSigned)
                 .founderSigned(founderSigned)
                 .openingDeadline(contract.getOpeningDeadline())
+                .signingDeadline(active || contract.getOpenedAt() != null ? null : contract.getSigningDeadline())
+                .extended(contract.getExtendedAt() != null)
+                .canExtend(investorView && extensionBlock == null)
+                .extensionOpensOn(investorView && running ? extensionOpensOn : null)
+                .extensionBlockedReason(investorView && windowOpen ? extensionBlock : null)
                 .nextStep(nextStep)
                 .canSetBenefits(investorView && !selfOwned && contract.getStatus() == ContractStatus.DRAFT)
                 .canSign((investorView && "INVESTOR_SIGN".equals(nextStep))
                         || (!investorView && "FOUNDER_SIGN".equals(nextStep)))
                 .build();
+    }
+
+    /**
+     * Why the investor can't extend the opening deadline now (null = they can): one extension, for an active project
+     * that hasn't opened, in the last EXTENSION_WINDOW_DAYS before the deadline, with a progress update in the last
+     * RECENT_UPDATE_DAYS (posting regularly, as the contract asks).
+     */
+    public String extensionBlock(Contract contract) {
+        return extensionBlock(contract, updatesOf(contract.getId()));
+    }
+
+    static String extensionBlock(Contract contract, List<ProjectUpdate> updates) {
+        LocalDate deadline = contract.getOpeningDeadline();
+        if (contract.getStatus() != ContractStatus.ACTIVE || contract.getOpenedAt() != null || deadline == null) {
+            return "Only an active project that hasn't opened yet can extend its opening deadline";
+        }
+        if (contract.getExtendedAt() != null) {
+            return "The opening deadline was already extended once";
+        }
+        LocalDate today = LocalDate.now();
+        if (today.isAfter(deadline)) {
+            return "The opening deadline has passed";
+        }
+        if (today.isBefore(deadline.minusDays(ContractFlowService.EXTENSION_WINDOW_DAYS))) {
+            return "The extension opens in the last " + ContractFlowService.EXTENSION_WINDOW_DAYS
+                    + " days before the opening deadline";
+        }
+        LocalDateTime since = LocalDateTime.now().minusDays(ContractFlowService.RECENT_UPDATE_DAYS);
+        boolean recent = updates.stream().anyMatch(u -> u.getCreatedAt() != null && u.getCreatedAt().isAfter(since));
+        if (!recent) {
+            return "Post a progress update first: the extension needs one in the last "
+                    + ContractFlowService.RECENT_UPDATE_DAYS + " days";
+        }
+        return null;
     }
 
     // What has to happen next for this contract, so the page knows which button to show

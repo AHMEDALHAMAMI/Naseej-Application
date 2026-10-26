@@ -27,7 +27,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContractService {
 
-    private static final int OPENING_DEADLINE_DAYS = 90;
 
     private final ContractRepository contractRepository;
     private final ContractSignatureService contractSignatureService;
@@ -143,7 +142,7 @@ public class ContractService {
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Opportunity access not found with id: " + request.getAccessId())))
                 .ideaOwnerDiscount(request.getIdeaOwnerDiscount())
-                .openingDeadline(LocalDate.now().plusDays(OPENING_DEADLINE_DAYS))
+                .signingDeadline(LocalDate.now().plusDays(ContractFlowService.SIGNING_DEADLINE_DAYS))
                 .status(ContractStatus.DRAFT)
                 .pdfUrl(request.getPdfUrl())
                 .build();
@@ -204,8 +203,9 @@ public class ContractService {
         if (contract.getStatus() == ContractStatus.ACTIVE) {
             throw new BadRequestException("Active contracts cannot be terminated via deadline expiry");
         }
-        if (contract.getOpeningDeadline() == null
-                || !LocalDate.now().isAfter(contract.getOpeningDeadline())) {
+        // An unsigned contract has a signing deadline (older ones only carry the opening deadline)
+        LocalDate deadline = contract.getSigningDeadline() != null ? contract.getSigningDeadline() : contract.getOpeningDeadline();
+        if (deadline == null || !LocalDate.now().isAfter(deadline)) {
             throw new BadRequestException("Opening deadline has not expired yet");
         }
 

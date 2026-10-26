@@ -34,6 +34,8 @@ public class NotificationService {
     // To the investor once the idea owner has signed: ACTIVE when the contract started, otherwise still waiting
     // (for the payment to be confirmed)
     public static final String CONTRACT_SIGNED = "CONTRACT_SIGNED";
+    // To the idea owner when the investor uses the one extension (detail: the new opening deadline, yyyy-MM-dd)
+    public static final String CONTRACT_EXTENDED = "CONTRACT_EXTENDED";
     // To an investor when an admin reviews their CR (detail: VERIFIED or REJECTED)
     public static final String INVESTOR_REVIEWED = "INVESTOR_REVIEWED";
 

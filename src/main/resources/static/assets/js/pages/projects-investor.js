@@ -61,10 +61,19 @@ function statusLine(p) {
   return text === key ? '' : text;
 }
 
-function deadlineText(p) {
+const daysUntil = (date) => Math.ceil((new Date(`${date}T23:59:59`) - new Date()) / 86400000);
+
+// The deadline that matters now: 14 days to sign, then 180 days to open (extendable once from the contract page)
+function deadlineHtml(p) {
+  if (p.signingDeadline) {
+    const days = daysUntil(p.signingDeadline);
+    return esc(days >= 0 ? t('proj.signLeft', { d: tn(days, 'count.days') }) : t('proj.signPassed'));
+  }
   if (!p.openingDeadline || p.nextStep !== 'IN_PROGRESS') return '';
-  const days = Math.ceil((new Date(`${p.openingDeadline}T23:59:59`) - new Date()) / 86400000);
-  return days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed');
+  const days = daysUntil(p.openingDeadline);
+  return esc(days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed'))
+    + (p.extended ? ` (${esc(t('proj.extendedTag'))})` : '')
+    + (p.canExtend ? ` · <a href="contract.html?id=${p.contractId}">${esc(t('proj.canExtend'))}</a>` : '');
 }
 
 function projectCard(p) {
@@ -73,19 +82,20 @@ function projectCard(p) {
   const stages = p.stages.map((s, i) => `<li class="${i <= p.stageIndex ? 'done' : ''} ${i === p.stageIndex ? 'current' : ''}">${esc(stageLabel(s))}</li>`).join('');
   const updates = [...(p.updates || [])].reverse();
   const nextStages = p.stages.slice(p.stageIndex + 1);
+  // The current stage first: progress inside a long stage (needs a note), so updates can stay regular
   const form = p.canPostUpdate ? `
     <form class="surface-sand stack" style="gap:10px" data-form="${p.contractId}">
       <strong class="small">${esc(t('projInv.postProgress'))}</strong>
       <div class="grid grid-2" style="gap:10px">
         <div class="field"><label for="stage-${p.contractId}">${esc(t('projInv.stageReached'))}</label>
-          <select class="select" id="stage-${p.contractId}" name="stage">${nextStages.map((s) => `<option value="${esc(s)}">${esc(stageLabel(s))}</option>`).join('')}</select></div>
+          <select class="select" id="stage-${p.contractId}" name="stage" data-current="${esc(p.currentStage)}"><option value="${esc(p.currentStage)}">${esc(t('projInv.sameStage', { stage: stageLabel(p.currentStage) }))}</option>${nextStages.map((s) => `<option value="${esc(s)}">${esc(stageLabel(s))}</option>`).join('')}</select></div>
         <div class="field"><label for="note-${p.contractId}">${esc(t('projInv.note'))} <span class="muted">${esc(t('form.optional'))}</span></label>
           <input class="input" id="note-${p.contractId}" name="note" maxlength="1000" placeholder="${esc(t('projInv.notePlaceholder'))}"></div>
       </div>
       <button class="btn btn-sm" type="submit" style="align-self:flex-start" data-loading="${esc(t('proj.posting'))}">${esc(t('projInv.post'))}</button>
     </form>` : '';
   const other = p.myRole === 'INVESTOR' ? t('projInv.founderName', { name: p.founderName }) : t('proj.investorName', { name: p.investorName });
-  const deadline = deadlineText(p);
+  const deadline = deadlineHtml(p);
 
   return `
     <article class="card stack project-card" style="gap:16px">
@@ -99,7 +109,7 @@ function projectCard(p) {
         ${running ? `<div class="stack" style="align-items:center;gap:6px"><div class="ring" style="--p:${p.progressPercent}"><div><strong>${p.progressPercent}%</strong><span>${esc(t('proj.done'))}</span></div></div><span class="small" style="font-weight:600">${esc(stageLabel(p.currentStage))}</span></div>` : ''}
       </div>
       <div class="project-status ${needsMe ? 'is-action' : ''}">
-        <span>${needsMe ? icon.info : icon.check} <strong>${esc(statusLine(p))}</strong>${deadline ? ` · <span class="muted">${esc(deadline)}</span>` : ''}</span>
+        <span>${needsMe ? icon.info : icon.check} <strong>${esc(statusLine(p))}</strong>${deadline ? ` · <span class="muted">${deadline}</span>` : ''}</span>
         <a class="btn btn-sm ${needsMe ? '' : 'btn-secondary'}" href="contract.html?id=${p.contractId}">${esc(t(needsMe ? 'proj.continue' : 'proj.viewContract'))}</a>
       </div>
       ${running ? `
@@ -146,6 +156,12 @@ function wireForms() {
   $$('[data-form]').forEach((form) => form.addEventListener('submit', (e) => {
     e.preventDefault();
     const contractId = form.dataset.form;
+    // Staying on the same stage needs a note saying what changed
+    if (form.stage.value === form.stage.dataset.current && !form.note.value.trim()) {
+      toast(t('projInv.noteNeeded'), 'error');
+      form.note.focus();
+      return;
+    }
     withLoading(form.querySelector('[type="submit"]'), async () => {
       try {
         await api.post(`projects/stage/${contractId}`, { stage: form.stage.value, note: form.note.value.trim() || null });

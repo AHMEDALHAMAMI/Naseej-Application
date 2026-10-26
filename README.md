@@ -82,7 +82,7 @@ Every AI result is validated by the server before it is stored or used in any pa
 | Request completed | Vote threshold reached | Generate the feasibility study and alert investors |
 | Payment confirmed | Moyasar webhook | Unlock the opportunity and issue the VAT invoice |
 | Adoption follow-up | Investor adopts | Collect signatures, email the contract PDF, follow up every 2 weeks |
-| Adoption expired | 90 days without opening | Reopen the opportunity and update founding members |
+| Adoption expired | Not signed within 14 days, or not opened within 180 days (240 with the extension) | Reopen the opportunity and update the voters |
 | Email OTP | Sign-up or login | Send the 6-digit code through Gmail |
 | Weekly digest | Every Sunday | Send investors the top rising requests |
 
@@ -103,6 +103,8 @@ Before an idea is published, Claude extracts the activity and neighborhood, Goog
 | `SUITABLE` | Clear gap, no matching idea | Build the business model, then publish |
 | `SIMILAR_EXISTS` | A close idea is posted nearby | Join it, or publish and explain the difference |
 | `SATURATED` | Competitors well above the city average | Suggest a scarcer activity in the same neighborhood |
+
+**Vote target.** A bigger project risks more money, so it needs more neighbors behind it. When an idea is published its target is fixed from the business model's estimated capital: **20 votes + 1 vote for every 50,000 SAR** (middle of the range), rounded to the nearest 5, between 20 and 100 (40 when there's no estimate). A barber (120k–220k) needs 25, a café (380k–620k) 30, a supermarket (1M–1.8M) 50, a trampoline park (1.8M–3M) 70. Investors can buy before the target at a lower price; the success partnership opens at 100%.
 
 ## Use Case Diagram
 
@@ -274,7 +276,7 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | PUT | `/admin/users/{id}/disable` | admin | Disable an account (`?disabled=false` re-enables it) |
 | PUT | `/admin/ideas/{id}/hide` | admin | Hide an idea from the map and lists (`?hidden=false` restores it) |
 | POST | `/admin/payments/{id}/refund` | admin | Refund through Moyasar's Refund API and undo what the payment unlocked |
-| POST | `/admin/contracts/expire-overdue` | admin | Run the 90-day check now (it also runs every night) |
+| POST | `/admin/contracts/expire-overdue` | admin | Run the deadline check now: 14 days to sign, 180 days to open (it also runs every night) |
 | GET / PUT | `/account/profile` | logged in | Own profile (name, phone, language; investors also company, CR, budget range and fields) |
 | GET / POST / PUT / DELETE | `/account/addresses`, `/account/addresses/{id}`, `/account/addresses/{id}/primary`, `/account/addresses/preview` | logged in | Saved home addresses (residents vote from them; up to two, one change every 30 days). `preview` shows what a change would do to the votes before saving |
 | GET / PUT | `/notifications`, `/notifications/unread-count`, `/notifications/read-all`, `/notifications/{id}/read` | logged in | The bell in the header: idea adopted, vote target reached, project stage |
@@ -286,7 +288,7 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | GET | `/unlock/agreement/{contractId}` | investor, founder, admin | The agreement behind a project |
 | GET / POST / PUT / DELETE | `/admin/users`, `/admin/users/{id}`, `/admin/users/{id}/password`, `/admin/users/{id}/suspend`, `/admin/users/{id}/reactivate` | admin | Member management |
 
-**Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor sets the idea owner's benefits (and can go back from the signing step to change them) → the investor signs (`INVESTOR_SIGNED`) → the idea owner signs → `ACTIVE`, and the 90-day opening deadline starts. An investor who adopts their own idea skips the benefits step and signs once. A contract that doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
+**Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor sets the idea owner's benefits (and can go back from the signing step to change them) → the investor signs (`INVESTOR_SIGNED`) → the idea owner signs → `ACTIVE`, and the 180-day opening deadline starts. Both signatures are due within 14 days of the adoption. Once, in the last 30 days before the opening deadline, an investor who posted progress in the last 30 days can extend it by 60 days (`POST /projects/{contractId}/extend`); progress can also be posted on the current stage with a note. An investor who adopts their own idea skips the benefits step and signs once. A contract that isn't signed or doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
 
 The raw CRUD and AI endpoints (`/ideas/**`, `/payments/**`, `/contracts/**`, …) take user ids in the request body, so they are now **admin only**; the website uses the endpoints above, which read the user from the token.
 

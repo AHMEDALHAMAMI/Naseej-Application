@@ -35,10 +35,15 @@ function contractStatus(p) {
   const needsMe = !!p.canSign;
   const key = `proj.owner.${p.nextStep}`;
   const text = t(key) === key ? '' : t(key);
+  const daysUntil = (date) => Math.ceil((new Date(`${date}T23:59:59`) - new Date()) / 86400000);
   let deadline = '';
-  if (p.nextStep === 'IN_PROGRESS' && p.openingDeadline) {
-    const days = Math.ceil((new Date(`${p.openingDeadline}T23:59:59`) - new Date()) / 86400000);
-    deadline = days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed');
+  if (p.signingDeadline) {
+    const days = daysUntil(p.signingDeadline);
+    deadline = days >= 0 ? t('proj.signLeft', { d: tn(days, 'count.days') }) : t('proj.signPassed');
+  } else if (p.nextStep === 'IN_PROGRESS' && p.openingDeadline) {
+    const days = daysUntil(p.openingDeadline);
+    deadline = (days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed'))
+      + (p.extended ? ` (${t('proj.extendedTag')})` : '');
   }
   return `<div class="project-status ${needsMe ? 'is-action' : ''}">
       <span>${needsMe ? icon.info : icon.check} <strong>${esc(text)}</strong>${deadline ? ` · <span class="muted">${esc(deadline)}</span>` : ''}</span>

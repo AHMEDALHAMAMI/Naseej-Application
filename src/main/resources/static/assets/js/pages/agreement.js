@@ -20,6 +20,11 @@ const type = a.agreementType;
 const title = t(`agr.type.${type}`);
 document.title = `${title} — ${a.contractNumber}`;
 
+// The opening date once the contract is active; before that, the 180 days that start with it
+const deadlineTerm = a.openingDeadline && a.activatedAt
+  ? t('agr.deadline', { date: fmt.date(a.openingDeadline) })
+  : t('agr.deadlineLater');
+
 // The terms in plain words, by kind of agreement
 const terms = {
   OWNER_SERVICE: [
@@ -27,20 +32,20 @@ const terms = {
     a.sharePercent != null
       ? t('owner.t2', { pct: fmt.num(a.sharePercent), years: a.shareYears })
       : t('owner.t2fee', { fee: fmt.sar(a.paidAmount), total: fmt.sar(a.paidTotal) }),
-    t('agr.deadline', { date: fmt.date(a.openingDeadline) }),
+    deadlineTerm,
     t('owner.t4'),
     t('owner.t5'),
   ],
   INVESTOR_PARTNERSHIP: [
     t('agr.p1', { investor: a.investorName, title: a.ideaTitle }),
     t('agr.p2', { pct: fmt.num(a.sharePercent), years: a.shareYears, end: fmt.date(a.shareEndsAt) }),
-    t('agr.deadline', { date: fmt.date(a.openingDeadline) }),
+    deadlineTerm,
     t('unlock.term3'),
     t('unlock.ndaTerm'),
   ],
   INVESTOR_PAID: [
     t('agr.paid1', { investor: a.investorName, title: a.ideaTitle, amount: fmt.sar(a.paidAmount) }),
-    t('agr.deadline', { date: fmt.date(a.openingDeadline) }),
+    deadlineTerm,
     t('unlock.ndaTerm'),
   ],
 }[type] || [];

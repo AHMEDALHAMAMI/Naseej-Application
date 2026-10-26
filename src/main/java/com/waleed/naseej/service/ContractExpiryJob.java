@@ -27,7 +27,7 @@ public class ContractExpiryJob {
                         result.getExpiredCount(), result.getContractNumbers());
             }
         } catch (RuntimeException ex) {
-            log.error("The 90-day contract check failed: {}", ex.getMessage(), ex);
+            log.error("The contract deadline check failed: {}", ex.getMessage(), ex);
         }
     }
 }

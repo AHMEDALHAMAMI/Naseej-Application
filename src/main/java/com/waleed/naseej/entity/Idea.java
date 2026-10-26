@@ -43,7 +43,7 @@ public class Idea {
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer membershipThreshold = 150;
+    private Integer membershipThreshold = com.waleed.naseej.service.VoteTarget.FALLBACK;
 
     private LocalDateTime publishedAt;
 

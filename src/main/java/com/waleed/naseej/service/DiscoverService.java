@@ -298,6 +298,7 @@ public class DiscoverService {
     /**
      * The author publishes a draft that passed the check: it goes on the map and residents can vote.
      * A check older than CHECK_FRESH_HOURS must be run again first, because a similar idea may have opened since.
+     * Its vote target is fixed now from the business model's capital (VoteTarget).
      * An investor's idea also gets its feasibility report now.
      */
     public IdeaDetailResponse publish(User currentUser, Integer ideaId) {
@@ -325,6 +326,7 @@ public class DiscoverService {
                 warnings.add("The business model couldn't be generated right now: " + ex.getMessage());
             }
         }
+        setVoteTarget(getIdea(ideaId));
         if (user.getRole() == Role.INVESTOR && feasibilityReportRepository.findByIdeaId(ideaId).isEmpty()) {
             try {
                 feasibilityReportService.generate(ideaId);
@@ -363,6 +365,10 @@ public class DiscoverService {
         if (!businessModelRepository.existsByIdeaId(ideaId)) {
             try {
                 businessModelService.generate(ideaId);
+                // Published without a capital estimate (fallback target): set the real one while nobody has voted yet
+                if (idea.getStatus() == IdeaStatus.PUBLISHED && voteRepository.countByIdeaId(ideaId) == 0) {
+                    setVoteTarget(getIdea(ideaId));
+                }
             } catch (RuntimeException ex) {
                 warnings.add("The business model couldn't be generated right now: " + ex.getMessage());
             }
@@ -377,6 +383,15 @@ public class DiscoverService {
             }
         }
         return localized(buildDetail(getIdea(ideaId), user, null, null, warnings));
+    }
+
+    /** The idea's vote target from its business model's capital, or VoteTarget.FALLBACK without one. */
+    private void setVoteTarget(Idea idea) {
+        int target = businessModelRepository.findByIdeaId(idea.getId())
+                .map(model -> VoteTarget.forCapital(model.getEstimatedCapitalMin(), model.getEstimatedCapitalMax()))
+                .orElse(VoteTarget.FALLBACK);
+        idea.setMembershipThreshold(target);
+        ideaRepository.save(idea);
     }
 
     /** FIT → private draft with its business model draft; SIMILAR / SATURATED → rejected with the reason. */
@@ -397,6 +412,8 @@ public class DiscoverService {
                     warnings.add("The business model couldn't be generated right now: " + ex.getMessage());
                 }
             }
+            // The review screen shows the target the idea will have; publishing sets it again
+            setVoteTarget(idea);
         } else {
             idea.setStatus(IdeaStatus.REJECTED);
             idea.setRejectionReason(rejectionReason(check));
@@ -946,7 +963,7 @@ public class DiscoverService {
 
     static int threshold(Idea idea) {
         return idea.getMembershipThreshold() != null && idea.getMembershipThreshold() > 0
-                ? idea.getMembershipThreshold() : 150;
+                ? idea.getMembershipThreshold() : VoteTarget.FALLBACK;
     }
 
     static int percent(long votes, int threshold) {
