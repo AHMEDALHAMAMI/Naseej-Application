@@ -248,9 +248,6 @@ public class UnlockService {
         User investor = getInvestor(currentUser.getId());
         Idea idea = getIdea(ideaId);
         ensureCanUnlock(investor, idea);
-        if (request == null || !Boolean.TRUE.equals(request.getNdaAccepted())) {
-            throw new BadRequestException("Accept the confidentiality terms to continue");
-        }
         if (idea.getUnlockPrice() == null) {
             priceWithAi(idea);
         }
@@ -583,7 +580,6 @@ public class UnlockService {
                 .idea(idea)
                 .payment(payment)
                 .accessType(type)
-                .ndaAcceptedAt(type == AccessType.OWNER ? null : LocalDateTime.now())
                 .build());
 
         Contract contract = Contract.builder()

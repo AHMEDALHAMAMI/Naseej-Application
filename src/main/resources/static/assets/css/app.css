@@ -2034,3 +2034,12 @@ html[lang="ar"] .ask-hero h1 em {
   background: var(--ai-bg);
   border-color: var(--ai-border);
 }
+
+/* The card step on the unlock page: Moyasar's card fields take the card's full width */
+.pay-step .mysr-form {
+  width: 100%;
+}
+
+.nowrap {
+  white-space: nowrap;
+}

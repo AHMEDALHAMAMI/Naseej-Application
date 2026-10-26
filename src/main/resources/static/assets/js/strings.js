@@ -1138,6 +1138,11 @@ export const STRINGS = {
   'notif.target': ['Your idea “{title}” reached its vote target. Investors can unlock it now.', 'فكرتك «{title}» اكتمل هدف تصويتها، والمستثمرين يقدرون يفتحونها الحين.'],
   'notif.stage': ['“{title}” moved to: {stage}.', '«{title}» وصلت لمرحلة: {stage}.'],
   'notif.generic': ['News about “{title}”.', 'جديد عن «{title}».'],
+  'notif.contractActive': ['The idea owner signed “{title}”. The contract is active and the 90 days to open have started.', 'صاحب الفكرة وقّع عقد «{title}»، والعقد صار ساري وبدأت مهلة الـ 90 يوم للافتتاح.'],
+  'notif.ownerSigned': ['The idea owner signed the contract for “{title}”.', 'صاحب الفكرة وقّع عقد «{title}».'],
+  // The card step on the unlock page (investor wording)
+  'payInv.back': ['Back to the options', 'رجوع لطرق الفتح'],
+  'payInv.testMode': ['<strong>Test mode, no real money is charged.</strong><br>Test card: <bdi dir="ltr" class="nowrap">4111 1111 1111 1111</bdi>, any future expiry date and any CVC.<br>Next, a page that stands in for your bank’s check opens: the first option, <bdi dir="ltr" class="nowrap">(Y)</bdi>, makes the payment go through; the others try a declined payment.', '<strong>وضع التجربة، ما ينخصم أي مبلغ حقيقي.</strong><br>البطاقة التجريبية: <bdi dir="ltr" class="nowrap">4111 1111 1111 1111</bdi>، بأي تاريخ انتهاء قادم وأي CVC.<br>بعدها تطلع صفحة تمثّل تحقق البنك: الخيار الأول <bdi dir="ltr" class="nowrap">(Y)</bdi> ينجّح الدفع، وباقي الخيارات تجرّب حالات الرفض.'],
   'notif.signContract': ['The investor signed the contract for “{title}”. It’s your turn to sign.', 'المستثمر وقّع عقد «{title}»، والحين دورك توقّع.'],
   // The contract on the idea owner's project card (the investor's own steps are worded for the owner)
   'proj.owner.SET_BENEFITS': ['The investor is setting the founding members’ benefits', 'المستثمر يحدد مزايا الأعضاء المؤسسين'],

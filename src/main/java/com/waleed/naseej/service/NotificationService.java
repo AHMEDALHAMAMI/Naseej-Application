@@ -31,6 +31,9 @@ public class NotificationService {
     public static final String PROJECT_STAGE = "PROJECT_STAGE";
     // To the idea owner once the investor has signed: the contract now waits for the owner's signature
     public static final String CONTRACT_TO_SIGN = "CONTRACT_TO_SIGN";
+    // To the investor once the idea owner has signed: ACTIVE when the contract started, otherwise still waiting
+    // (for the payment to be confirmed)
+    public static final String CONTRACT_SIGNED = "CONTRACT_SIGNED";
 
     private final NotificationRepository notificationRepository;
 

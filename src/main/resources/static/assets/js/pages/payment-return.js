@@ -21,11 +21,16 @@ if (!ideaId || (!moyasarPaymentId && !paymentId)) {
   done(`${icon.x}<h1 style="font-size:30px">${esc(t('pay.missing'))}</h1><a class="btn" href="investor.html">${esc(t('pay.backOpps'))}</a>`);
 } else if (p.get('status') && p.get('status') !== 'paid') {
   done(`<span class="badge badge-red">${icon.x} ${esc(t('pay.notCompleted'))}</span><h1 style="font-size:30px">${esc(t('pay.failed'))}</h1>
-    <p class="muted">${esc(p.get('message') || t('pay.nothingCharged'))}</p>
+    <p class="muted">${esc(t('pay.nothingCharged'))}</p>
+    ${p.get('message') ? `<p class="small muted" dir="auto">${esc(p.get('message'))}</p>` : ''}
     <a class="btn" href="unlock.html?id=${ideaId}">${esc(t('pay.tryAgain'))}</a>`);
 } else {
   try {
-    const result = await api.post(`unlock/confirm-payment/${ideaId}`, paymentId ? { paymentId } : { moyasarPaymentId });
+    // Both ids when coming back from the payment form: the server checks with Moyasar that they belong together
+    const body = {};
+    if (paymentId) body.paymentId = paymentId;
+    if (moyasarPaymentId) body.moyasarPaymentId = moyasarPaymentId;
+    const result = await api.post(`unlock/confirm-payment/${ideaId}`, body);
     done(`<span class="badge badge-solid">${icon.check} ${esc(t('pay.paid'))}</span><h1 style="font-size:34px">${t('pay.yours')}</h1>
       <p class="muted">${esc(serverText(result.message || ''))}<br>${esc(t('pay.contract', { n: result.contractNumber }))}</p>
       <div class="row" style="justify-content:center"><a class="btn" href="${result.contractId ? `contract.html?id=${result.contractId}` : 'projects.html'}">${esc(t('pay.goProjects'))}</a><a class="btn btn-secondary" href="idea.html?id=${ideaId}">${esc(t('pay.openStudy'))}</a></div>`);

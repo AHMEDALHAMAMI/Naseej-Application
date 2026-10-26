@@ -1,7 +1,5 @@
 package com.waleed.naseej.dto.in;
 
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +13,7 @@ import lombok.Setter;
 @Builder
 public class CheckoutRequest {
 
-    @NotNull(message = "Accept the confidentiality terms to continue")
-    @AssertTrue(message = "Accept the confidentiality terms to continue")
+    // Optional and not required: the investor pages show the whole idea, so there is no confidentiality step
+    // before paying. Kept so older clients that still send it keep working.
     private Boolean ndaAccepted;
 }

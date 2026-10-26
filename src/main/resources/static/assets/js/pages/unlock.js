@@ -3,6 +3,7 @@
 // The tone stays calm and plain: this page is about money.
 import { api, session } from '../api.js';
 import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, progressBar, animateBars, modal, cityLabel, placeLabel, applyFieldErrors, t } from '../ui.js';
+import { lang } from '../i18n.js';
 import { serverText } from '../i18n.js';
 
 let user = await guard(['INVESTOR']);
@@ -65,6 +66,7 @@ $('#body').innerHTML = `
       </section>
     </div>
     <div class="stack" style="gap:16px">
+      <section class="card stack pay-step" id="pay-step" style="gap:14px" hidden></section>
       <fieldset class="stack" style="gap:16px;border:0;margin:0;padding:0" id="options">
         <legend class="eyebrow" style="margin-bottom:12px">${esc(t('unlock.choose'))}</legend>
         <article class="card stack" style="gap:12px">
@@ -165,22 +167,89 @@ function drawGate() {
 drawGate();
 
 // ---------- Actions ----------
+// One payment: the card step opens right here, with Moyasar's card fields. The card details go straight from
+// the form to Moyasar (never through Naseej); after the bank's check (3-D Secure) Moyasar brings the browser back
+// to payment-return.html, which asks the server to confirm the payment with Moyasar before anything unlocks.
 $('#pay').addEventListener('click', (e) => withLoading(e.currentTarget, async () => {
+  let co;
   try {
-    // Moyasar sends the browser back to this site after 3-D Secure
-    const callbackUrl = new URL(`payment-return.html?ideaId=${id}`, location.href).href;
-    const res = await api.post(`unlock/pay/${id}`, { callbackUrl });
-    if (res.payment?.status === 'PAID') {
-      location.href = `payment-return.html?ideaId=${id}&paymentId=${res.payment.id}`;
-    } else if (res.transactionUrl) {
-      location.href = res.transactionUrl;
-    } else {
-      toast(serverText(res.message) || t('unlock.payFailed'), 'error');
-    }
+    co = await api.post(`unlock/checkout/${id}`, {});
+    await loadMoyasar();
   } catch (err) {
-    toast(errorMessage(err), 'error');
+    toast(errorMessage(err) || t('unlock.payFailed'), 'error', 7000);
+    return;
   }
+  cardStep(co);
 }));
+
+function cardStep(co) {
+  const step = $('#pay-step');
+  step.innerHTML = `
+    <button type="button" class="btn btn-ghost btn-sm" id="pay-back" style="align-self:flex-start;padding-inline-start:0">${icon.back} ${esc(t('payInv.back'))}</button>
+    <div class="stack" style="gap:4px">
+      <h2>${esc(t('pay.cardTitle'))}</h2>
+      <p class="small muted">${esc(t('pay.cardText'))}</p>
+    </div>
+    <dl class="dl small"><dt>${esc(t('unlock.price'))}</dt><dd class="num">${fmt.sar(co.amount)}</dd><dt>${esc(t('unlock.vat'))}</dt><dd class="num">${fmt.sar(co.vat)}</dd><dt><strong>${esc(t('unlock.total'))}</strong></dt><dd class="num"><strong>${fmt.sar(co.total)}</strong></dd></dl>
+    ${co.testMode ? `<div class="notice notice-warn small">${icon.info}<span>${t('payInv.testMode')}</span></div>` : ''}
+    <div class="mysr-form" id="mysr"></div>
+    <p class="small muted pay-secure">${icon.lock}<span>${esc(t('pay.secure'))}</span></p>`;
+  $('#options').hidden = true;
+  step.hidden = false;
+  $('#pay-back').addEventListener('click', () => {
+    step.hidden = true;
+    step.innerHTML = '';
+    $('#options').hidden = false;
+    $('#pay').focus();
+  });
+  step.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Moyasar renames the element's id once it starts, so it gets the element itself, not the '#mysr' selector
+  const box = $('#mysr');
+  const formFailed = (reason) => {
+    if (!box.isConnected) return;
+    box.innerHTML = `<div class="notice notice-error">${icon.x}<span>${esc(t('pay.formFailed'))}${reason ? `<br><small dir="ltr">${esc(reason)}</small>` : ''}</span></div>`;
+  };
+  try {
+    window.Moyasar.init({
+      element: box,
+      amount: co.amountHalalas,
+      currency: co.currency,
+      description: co.description,
+      publishable_api_key: co.publishableKey,
+      // Moyasar adds ?id=…&status=…&message=… to this address after the bank's check
+      callback_url: new URL(`payment-return.html?ideaId=${id}&paymentId=${co.paymentId}`, location.href).href,
+      methods: ['creditcard'],
+      supported_networks: ['mada', 'visa', 'mastercard'],
+      language: lang === 'ar' ? 'ar' : 'en',
+      metadata: co.metadata,
+      on_failure: (error) => toast(String(error?.message || error || t('pay.failed')), 'error', 8000),
+    });
+  } catch (err) {
+    formFailed(err?.message || String(err));
+    return;
+  }
+  // The form draws its card fields into the box; none after a few seconds means it couldn't
+  setTimeout(() => { if (!box.querySelector('input')) formFailed(''); }, 6000);
+}
+
+// Moyasar's payment form (script + styles), loaded only when someone pays
+const MOYASAR_VERSION = '1.14.0';
+function loadMoyasar() {
+  if (window.Moyasar) return Promise.resolve();
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = `https://cdn.moyasar.com/mpf/${MOYASAR_VERSION}/moyasar.css`;
+  document.head.appendChild(css);
+  return new Promise((resolve, reject) => {
+    const js = document.createElement('script');
+    js.src = `https://cdn.moyasar.com/mpf/${MOYASAR_VERSION}/moyasar.js`;
+    const timer = setTimeout(() => reject(new Error(t('pay.formFailed'))), 20000);
+    js.onload = () => { clearTimeout(timer); if (window.Moyasar) resolve(); else reject(new Error(t('pay.formFailed'))); };
+    js.onerror = () => { clearTimeout(timer); reject(new Error(t('pay.formFailed'))); };
+    document.head.appendChild(js);
+  });
+}
 
 $('#partner').addEventListener('click', async () => {
   const result = await modal({

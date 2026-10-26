@@ -159,10 +159,16 @@ public class ContractFlowService {
                     contract.getIdea(), null, "contract.html?id=" + contract.getId());
         }
 
-        if (isReadyToActivate(contract)) {
+        boolean activated = isReadyToActivate(contract);
+        if (activated) {
             activate(contract);
         } else {
             contractRepository.save(contract);
+        }
+        // The investor hears that the idea owner signed, and whether the contract is now active
+        if (ROLE_IDEA_OWNER.equals(role)) {
+            notificationService.notify(contract.getInvestor(), NotificationService.CONTRACT_SIGNED,
+                    contract.getIdea(), activated ? "ACTIVE" : "WAITING", "contract.html?id=" + contract.getId());
         }
         return projectService.toResponseFor(signer, getContract(contractId));
     }
