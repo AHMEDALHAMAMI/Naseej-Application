@@ -253,7 +253,9 @@ public class ExploreService {
         boolean unlocked = contractRepository.existsByIdeaIdAndInvestorIdAndStatusNot(
                 idea.getId(), investor.getId(), ContractStatus.TERMINATED);
         boolean mine = Objects.equals(idea.getOwner().getId(), investor.getId());
-        boolean canUnlock = verified && !mine && !unlocked && idea.getStatus() == IdeaStatus.COMPLETED
+        // Early access: open ideas can be bought before they reach the vote target
+        boolean open = idea.getStatus() == IdeaStatus.PUBLISHED || idea.getStatus() == IdeaStatus.COMPLETED;
+        boolean canUnlock = verified && !mine && !unlocked && open
                 && !opportunityAccessRepository.existsByInvestorIdAndIdeaId(investor.getId(), idea.getId());
         return OpportunityResponse.builder()
                 .id(idea.getId())

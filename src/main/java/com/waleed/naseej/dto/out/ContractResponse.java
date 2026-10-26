@@ -24,7 +24,6 @@ public class ContractResponse {
     private Integer investorId;
     private Integer ideaOwnerId;
     private Integer accessId;
-    private BigDecimal foundingMemberDiscount;
     private BigDecimal ideaOwnerDiscount;
     private ContractStatus status;
     private LocalDate openingDeadline;

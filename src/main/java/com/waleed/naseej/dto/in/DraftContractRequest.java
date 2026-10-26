@@ -34,10 +34,6 @@ public class DraftContractRequest {
 
     @NotNull
     @DecimalMin("0.00")
-    private BigDecimal foundingMemberDiscount;
-
-    @NotNull
-    @DecimalMin("0.00")
     private BigDecimal ideaOwnerDiscount;
 
     private String pdfUrl;

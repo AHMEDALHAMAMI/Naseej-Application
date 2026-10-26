@@ -1,5 +1,6 @@
 // The contract after unlocking or adopting: its own flow, one step at a time.
 // 1 benefits (investor) → 2 investor signs → 3 idea owner signs → 4 active (90 days to open).
+// Until the investor signs, they can go back from signing to the benefits (back button or the step name).
 // Signing = typed name + drawn signature + a code emailed to the signer. Calm, plain wording.
 import { api } from '../api.js';
 import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, applyFieldErrors, cityLabel, placeLabel, t } from '../ui.js';
@@ -12,6 +13,8 @@ const app = $('#app');
 if (!id) location.replace('projects.html');
 
 let project;
+// The investor went back from signing to change the benefits (nothing is saved until they press save)
+let editing = false;
 
 async function load() {
   try {
@@ -44,10 +47,15 @@ function stepState() {
   ];
 }
 
+// The investor can go back to the benefits while the contract is still a draft they haven't signed
+const canGoBack = () => project.myRole === 'INVESTOR' && project.canSetBenefits && project.benefitsSet;
+
 function render() {
   const p = project;
+  if (!canGoBack()) editing = false;
   const steps = stepState();
-  const current = steps.findIndex((s) => !s.done);
+  const firstOpen = steps.findIndex((s) => !s.done);
+  const current = editing ? 0 : firstOpen;
   document.title = `${p.ideaTitle} — ${t('title.contract')}`;
   app.innerHTML = `
     <a class="btn btn-ghost btn-sm" href="projects.html" style="padding-inline-start:0">${icon.back} ${esc(t('nav.myProjects'))}</a>
@@ -59,10 +67,18 @@ function render() {
       </div>
       <button type="button" class="btn btn-secondary btn-sm" id="read-full">${esc(t('ctr.readFull'))}</button>
     </div>
-    ${stepper(steps.map((s) => t(s.key)), current === -1 ? steps.length - 1 : current)}
+    ${stepper(steps.map((s) => t(s.key)), current === -1 ? steps.length - 1 : current, { buttons: [canGoBack() && !editing] })}
     <div class="contract-body" id="body"></div>`;
   $('#read-full').addEventListener('click', openDocument);
+  app.querySelector('[data-step="0"]')?.addEventListener('click', () => goTo(true));
   body();
+}
+
+// Between the benefits and the signing step, without leaving the page
+function goTo(edit) {
+  editing = edit;
+  render();
+  $('#body').querySelector('input')?.focus({ preventScroll: true });
 }
 
 function body() {
@@ -71,7 +87,7 @@ function body() {
   const box = $('#body');
   const step = p.nextStep;
 
-  if (investor && step === 'SET_BENEFITS') return benefitsForm(box);
+  if (investor && (step === 'SET_BENEFITS' || editing)) return benefitsForm(box);
   if (p.canSign) return signForm(box);
   if (step === 'FOUNDER_SIGN') return info(box, 'ctr.waitingTitle', 'ctr.waitingText', 'amber');
   if (step === 'WAITING_PAYMENT') return info(box, 'ctr.paymentTitle', 'ctr.paymentText', 'amber');
@@ -93,9 +109,9 @@ function info(box, titleKey, textKey, tone, extra = '') {
 
 function benefitsSummary() {
   const p = project;
-  if (!p.benefitsSet) return '';
+  // An investor launching their own idea has no benefits step (nobody else to give them to)
+  if (!p.benefitsSet || p.accessType === 'OWNER') return '';
   return `<dl class="dl benefits-dl">
-    <dt>${esc(t('ctr.membersGet'))}</dt><dd>${esc(t('ctr.discount', { n: Number(p.foundingMemberDiscount) }))}</dd>
     <dt>${esc(t('ctr.ownerGets'))}</dt><dd>${esc(t('ctr.discount', { n: Number(p.ideaOwnerDiscount) }))}</dd>
     ${p.benefitsNote ? `<dt>${esc(t('ctr.note'))}</dt><dd>${esc(p.benefitsNote)}</dd>` : ''}
   </dl>`;
@@ -119,14 +135,11 @@ function benefitsForm(box) {
   const p = project;
   box.innerHTML = `
     <section class="card stack contract-card" style="gap:16px" aria-labelledby="ben-h">
+      ${editing ? `<button type="button" class="btn btn-ghost btn-sm" id="back-sign" style="align-self:flex-start;padding-inline-start:0">${icon.back} ${esc(t('ctr.backToSign'))}</button>` : ''}
       <div class="stack" style="gap:4px"><h2 id="ben-h">${esc(t('ctr.benefitsTitle'))}</h2><p class="small muted">${esc(t('ctr.benefitsText'))}</p></div>
       <form id="benefits" class="stack" style="gap:14px" novalidate>
-        <div class="grid grid-2" style="gap:14px">
-          <div class="field"><label for="foundingMemberDiscount">${esc(t('ctr.membersDiscount'))}</label>
-            <input class="input" id="foundingMemberDiscount" name="foundingMemberDiscount" inputmode="decimal" dir="ltr" placeholder="10" value="${p.foundingMemberDiscount ?? ''}"><span class="error" aria-live="polite"></span></div>
-          <div class="field"><label for="ideaOwnerDiscount">${esc(t('ctr.ownerDiscount'))}</label>
-            <input class="input" id="ideaOwnerDiscount" name="ideaOwnerDiscount" inputmode="decimal" dir="ltr" placeholder="15" value="${p.ideaOwnerDiscount ?? ''}"><span class="hint">${esc(t('ctr.ownerHint'))}</span><span class="error" aria-live="polite"></span></div>
-        </div>
+        <div class="field"><label for="ideaOwnerDiscount">${esc(t('ctr.ownerDiscount'))}</label>
+          <input class="input" id="ideaOwnerDiscount" name="ideaOwnerDiscount" inputmode="decimal" dir="ltr" placeholder="15" value="${p.benefitsSet ? (p.ideaOwnerDiscount ?? '') : ''}" style="max-width:220px"><span class="hint">${esc(t('ctr.ownerHint'))}</span><span class="error" aria-live="polite"></span></div>
         <div class="field"><label for="benefitsNote">${esc(t('ctr.note'))} <span class="muted">${esc(t('form.optional'))}</span></label>
           <input class="input" id="benefitsNote" name="benefitsNote" maxlength="500" placeholder="${esc(t('ctr.notePh'))}" value="${esc(p.benefitsNote || '')}"><span class="error" aria-live="polite"></span></div>
         <div class="row" style="justify-content:space-between">
@@ -135,19 +148,20 @@ function benefitsForm(box) {
         </div>
       </form>
     </section>`;
+  $('#back-sign')?.addEventListener('click', () => goTo(false));
   $('#benefits').addEventListener('submit', (e) => {
     e.preventDefault();
     const f = e.currentTarget;
     applyFieldErrors(f, null);
     const num = (v) => { const clean = String(v).replace(/[^\d.]/g, ''); return clean === '' ? null : Number(clean); };
     const bodyData = {
-      foundingMemberDiscount: num(f.foundingMemberDiscount.value),
       ideaOwnerDiscount: num(f.ideaOwnerDiscount.value),
       benefitsNote: f.benefitsNote.value.trim() || null,
     };
     withLoading(f.querySelector('[type="submit"]'), async () => {
       try {
         project = await api.put(`projects/${id}/benefits`, bodyData);
+        editing = false;
         render();
       } catch (err) {
         if (!applyFieldErrors(f, err)) toast(errorMessage(err), 'error');
@@ -163,16 +177,14 @@ function signForm(box) {
   const investor = p.myRole === 'INVESTOR';
   box.innerHTML = `
     <section class="card stack contract-card" style="gap:18px" aria-labelledby="sign-h">
-      <div class="row" style="justify-content:space-between">
-        <h2 id="sign-h">${esc(t(investor ? 'ctr.signTitle' : 'ctr.founderTurn'))}</h2>
-        ${investor && p.canSetBenefits ? `<button type="button" class="btn btn-ghost btn-sm" id="edit-benefits">${esc(t('ctr.editBenefits'))}</button>` : ''}
-      </div>
+      ${canGoBack() ? `<button type="button" class="btn btn-ghost btn-sm" id="back-benefits" style="align-self:flex-start;padding-inline-start:0">${icon.back} ${esc(t('ctr.backToBenefits'))}</button>` : ''}
+      <h2 id="sign-h">${esc(t(investor ? 'ctr.signTitle' : 'ctr.founderTurn'))}</h2>
       ${investor ? '' : `<span class="small" style="font-weight:600">${esc(t('ctr.founderBenefits'))}</span>`}
       ${benefitsSummary()}
       <div class="surface-sand stack" style="gap:8px">
         <strong class="small">${esc(t('ctr.terms'))}</strong>
         <ul class="ticks small">
-          <li>${esc(t('ctr.t1'))}</li><li>${esc(t('ctr.t2'))}</li><li>${esc(t('ctr.t3'))}</li><li>${esc(t('ctr.t4'))}</li>
+          <li>${esc(t('ctr.t1'))}</li>${p.accessType === 'OWNER' ? '' : `<li>${esc(t('ctr.t2'))}</li>`}<li>${esc(t('ctr.t3'))}</li><li>${esc(t('ctr.t4'))}</li>
         </ul>
       </div>
       <form id="sign" class="stack" style="gap:14px" novalidate>
@@ -195,7 +207,7 @@ function signForm(box) {
       </form>
     </section>`;
 
-  $('#edit-benefits')?.addEventListener('click', () => benefitsForm(box));
+  $('#back-benefits')?.addEventListener('click', () => goTo(true));
   const pad = signaturePad($('#pad'));
   $('#clear-pad').addEventListener('click', pad.clear);
 

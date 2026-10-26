@@ -133,7 +133,6 @@ public class ProjectService {
                 // The investor can post the next stage any time; there is no waiting period
                 .canPostUpdate("INVESTOR".equals(myRole) && active && index < STAGES.size() - 1)
                 .nextUpdateAllowedAt(null)
-                .foundingMemberDiscount(contract.getFoundingMemberDiscount())
                 .ideaOwnerDiscount(contract.getIdeaOwnerDiscount())
                 .benefitsNote(contract.getBenefitsNote())
                 .benefitsSet(benefitsSet)
@@ -141,7 +140,7 @@ public class ProjectService {
                 .founderSigned(founderSigned)
                 .openingDeadline(contract.getOpeningDeadline())
                 .nextStep(nextStep)
-                .canSetBenefits(investorView && contract.getStatus() == ContractStatus.DRAFT)
+                .canSetBenefits(investorView && !selfOwned && contract.getStatus() == ContractStatus.DRAFT)
                 .canSign((investorView && "INVESTOR_SIGN".equals(nextStep))
                         || (!investorView && "FOUNDER_SIGN".equals(nextStep)))
                 .build();

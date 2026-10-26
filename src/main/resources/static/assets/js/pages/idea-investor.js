@@ -118,7 +118,9 @@ function votesCard(idea) {
 
 function investorCard(idea) {
   const verified = idea.investorStatus === 'VERIFIED';
-  const readyForAnyone = idea.status === 'COMPLETED' && !idea.adopted && !idea.founder;
+  // Open ideas can be bought before the votes complete (early, at a lower price)
+  const early = idea.status === 'PUBLISHED';
+  const readyForAnyone = (idea.status === 'COMPLETED' || early) && !idea.adopted && !idea.founder;
   let action = '';
   if (idea.canAdopt) {
     action = `<button type="button" class="btn btn-block" id="adopt" data-loading="${esc(t('commonInv.wait'))}">${esc(t('idea.adopt'))}</button>
@@ -127,7 +129,8 @@ function investorCard(idea) {
     action = `<div class="notice notice-info">${icon.check}<span>${esc(t('idea.youAdopted'))}</span></div><a class="btn btn-secondary btn-block" href="projects.html">${esc(t('ideaInv.goProjects'))}</a>`;
   } else if (idea.canUnlock || (readyForAnyone && !verified)) {
     // Not verified yet? The unlock page asks for the CR right there
-    action = `<a class="btn btn-block" href="unlock.html?id=${idea.id}">${esc(t('idea.unlockBtn'))}</a>`;
+    action = `<a class="btn btn-block" href="unlock.html?id=${idea.id}">${esc(t(early ? 'idea.buyEarlyBtn' : 'idea.unlockBtn'))}</a>
+      ${early ? `<span class="small muted">${esc(t('idea.earlyText'))}</span>` : ''}`;
   } else if (idea.founder && !verified) {
     action = `<div class="notice notice-warn">${icon.info}<span>${esc(t('prop.adoptAfter'))}</span></div><a class="btn btn-secondary btn-block" href="account.html">${esc(t('gate.goAccount'))}</a>`;
   } else {
@@ -236,7 +239,7 @@ function wire(idea) {
     });
     if (result) {
       toast(serverText(result.message) || t('adopt.done'), 'success');
-      // Next: the founding members' benefits and the signature
+      // Next: the contract signature
       location.href = result.contractId ? `contract.html?id=${result.contractId}` : 'projects.html';
     }
   });

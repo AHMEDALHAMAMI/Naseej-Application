@@ -67,8 +67,9 @@ import org.springframework.transaction.annotation.Transactional;
  *   (OWNER_LAUNCH_FEE_SAR + VAT) through Moyasar. The project starts only after Moyasar confirms the payment
  * Only VERIFIED investors can unlock or adopt. Each idea is adopted by one investor.
  *
- * Investors can unlock while the votes are still coming in. The AI price is the price at 100% of the vote target;
- * before that the investor pays less (early access) and takes the risk that demand stays lower.
+ * Investors can buy (PAID) while the votes are still coming in. The AI price is the price at 100% of the vote target;
+ * before that the investor pays less (early access: 60% of it at 0 votes, rising with every vote) and takes the
+ * risk that demand stays lower. The success partnership has no price to lower, so it still opens at 100%.
  * Before paying or signing, the investor accepts confidentiality and non-circumvention terms, and until then they
  * only see a confidential summary of the idea (see DiscoverService.buildDetail).
  */
@@ -225,7 +226,7 @@ public class UnlockService {
     public InitiateMoyasarPaymentResponse startPayment(User currentUser, Integer ideaId, UnlockPaymentRequest request) {
         User investor = getInvestor(currentUser.getId());
         Idea idea = getIdea(ideaId);
-        ensureCanUnlock(investor, idea);
+        ensureCanUnlock(investor, idea, true);
         if (idea.getUnlockPrice() == null) {
             priceWithAi(idea);
         }
@@ -247,7 +248,7 @@ public class UnlockService {
     public CheckoutResponse checkout(User currentUser, Integer ideaId, CheckoutRequest request) {
         User investor = getInvestor(currentUser.getId());
         Idea idea = getIdea(ideaId);
-        ensureCanUnlock(investor, idea);
+        ensureCanUnlock(investor, idea, true);
         if (idea.getUnlockPrice() == null) {
             priceWithAi(idea);
         }
@@ -259,10 +260,10 @@ public class UnlockService {
     public UnlockResultResponse confirmPayment(User currentUser, Integer ideaId, ConfirmUnlockPaymentRequest request) {
         User investor = getInvestor(currentUser.getId());
         Idea idea = getIdea(ideaId);
-        ensureCanUnlock(investor, idea);
+        ensureCanUnlock(investor, idea, true);
         Payment payment = paidPayment(investor, idea, request, PaymentPurpose.OPPORTUNITY_ACCESS);
         return grant(investor, idea, AccessType.PAID, payment,
-                "Payment confirmed. The opportunity is yours. Next: set the founding members' benefits and sign the contract in My projects");
+                "Payment confirmed. The opportunity is yours. Next: set the idea owner's benefits and sign the contract in My projects");
     }
 
     /**
@@ -319,11 +320,11 @@ public class UnlockService {
                                             String ipAddress) {
         User investor = getInvestor(currentUser.getId());
         Idea idea = getIdea(ideaId);
-        ensureCanUnlock(investor, idea);
+        ensureCanUnlock(investor, idea, false);
 
         UnlockResultResponse result = grant(investor, idea, AccessType.PARTNERSHIP, null,
-                "Partnership signed. The founding member gets " + PARTNERSHIP_PERCENT.stripTrailingZeros().toPlainString()
-                        + "% of the net profit. Next: set the founding members' benefits and sign the contract in My projects");
+                "Partnership signed. The idea owner gets " + PARTNERSHIP_PERCENT.stripTrailingZeros().toPlainString()
+                        + "% of the net profit. Next: set the idea owner's benefits and sign the contract in My projects");
         OpportunityAccess access = opportunityAccessRepository.findById(result.getAccessId()).orElseThrow();
 
         LocalDate start = LocalDate.now();
@@ -345,7 +346,7 @@ public class UnlockService {
 
     /**
      * An investor adopts the idea they proposed, without waiting for votes and without a fee (the investor flow:
-     * set the founding members' benefits and sign in My projects). ownerCheckout below is the paid launch.
+     * sign the contract in My projects). ownerCheckout below is the paid launch.
      */
     @Transactional
     public UnlockResultResponse adoptOwnIdea(User currentUser, Integer ideaId) {
@@ -363,7 +364,7 @@ public class UnlockService {
         }
         ensureNotHeldBefore(investor, idea);
         return grant(investor, idea, AccessType.OWNER, null,
-                "Idea adopted. Set the founding members' benefits and sign the contract in My projects");
+                "Idea adopted. Sign the contract in My projects");
     }
 
     /** What the owner would sign to launch their own idea, and whether they can sign now. */
@@ -571,7 +572,7 @@ public class UnlockService {
     // ---------- Shared ----------
 
     /**
-     * Access + a DRAFT contract. The investor then sets the founding members' benefits and both parties sign
+     * Access + a DRAFT contract. The investor then sets the idea owner's benefits and both parties sign
      * (ContractFlowService); the contract becomes ACTIVE, and the 90 days start, after the last signature.
      */
     private UnlockResultResponse grant(User investor, Idea idea, AccessType type, Payment payment, String message) {
@@ -588,8 +589,9 @@ public class UnlockService {
                 .investor(investor)
                 .ideaOwner(idea.getOwner())
                 .access(access)
-                .foundingMemberDiscount(BigDecimal.ZERO)
                 .ideaOwnerDiscount(BigDecimal.ZERO)
+                // An investor launching their own idea has no one else to give benefits to: that step is skipped
+                .benefitsSetAt(type == AccessType.OWNER ? LocalDateTime.now() : null)
                 // Until it is signed, the 90 days count from adoption, so an unsigned contract can't hold the idea
                 // forever; signing restarts them from activation
                 .openingDeadline(LocalDate.now().plusDays(OPENING_DEADLINE_DAYS))
@@ -623,7 +625,11 @@ public class UnlockService {
                 .build();
     }
 
-    private void ensureCanUnlock(User investor, Idea idea) {
+    /**
+     * earlyAllowed: buying (PAID) is open while the votes are still coming in, at the lower early price;
+     * the success partnership opens only at 100% of the vote target.
+     */
+    private void ensureCanUnlock(User investor, Idea idea, boolean earlyAllowed) {
         ensureVerified(investor);
         if (idea.getOwner().getId().equals(investor.getId())) {
             throw new BadRequestException("This is your own idea. Use adopt instead");
@@ -631,8 +637,11 @@ public class UnlockService {
         if (isTaken(idea)) {
             throw new DuplicateResourceException("This idea is already adopted");
         }
-        if (idea.getStatus() != IdeaStatus.COMPLETED) {
-            throw new BadRequestException("Unlocking opens when the idea reaches 100% of its vote target");
+        if (earlyAllowed && idea.getStatus() != IdeaStatus.PUBLISHED && idea.getStatus() != IdeaStatus.COMPLETED) {
+            throw new BadRequestException("This idea isn't open for investors");
+        }
+        if (!earlyAllowed && idea.getStatus() != IdeaStatus.COMPLETED) {
+            throw new BadRequestException("The success partnership opens when the idea reaches 100% of its vote target. You can buy it now at the early price");
         }
         ensureNotHeldBefore(investor, idea);
     }

@@ -44,7 +44,6 @@ public class ProjectResponse {
     private LocalDateTime nextUpdateAllowedAt;
 
     // ---------- Contract: benefits and signatures (DRAFT → INVESTOR_SIGNED → ACTIVE) ----------
-    private BigDecimal foundingMemberDiscount;
     private BigDecimal ideaOwnerDiscount;
     private String benefitsNote;
     private Boolean benefitsSet;

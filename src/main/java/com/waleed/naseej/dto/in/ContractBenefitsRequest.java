@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** What the investor commits to give the founding members and the idea owner once the project opens. */
+/** What the investor commits to give the idea owner once the project opens. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,21 +21,14 @@ import lombok.Setter;
 @Builder
 public class ContractBenefitsRequest {
 
-    // Permanent discount for the founding members, in percent
-    @NotNull(message = "Founding members' discount is required")
-    @DecimalMin(value = "0.0", message = "Discount can't be negative")
-    @DecimalMax(value = "100.0", message = "Discount can't be more than 100%")
-    @Digits(integer = 3, fraction = 2, message = "Discount can have at most 2 decimals")
-    private BigDecimal foundingMemberDiscount;
-
-    // The idea owner's discount, in percent; must be at least the founding members' one
+    // The idea owner's discount, in percent
     @NotNull(message = "Idea owner's discount is required")
     @DecimalMin(value = "0.0", message = "Discount can't be negative")
     @DecimalMax(value = "100.0", message = "Discount can't be more than 100%")
     @Digits(integer = 3, fraction = 2, message = "Discount can have at most 2 decimals")
     private BigDecimal ideaOwnerDiscount;
 
-    // Other benefits in words, e.g. "Priority booking for founding members"
+    // Other benefits in words, e.g. "The first month free for the idea owner"
     @Size(max = 500, message = "Benefits note must be at most 500 characters")
     private String benefitsNote;
 }

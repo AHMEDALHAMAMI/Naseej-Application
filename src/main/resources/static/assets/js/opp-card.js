@@ -8,9 +8,11 @@ export const isTaken = (o) => (o.status === 'ADOPTED' || o.status === 'OPENED') 
 /**
  * o: an OpportunityResponse. Options: showPlace (false where the neighborhood is already known).
  * "Unlock" leads to the unlock page even before the CR is verified: that page asks for the CR at that moment.
+ * Ideas still collecting votes can be bought early, at a lower price that rises with every vote.
  */
 export function oppCard(o, { showPlace = true } = {}) {
   const ready = o.status === 'COMPLETED';
+  const early = o.status === 'PUBLISHED';
   const capital = o.estimatedCapitalMin != null ? shortRange(o.estimatedCapitalMin, o.estimatedCapitalMax) : null;
 
   let action;
@@ -20,8 +22,11 @@ export function oppCard(o, { showPlace = true } = {}) {
     action = `<span class="badge badge-sand" style="justify-content:center">${esc(t('inv.taken'))}</span>`;
   } else if (ready) {
     action = `<a class="btn btn-sm" href="unlock.html?id=${o.id}">${esc(t('common.unlock'))}</a>`;
+  } else if (early && o.teaser !== false) {
+    action = `<a class="btn btn-sm" href="unlock.html?id=${o.id}" title="${esc(t('inv.earlyHint'))}">${esc(t('inv.buyEarly'))}</a>`;
   } else {
-    action = `<span class="small muted opp-later">${icon.lock} ${esc(t('inv.opensAt100'))}</span>`;
+    // The investor's own idea (teaser false): they adopt it from its page, there's nothing to buy
+    action = '';
   }
 
   return `
@@ -35,6 +40,7 @@ export function oppCard(o, { showPlace = true } = {}) {
       <div class="stack" style="gap:6px">
         ${progressBar(o.votePercent, t('common.voteTarget'))}
         <span class="small muted num">${esc(t('fy.votesOf', { v: fmt.num(o.votesCount), n: fmt.num(o.membershipThreshold) }))}</span>
+        ${early && o.teaser !== false ? `<span class="small opp-early">${esc(t('inv.earlyHint'))}</span>` : ''}
       </div>
       <dl class="opp-facts">
         ${capital ? `<div><dt>${esc(t('fy.capital'))}</dt><dd class="num">${esc(capital)}</dd></div>` : ''}

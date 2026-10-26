@@ -590,7 +590,7 @@ function publishedView(idea) {
     </div>`;
   $('#done-h').focus();
   // An investor adopts the idea they proposed right away, with no fee (the investor experience):
-  // next they set the founding members' benefits and sign the contract
+  // next they sign the contract
   $('#adopt')?.addEventListener('click', async () => {
     const result = await modal({
       title: t('adopt.title'),

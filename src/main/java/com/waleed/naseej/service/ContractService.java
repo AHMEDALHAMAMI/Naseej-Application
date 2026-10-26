@@ -66,7 +66,6 @@ public class ContractService {
                 .access(opportunityAccessRepository.findById(request.getAccessId())
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Opportunity access not found with id: " + request.getAccessId())))
-                .foundingMemberDiscount(request.getFoundingMemberDiscount())
                 .ideaOwnerDiscount(request.getIdeaOwnerDiscount())
                 .openingDeadline(request.getOpeningDeadline())
                 .status(ContractStatus.DRAFT)
@@ -95,7 +94,6 @@ public class ContractService {
         contract.setAccess(opportunityAccessRepository.findById(request.getAccessId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Opportunity access not found with id: " + request.getAccessId())));
-        contract.setFoundingMemberDiscount(request.getFoundingMemberDiscount());
         contract.setIdeaOwnerDiscount(request.getIdeaOwnerDiscount());
         contract.setStatus(request.getStatus());
         contract.setOpeningDeadline(request.getOpeningDeadline());
@@ -144,7 +142,6 @@ public class ContractService {
                 .access(opportunityAccessRepository.findById(request.getAccessId())
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "Opportunity access not found with id: " + request.getAccessId())))
-                .foundingMemberDiscount(request.getFoundingMemberDiscount())
                 .ideaOwnerDiscount(request.getIdeaOwnerDiscount())
                 .openingDeadline(LocalDate.now().plusDays(OPENING_DEADLINE_DAYS))
                 .status(ContractStatus.DRAFT)
@@ -238,7 +235,6 @@ public class ContractService {
                 .investorId(contract.getInvestor().getId())
                 .ideaOwnerId(contract.getIdeaOwner().getId())
                 .accessId(contract.getAccess().getId())
-                .foundingMemberDiscount(contract.getFoundingMemberDiscount())
                 .ideaOwnerDiscount(contract.getIdeaOwnerDiscount())
                 .status(contract.getStatus())
                 .openingDeadline(contract.getOpeningDeadline())

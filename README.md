@@ -21,7 +21,7 @@
 
 ---
 
-Naseej lets neighborhood residents request the shops and services they're missing, and investors use that verified demand to choose the right project and location. AI screens every idea before it goes live, residents join for free as founding members, and investors unlock completed requests with a one-time fee or a success partnership. The pilot starts in Riyadh neighborhoods.
+Naseej lets neighborhood residents request the shops and services they're missing, and investors use that verified demand to choose the right project and location. AI screens every idea before it goes live, residents join for free as founding members, and investors unlock completed requests with a one-time fee or a success partnership, or buy a request early, before its votes complete, at a lower price. The pilot starts in Riyadh neighborhoods.
 
 ## 📑 Table of Contents
 
@@ -218,7 +218,7 @@ The website lives in `src/main/resources/static` and is served by the same Sprin
 | `propose.html` | residents, investors | Five steps: the idea → the place → why → AI check → review. A passed idea waits as a private draft until the author publishes it; similar ideas are rejected. Investors can then adopt their own idea |
 | `investor.html` | investors | **For you**: the list and the map side by side. *Your fit* shows the opportunities that match the investor's preferences (ready-to-unlock first); *All* shows every opportunity with field and budget filters. Zoomed out, the map groups pins by city |
 | `ask.html` | investors | **Ask AI**: a question in plain words → the filters the AI understood → matching opportunities |
-| `unlock.html` | investors | One payment (Moyasar, AI-priced) or 5% success partnership; asks for the CR here if it's missing |
+| `unlock.html` | investors | One payment (Moyasar, AI-priced; lower before the votes complete) or 5% success partnership (at 100% of the votes); asks for the CR here if it's missing |
 | `contract.html` | investors, founders | The contract after unlocking/adopting, step by step: benefits → investor signs → idea owner signs → active |
 | `projects.html` | investors, founders | Investors (`projects-investor.js`): two tabs, projects (status, deadline, progress) and their ideas. Residents (`projects-resident.js`): their ideas and drafts, and the projects that came from them |
 | `account.html` | everyone | **Account** (from the avatar menu). Investors (`account-investor.js`): details, investment preferences, CR verification, WhatsApp alerts, language. Residents (`account-resident.js`): profile, password and up to two saved home addresses |
@@ -261,7 +261,7 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | PUT | `/discover/idea/{id}/business-model/chat` | founder | Change the business model in your own words (Claude rewrites it) |
 | PUT | `/auth/me` | logged in | Edit profile; a new CR number sends an investor back to admin review. Investors also send `investmentBudget` (a preset or `CUSTOM` with `budgetMin` / `budgetMax`), `investmentFields`, `investmentFieldsOther` (own words; the AI matches it to idea categories) and `investmentAreas` (neighborhood ids). An empty string clears a field |
 | POST | `/explore/ask` | investor | `{ "question": "…" }` → the filters the AI read (city, neighborhood, category, capital, ready to open) and the matching opportunities |
-| PUT | `/projects/{contractId}/benefits` | investor | Set the founding members' and idea owner's discounts (required before signing) |
+| PUT | `/projects/{contractId}/benefits` | investor | Set the idea owner's discount and other benefits (required before signing; editable until the investor signs) |
 | POST | `/projects/{contractId}/sign-otp` | investor, founder | Email the 6-digit signing code to the party whose turn it is |
 | POST | `/projects/{contractId}/sign` | investor, founder | Sign: typed full name + drawn signature + code; the last signature activates the contract |
 | GET | `/projects/{contractId}/contract` | investor, founder | Print-ready contract page (Arabic); "Save as PDF" in the browser |
@@ -286,7 +286,7 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | GET | `/unlock/agreement/{contractId}` | investor, founder, admin | The agreement behind a project |
 | GET / POST / PUT / DELETE | `/admin/users`, `/admin/users/{id}`, `/admin/users/{id}/password`, `/admin/users/{id}/suspend`, `/admin/users/{id}/reactivate` | admin | Member management |
 
-**Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor sets the benefits → the investor signs (`INVESTOR_SIGNED`) → the idea owner signs → `ACTIVE`, and the 90-day opening deadline starts. An investor who adopts their own idea signs once. A contract that doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
+**Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor sets the idea owner's benefits (and can go back from the signing step to change them) → the investor signs (`INVESTOR_SIGNED`) → the idea owner signs → `ACTIVE`, and the 90-day opening deadline starts. An investor who adopts their own idea skips the benefits step and signs once. A contract that doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
 
 The raw CRUD and AI endpoints (`/ideas/**`, `/payments/**`, `/contracts/**`, …) take user ids in the request body, so they are now **admin only**; the website uses the endpoints above, which read the user from the token.
 

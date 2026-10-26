@@ -39,9 +39,8 @@ public class Contract {
     @JoinColumn(name = "access_id", nullable = false, unique = true)
     private OpportunityAccess access;
 
-    @Column(name = "founding_member_discount", nullable = false, precision = 5, scale = 2)
-    private BigDecimal foundingMemberDiscount;
-
+    // The idea owner's discount once the project opens, in percent. (The founding members' discount was removed;
+    // FoundingDiscountColumnFix makes its old column optional in databases created before.)
     @Column(name = "idea_owner_discount", nullable = false, precision = 5, scale = 2)
     private BigDecimal ideaOwnerDiscount;
 
@@ -76,11 +75,11 @@ public class Contract {
     @Column(name = "opened_at")
     private LocalDateTime openedAt;
 
-    // Benefits the investor commits to beyond the two discounts, e.g. "priority booking for founding members"
+    // Benefits the investor commits to beyond the discount, e.g. "the first month free for the idea owner"
     @Column(name = "benefits_note", length = 500)
     private String benefitsNote;
 
-    // Set when the investor saves the founding members' benefits; signing is allowed only after this
+    // Set when the investor saves the idea owner's benefits; signing is allowed only after this
     @Column(name = "benefits_set_at")
     private LocalDateTime benefitsSetAt;
 

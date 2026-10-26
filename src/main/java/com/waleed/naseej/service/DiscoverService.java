@@ -453,7 +453,8 @@ public class DiscoverService {
 
     /**
      * A resident votes for a published idea inside their voting radius.
-     * When the votes reach the idea's threshold the request is COMPLETED and investors can unlock it.
+     * When the votes reach the idea's threshold the request is COMPLETED and investors pay the full price
+     * (before that they can buy it early, at a lower price).
      */
     @Transactional
     public IdeaDetailResponse vote(User currentUser, Integer ideaId, VoteRequest request) {
@@ -834,8 +835,9 @@ public class DiscoverService {
                 blocked = unlocked ? "You already adopted this idea" : "Another investor already adopted this idea";
             } else if (heldBefore) {
                 blocked = "Your earlier adoption of this idea ended, so it's now open to other investors";
-            } else if (!founder && idea.getStatus() != IdeaStatus.COMPLETED) {
-                blocked = "Unlocking opens when the idea reaches 100% of its vote target";
+            } else if (!founder && !openForOwner) {
+                // Open ideas can be bought before they reach the vote target, at the lower early price
+                blocked = "This idea isn't open for investors";
             }
             out.canUnlock(blocked == null && !founder)
                     .canAdopt(founder && status == InvestorStatus.VERIFIED && !adopted && !heldBefore && openForOwner)

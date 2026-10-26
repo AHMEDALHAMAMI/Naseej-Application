@@ -32,9 +32,6 @@ public class ContractRequest {
     private Integer accessId;
     @NotNull
     @DecimalMin("0.00")
-    private BigDecimal foundingMemberDiscount;
-    @NotNull
-    @DecimalMin("0.00")
     private BigDecimal ideaOwnerDiscount;
     private LocalDate openingDeadline;
     private ContractStatus status;

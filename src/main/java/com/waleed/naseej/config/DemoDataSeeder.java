@@ -74,7 +74,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * The data follows the same rules as the real flow: votes come only from residents of the neighborhood
  * (never the idea's owner), voting stops when the target is reached, and an adopted idea has a paid
- * access, both signatures, founding-member benefits and an ACTIVE contract with its 90 days, in that order.
+ * access, both signatures, the idea owner's benefits and an ACTIVE contract with its 90 days, in that order.
  */
 @Slf4j
 @Component
@@ -512,7 +512,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     /**
      * The state the real flow ends in (UnlockService + ContractFlowService): the investor pays the unlock fee,
-     * sets the founding members' benefits, both parties sign, and the contract becomes ACTIVE with 90 days to open.
+     * sets the idea owner's benefits, both parties sign, and the contract becomes ACTIVE with 90 days to open.
      */
     private void seedAdoption(Idea idea, User investor, Seed s, LocalDateTime confirmed, LocalDateTime now,
                               List<Object[]> updateDates) {
@@ -551,10 +551,9 @@ public class DemoDataSeeder implements CommandLineRunner {
                 .investor(investor)
                 .ideaOwner(idea.getOwner())
                 .access(access)
-                // The real flow requires a members' discount or benefits note, and the owner's discount >= the members'
-                .foundingMemberDiscount(new BigDecimal("10.00"))
+                // The real flow requires the idea owner's discount or a benefits note
                 .ideaOwnerDiscount(new BigDecimal("15.00"))
-                .benefitsNote("الأعضاء المؤسسين لهم خصم 10% أول سنة، وأولوية الحجز وقت الافتتاح.")
+                .benefitsNote("صاحب الفكرة له أولوية الحجز وقت الافتتاح.")
                 .benefitsSetAt(adoptedAt.plusHours(2))
                 .openingDeadline(activatedAt.toLocalDate().plusDays(OPENING_DEADLINE_DAYS))
                 .build();

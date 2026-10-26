@@ -768,7 +768,7 @@
             "url": "{{baseUrl}}/contracts/draft",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractNumber\": \"{{contractNumber}}\",\n  \"ideaId\": {{seedIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{seedAccessId}},\n  \"foundingMemberDiscount\": 5.00,\n  \"ideaOwnerDiscount\": 2.50\n}"
+              "raw": "{\n  \"contractNumber\": \"{{contractNumber}}\",\n  \"ideaId\": {{seedIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{seedAccessId}},\n  \"ideaOwnerDiscount\": 2.50\n}"
             }
           },
           "event": [
@@ -2878,7 +2878,7 @@
             "url": "{{baseUrl}}/contracts/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractNumber\": \"{{crudContractNumber}}\",\n  \"ideaId\": {{crudIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{crudAccessId}},\n  \"foundingMemberDiscount\": 3.00,\n  \"ideaOwnerDiscount\": 1.50,\n  \"openingDeadline\": \"2026-09-01\",\n  \"status\": \"DRAFT\"\n}"
+              "raw": "{\n  \"contractNumber\": \"{{crudContractNumber}}\",\n  \"ideaId\": {{crudIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{crudAccessId}},\n  \"ideaOwnerDiscount\": 1.50,\n  \"openingDeadline\": \"2026-09-01\",\n  \"status\": \"DRAFT\"\n}"
             }
           },
           "event": [
@@ -3000,7 +3000,7 @@
             "url": "{{baseUrl}}/contracts/update/{{crudContractId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractNumber\": \"{{crudContractNumber}}\",\n  \"ideaId\": {{crudIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{crudAccessId}},\n  \"foundingMemberDiscount\": 4.00,\n  \"ideaOwnerDiscount\": 1.50,\n  \"openingDeadline\": \"2026-09-01\",\n  \"status\": \"DRAFT\"\n}"
+              "raw": "{\n  \"contractNumber\": \"{{crudContractNumber}}\",\n  \"ideaId\": {{crudIdeaId}},\n  \"investorId\": {{seedUserId}},\n  \"ideaOwnerId\": {{seedUserId}},\n  \"accessId\": {{crudAccessId}},\n  \"ideaOwnerDiscount\": 1.50,\n  \"openingDeadline\": \"2026-09-01\",\n  \"status\": \"DRAFT\"\n}"
             }
           },
           "event": [

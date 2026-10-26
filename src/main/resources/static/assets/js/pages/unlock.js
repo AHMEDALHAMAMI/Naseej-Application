@@ -1,4 +1,5 @@
 // Unlock: one payment (Moyasar, AI-priced) or a success partnership (a share of net profit to the founder).
+// Before the votes complete only the payment is open, at the lower early price; the partnership opens at 100%.
 // An investor who isn't verified yet sees the CR step here, at the moment it's needed.
 // The tone stays calm and plain: this page is about money.
 import { api, session } from '../api.js';
@@ -38,6 +39,8 @@ const factors = [
   [t('unlock.opportunity'), quote.opportunityScore],
 ];
 const pct = quote.partnershipPercent ? Number(quote.partnershipPercent) : 5;
+// Still collecting votes: buy early at a lower price; the partnership waits for 100%
+const partnerOpen = idea.status === 'COMPLETED';
 const years = quote.partnershipYears || 3;
 
 $('#body').innerHTML = `
@@ -72,6 +75,9 @@ $('#body').innerHTML = `
         <article class="card stack" style="gap:12px">
           <div class="row" style="justify-content:space-between"><h3>${esc(t('unlock.upfront'))}</h3><span class="badge">${esc(t('unlock.ownFully'))}</span></div>
           <div><span style="font-family:var(--font-display);font-size:40px;font-weight:300" class="num">${fmt.sar(quote.price)}</span><span class="muted small"> ${esc(t('unlock.plusVat'))}</span></div>
+          ${quote.earlyAccess ? `
+          <div class="row" style="gap:8px;flex-wrap:wrap"><span class="badge badge-solid">${esc(t('unlock.earlyBadge', { p: quote.earlyDiscountPercent }))}</span><span class="small muted num">${esc(t('price.atTarget', { full: fmt.sar(quote.fullPrice) }))}</span></div>
+          <p class="small muted">${esc(t('unlock.earlyText', { p: quote.votePercent }))}</p>` : ''}
           <dl class="dl small"><dt>${esc(t('unlock.price'))}</dt><dd class="num">${fmt.sar(quote.price)}</dd><dt>${esc(t('unlock.vat'))}</dt><dd class="num">${fmt.sar(quote.vat)}</dd><dt><strong>${esc(t('unlock.total'))}</strong></dt><dd class="num"><strong>${fmt.sar(quote.total)}</strong></dd></dl>
           <p class="small muted">${esc(t('unlock.upfrontText'))}</p>
           <button type="button" class="btn btn-block" id="pay" data-loading="${esc(t('unlock.opening'))}">${esc(t('unlock.pay', { total: fmt.sar(quote.total) }))}</button>
@@ -86,7 +92,8 @@ $('#body').innerHTML = `
             <div class="input-affix"><input class="input num" id="profit" inputmode="numeric" value="300,000" autocomplete="off"><span>${esc(t('fmt.sar', { v: '' }).trim())}</span></div>
             <span class="small" id="calc-out" aria-live="polite"></span>
           </div>
-          <button type="button" class="btn btn-secondary btn-block" id="partner">${esc(t('unlock.review'))}</button>
+          <button type="button" class="btn btn-secondary btn-block" id="partner">${partnerOpen ? '' : `${icon.lock} `}${esc(t('unlock.review'))}</button>
+          ${partnerOpen ? '' : `<span class="small muted">${esc(t('unlock.partnerAt100'))}</span>`}
         </article>
       </fieldset>
     </div>
@@ -109,7 +116,8 @@ calc();
 
 // ---------- Not verified yet: the CR step comes first ----------
 function setOptionsEnabled(on) {
-  ['#pay', '#partner'].forEach((sel) => { $(sel).disabled = !on; });
+  $('#pay').disabled = !on;
+  $('#partner').disabled = !on || !partnerOpen;
 }
 
 function drawGate() {

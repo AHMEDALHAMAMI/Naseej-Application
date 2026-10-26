@@ -48,7 +48,7 @@ import org.springframework.web.util.HtmlUtils;
 /**
  * The partnership contract after an investor adopts an idea, as described in the project document:
  * 1. Adoption creates a DRAFT contract (UnlockService).
- * 2. The investor sets the founding members' benefits (required).
+ * 2. The investor sets the idea owner's benefits (required; skipped when the investor adopted their own idea).
  * 3. The investor signs (typed name + drawn signature + emailed code) → INVESTOR_SIGNED.
  * 4. The idea owner signs the same way → ACTIVE, and the 90-day opening deadline starts.
  * An investor who adopts their own idea signs once. Contracts that don't open in time are terminated
@@ -81,7 +81,10 @@ public class ContractFlowService {
 
     // ---------- 1. Benefits ----------
 
-    /** The investor sets what the founding members and the idea owner get. Locked once the investor signs. */
+    /**
+     * The investor sets what the idea owner gets once the project opens. Editable (the investor can go back from
+     * the signing step) until the investor signs; locked after that.
+     */
     public ProjectResponse setBenefits(User currentUser, Integer contractId, ContractBenefitsRequest request) {
         User investor = getUser(currentUser.getId());
         Contract contract = getContract(contractId);
@@ -92,18 +95,13 @@ public class ContractFlowService {
             throw new BadRequestException("The benefits are locked once the investor signs the contract");
         }
 
-        BigDecimal members = request.getFoundingMemberDiscount().setScale(2, RoundingMode.HALF_UP);
         BigDecimal owner = request.getIdeaOwnerDiscount().setScale(2, RoundingMode.HALF_UP);
         String note = request.getBenefitsNote() == null || request.getBenefitsNote().isBlank()
                 ? null : request.getBenefitsNote().trim();
-        if (owner.compareTo(members) < 0) {
-            throw new BadRequestException("The idea owner's discount must be at least the founding members' discount");
-        }
-        if (members.signum() == 0 && note == null) {
-            throw new BadRequestException("Give the founding members a discount or describe their benefits");
+        if (owner.signum() == 0 && note == null && !isSelfOwned(contract)) {
+            throw new BadRequestException("Give the idea owner a discount or describe their benefits");
         }
 
-        contract.setFoundingMemberDiscount(members);
         contract.setIdeaOwnerDiscount(owner);
         contract.setBenefitsNote(note);
         contract.setBenefitsSetAt(LocalDateTime.now());
@@ -255,8 +253,8 @@ public class ContractFlowService {
         }
         if (contract.getBenefitsSetAt() == null) {
             throw new BadRequestException(isInvestor
-                    ? "Set the founding members' benefits before signing"
-                    : "The investor hasn't set the founding members' benefits yet");
+                    ? "Set the idea owner's benefits before signing"
+                    : "The investor hasn't set your benefits yet");
         }
 
         boolean investorSigned = hasSigned(contract, ROLE_INVESTOR);
@@ -343,7 +341,6 @@ public class ContractFlowService {
         data.put("ideaTitle", idea.getTitle());
         data.put("investor", party(contract.getInvestor()));
         data.put("ideaOwner", party(contract.getIdeaOwner()));
-        data.put("foundingMemberDiscount", contract.getFoundingMemberDiscount());
         data.put("ideaOwnerDiscount", contract.getIdeaOwnerDiscount());
         data.put("benefitsNote", contract.getBenefitsNote());
         data.put("openingDeadline", contract.getOpeningDeadline() != null ? contract.getOpeningDeadline().toString() : null);
@@ -419,16 +416,18 @@ public class ContractFlowService {
                 .append(row("طريقة الاطلاع", accessLabel(access)))
                 .append("</table>");
 
-        html.append("<h2>مزايا الأعضاء المؤسسين وصاحب الفكرة</h2><table>")
-                .append(row("خصم الأعضاء المؤسسين", percent(contract.getFoundingMemberDiscount())))
-                .append(row("خصم صاحب الفكرة", percent(contract.getIdeaOwnerDiscount())))
-                .append(row("مزايا أخرى", Objects.toString(contract.getBenefitsNote(), "-")))
-                .append("</table>");
+        if (!isSelfOwned(contract)) {
+            html.append("<h2>مزايا صاحب الفكرة</h2><table>")
+                    .append(row("خصم صاحب الفكرة", percent(contract.getIdeaOwnerDiscount())))
+                    .append(row("مزايا أخرى", Objects.toString(contract.getBenefitsNote(), "-")))
+                    .append("</table>");
+        }
 
         html.append("<h2>البنود</h2><table>")
                 .append(row("التزامات المستثمر", "الافتتاح خلال " + OPENING_DEADLINE_DAYS
-                        + " يومًا من تفعيل العقد، وتقديم مزايا الأعضاء المؤسسين المذكورة أعلاه، "
-                        + "ونسب الفكرة لصاحبها، وتحديث حالة المشروع في المنصة كل أسبوعين"))
+                        + " يومًا من تفعيل العقد، "
+                        + (isSelfOwned(contract) ? "" : "وتقديم مزايا صاحب الفكرة المذكورة أعلاه، ونسب الفكرة لصاحبها، ")
+                        + "وتحديث حالة المشروع في المنصة كل أسبوعين"))
                 .append(row("حقوق صاحب الفكرة", "لقب «صاحب الفكرة» في المشروع، وأعلى مستوى من المزايا عند الافتتاح"))
                 .append(row("التزامات صاحب الفكرة", "عدم عرض الفكرة على مستثمر آخر طوال مدة العقد، والمحافظة على سرية بيانات المشروع"))
                 .append(row("أحكام عامة", "يُفسخ العقد تلقائيًا إذا لم يُفتتح المشروع في المدة، "

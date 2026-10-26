@@ -10,13 +10,16 @@ import { locale } from './i18n.js';
  * stepper(['City', 'Neighborhood', 'Compare'], 1) → "Step 2 of 3" with the bar.
  * links: optional hrefs (or null) for earlier steps, so people can go back to them.
  */
-export function stepper(labels, current, { links = [] } = {}) {
+export function stepper(labels, current, { links = [], buttons = [] } = {}) {
+  // links[i]: a done step opens that page; buttons[i]: a done step is a button (data-step="i") the page handles
   const items = labels.map((text, i) => {
     const state = i < current ? 'done' : '';
     const aria = i === current ? ' aria-current="step"' : '';
     const inner = i < current && links[i]
       ? `<a href="${esc(links[i])}">${esc(text)}</a>`
-      : `<span>${esc(text)}</span>`;
+      : i < current && buttons[i]
+        ? `<button type="button" data-step="${i}">${esc(text)}</button>`
+        : `<span>${esc(text)}</span>`;
     return `<li class="${state}"${aria}>${inner}</li>`;
   }).join('');
   return `<nav class="stepper" aria-label="${esc(t('ds.steps'))}">
