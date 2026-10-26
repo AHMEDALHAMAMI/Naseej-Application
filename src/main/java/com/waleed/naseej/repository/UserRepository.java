@@ -4,6 +4,7 @@ import com.waleed.naseej.entity.User;
 import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.Role;
 import java.util.List;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -32,4 +33,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findByRoleOrderByIdDesc(Role role);
 
     long countByRole(Role role);
+
+    // Admin members list, newest first, with the neighborhood in the same query
+    @EntityGraph(attributePaths = "neighborhood")
+    List<User> findAllByOrderByIdDesc();
 }

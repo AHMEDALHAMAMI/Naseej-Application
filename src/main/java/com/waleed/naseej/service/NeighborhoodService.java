@@ -6,6 +6,7 @@ import com.waleed.naseej.entity.Neighborhood;
 import com.waleed.naseej.exception.BadRequestException;
 import com.waleed.naseej.exception.DuplicateResourceException;
 import com.waleed.naseej.exception.ResourceNotFoundException;
+import com.waleed.naseej.repository.AddressRepository;
 import com.waleed.naseej.repository.IdeaRepository;
 import com.waleed.naseej.repository.NeighborhoodRepository;
 import com.waleed.naseej.repository.UserRepository;
@@ -21,6 +22,7 @@ public class NeighborhoodService {
     private final NeighborhoodRepository neighborhoodRepository;
     private final UserRepository userRepository;
     private final IdeaRepository ideaRepository;
+    private final AddressRepository addressRepository;
 
     public List<NeighborhoodResponse> getAll() {
         return neighborhoodRepository.findAll().stream().map(this::toResponse).toList();
@@ -84,6 +86,9 @@ public class NeighborhoodService {
 
         if (userRepository.existsByNeighborhoodId(id)) {
             throw new BadRequestException("Cannot delete: users are registered in this neighborhood");
+        }
+        if (addressRepository.existsByNeighborhoodId(id)) {
+            throw new BadRequestException("Cannot delete: saved addresses are in this neighborhood");
         }
         if (ideaRepository.existsByNeighborhoodId(id)) {
             throw new BadRequestException("Cannot delete: ideas are linked to this neighborhood");

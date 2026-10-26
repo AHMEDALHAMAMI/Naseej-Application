@@ -210,21 +210,25 @@ The website lives in `src/main/resources/static` and is served by the same Sprin
 | Page | Who | What it does |
 |---|---|---|
 | `index.html` | everyone | Landing page, live numbers, map of open ideas near the visitor (asks for location) |
-| `register.html` / `verify.html` | new users | Email sign-up with the role chosen in the form (residents add their neighborhood; investors only the account), email code |
-| `choose-role.html` | Google sign-up | Step 1 membership, step 2 the role's form |
+| `register.html` / `verify.html` | new users | Email sign-up in steps: account type → details → (residents) home address pin → email code. Investors only create the account; their preferences come next in onboarding |
+| `choose-role.html` | Google sign-up | Step 1 membership, step 2 the resident's home address or the investor's last confirmation |
 | `onboarding.html` | new investors | Three skippable questions after sign-up: budget (preset or custom range), fields (or "something else" in their own words), neighborhoods |
-| `resident.html` | residents | Map centered on the user with the 2 km voting radius, vote / view details (no vote counts) |
-| `idea.html` | everyone logged in | Idea page; founder and investors also see votes and the business model |
-| `propose.html` | residents, investors | AI check → published or rejected (similar ideas are rejected); investors can adopt their own idea |
+| `resident.html` | residents | Map around the resident's saved home with the voting radius, vote / view details (no vote counts). Residents vote from their saved addresses, never from the device location |
+| `idea.html` | everyone logged in | Idea page; founder and investors also see votes and the business model. Investors get `idea-investor.js`, everyone else `idea-resident.js` |
+| `propose.html` | residents, investors | Five steps: the idea → the place → why → AI check → review. A passed idea waits as a private draft until the author publishes it; similar ideas are rejected. Investors can then adopt their own idea |
 | `investor.html` | investors | **For you**: the list and the map side by side. *Your fit* shows the opportunities that match the investor's preferences (ready-to-unlock first); *All* shows every opportunity with field and budget filters. Zoomed out, the map groups pins by city |
 | `ask.html` | investors | **Ask AI**: a question in plain words → the filters the AI understood → matching opportunities |
 | `unlock.html` | investors | One payment (Moyasar, AI-priced) or 5% success partnership; asks for the CR here if it's missing |
 | `contract.html` | investors, founders | The contract after unlocking/adopting, step by step: benefits → investor signs → idea owner signs → active |
-| `projects.html` | investors, founders | Investors: two tabs, projects (status, deadline, progress) and their ideas |
-| `account.html` | investors | **Account** (from the avatar menu): details, investment preferences, CR verification, WhatsApp alerts, language |
-| `admin.html` | admin | Dashboard charts and investor verification |
+| `projects.html` | investors, founders | Investors (`projects-investor.js`): two tabs, projects (status, deadline, progress) and their ideas. Residents (`projects-resident.js`): their ideas and drafts, and the projects that came from them |
+| `account.html` | everyone | **Account** (from the avatar menu). Investors (`account-investor.js`): details, investment preferences, CR verification, WhatsApp alerts, language. Residents (`account-resident.js`): profile, password and up to two saved home addresses |
+| `agreement.html` | investors, founders | A readable copy of a project's agreement |
+| `admin.html` | admin | Dashboard charts, members, investor verification and neighborhoods |
+| `styleguide.html` | developers | The design system: colors, type, buttons, forms, steps, AI blocks and notices |
 
 Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and Chart.js 4.4.1.
+
+**One design, two experiences.** Every page shares one look (`assets/css/app.css`, `components.js`, the header with the notifications bell and the footer in `ui.js`). Investor pages keep the investor flow and wording; resident, landing, sign-up and admin pages keep theirs. Pages both roles open (`idea`, `projects`, `account`) load a small module per role: `<page>.js` picks `<page>-investor.js` or `<page>-resident.js`. Where the two sides word the same thing differently, the investor pages use an `…Inv.` copy of the key in `strings.js` (e.g. `projInv.myIdeas`).
 
 **Language and voice.** Arabic is the default (English is one tap away and remembered). All text lives in `assets/js/strings.js`, so the wording can change without touching the pages. The investor side speaks casual Saudi dialect, gender-neutral where possible, and stays calm and plain on payment and contract screens.
 
@@ -271,6 +275,16 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | PUT | `/admin/ideas/{id}/hide` | admin | Hide an idea from the map and lists (`?hidden=false` restores it) |
 | POST | `/admin/payments/{id}/refund` | admin | Refund through Moyasar's Refund API and undo what the payment unlocked |
 | POST | `/admin/contracts/expire-overdue` | admin | Run the 90-day check now (it also runs every night) |
+| GET / PUT | `/account/profile` | logged in | Own profile (name, phone, language; investors also company, CR, budget range and fields) |
+| GET / POST / PUT / DELETE | `/account/addresses`, `/account/addresses/{id}`, `/account/addresses/{id}/primary`, `/account/addresses/preview` | logged in | Saved home addresses (residents vote from them; up to two, one change every 30 days). `preview` shows what a change would do to the votes before saving |
+| GET / PUT | `/notifications`, `/notifications/unread-count`, `/notifications/read-all`, `/notifications/{id}/read` | logged in | The bell in the header: idea adopted, vote target reached, project stage |
+| PUT / DELETE | `/discover/draft/{id}` | founder | Edit or drop a draft before publishing |
+| POST | `/discover/publish/{id}` | founder | Publish a draft that passed the AI check (the check must be under a day old) |
+| GET | `/public/search-places` | public | Address search for the home pin and the propose map (OpenStreetMap) |
+| GET / POST | `/explore/top`, `/explore/match`, `/explore/ai-search` | investor | Strongest opportunities, matches by city / neighborhood / budget range, and the AI search with a reason per result |
+| GET / POST | `/unlock/checkout/{ideaId}`, `/unlock/owner-terms/{ideaId}`, `/unlock/owner-checkout/{ideaId}`, `/unlock/owner-confirm/{ideaId}` | investor | Moyasar payment form checkout, and the paid launch of the investor's own idea (service fee `OWNER_LAUNCH_FEE_SAR`). The investor pages use `/unlock/pay` and `/unlock/adopt` |
+| GET | `/unlock/agreement/{contractId}` | investor, founder, admin | The agreement behind a project |
+| GET / POST / PUT / DELETE | `/admin/users`, `/admin/users/{id}`, `/admin/users/{id}/password`, `/admin/users/{id}/suspend`, `/admin/users/{id}/reactivate` | admin | Member management |
 
 **Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor sets the benefits → the investor signs (`INVESTOR_SIGNED`) → the idea owner signs → `ACTIVE`, and the 90-day opening deadline starts. An investor who adopts their own idea signs once. A contract that doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
 

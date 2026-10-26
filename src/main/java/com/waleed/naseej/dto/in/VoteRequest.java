@@ -16,7 +16,7 @@ import lombok.Setter;
 @Builder
 public class VoteRequest {
 
-    // Current location from the browser; when missing the saved location is used
+    // Ignored for eligibility: residents vote from their saved addresses (kept so older clients still work)
     @DecimalMin(value = "-90.0", message = "Latitude must be between -90 and 90")
     @DecimalMax(value = "90.0", message = "Latitude must be between -90 and 90")
     private Double latitude;

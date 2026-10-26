@@ -16,6 +16,9 @@ public class IdeaCheckResponse {
     private Integer ideaId;
     private Integer similarIdeaId;
     private Integer score;
+    private Integer shortageScore;
+    private Integer competitionScore;
+    private Integer demandScore;
     private String decision;
     private Double searchRadiusKm;
     private Integer competitorsCount;

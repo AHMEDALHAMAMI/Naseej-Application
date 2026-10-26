@@ -82,7 +82,7 @@ public class AuthController {
         return authService.updateProfile(user, request);
     }
 
-    // Current location from the browser: used for the voting radius and the resident map
+    // Current location from the browser, for non-residents only (residents vote from their saved addresses)
     @PutMapping("/location")
     public UserResponse updateLocation(@AuthenticationPrincipal User user,
                                        @Valid @RequestBody UpdateLocationRequest request) {

@@ -2,6 +2,8 @@ package com.waleed.naseej.enums;
 
 public enum IdeaStatus {
     SCREENING,
+    // Passed the AI check; only the author sees it until they press Publish
+    DRAFT,
     PUBLISHED,
     COMPLETED,
     ADOPTED,

@@ -2,6 +2,7 @@
 import { api, ApiError } from '../api.js';
 import { $, $$, esc, fmt, guard, icon, toast, errorMessage, modal, skeletonCards, LABELS, label, withLoading, applyFieldErrors, t } from '../ui.js';
 import { locale, tn } from '../i18n.js';
+import { wireTabs } from '../components.js';
 
 const me = await guard(['ADMIN']);
 const app = $('#app');
@@ -108,16 +109,34 @@ app.innerHTML = `
     </div>
   </section>`;
 
-// Jump to a section from the header links
-function jump() {
-  const target = location.hash && document.querySelector(location.hash);
-  if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth' }), 300);
-}
-window.addEventListener('hashchange', jump);
-jump();
 
 // ---------- Charts ----------
 const charts = {};
+
+// Real sections instead of one long page: Overview · Members · Investor verification · Neighborhoods.
+// The header links (admin.html#members …) open the matching tab.
+const SECTIONS = [
+  ['overview', 'nav.dashboard', [$('#kpis'), $('#kpis').nextElementSibling]],
+  ['members', 'nav.members', [$('#members')]],
+  ['investors', 'nav.verification', [$('#investors')]],
+  ['neighborhoods', 'nav.neighborhoods', [$('#neighborhoods')]],
+];
+const tablist = document.createElement('div');
+tablist.className = 'tabs';
+tablist.setAttribute('role', 'tablist');
+tablist.setAttribute('aria-label', t('adm.sections'));
+tablist.innerHTML = SECTIONS.map(([key, name]) => `<button type="button" role="tab" id="tab-${key}" data-tab="${key}" aria-controls="panel-${key}">${esc(t(name))}</button>`).join('');
+$('#kpis').before(tablist);
+SECTIONS.forEach(([key, , nodes]) => {
+  const panel = document.createElement('div');
+  panel.id = `panel-${key}`;
+  panel.setAttribute('role', 'tabpanel');
+  panel.setAttribute('aria-labelledby', `tab-${key}`);
+  nodes[0].before(panel);
+  nodes.forEach((n) => { n.style.marginTop = '0'; panel.appendChild(n); });
+});
+wireTabs(tablist, { onChange: (key) => { if (key === 'overview') Object.values(charts).forEach((c) => c?.resize?.()); } });
+window.addEventListener('hashchange', () => $(`[role="tab"][data-tab="${location.hash.slice(1) || 'overview'}"]`)?.click());
 function chart(id, config) {
   charts[id]?.destroy();
   if (!window.Chart) return;

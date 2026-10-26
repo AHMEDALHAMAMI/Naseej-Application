@@ -12,7 +12,7 @@ if (!id) location.replace('investor.html');
 
 app.innerHTML = `
   <a class="btn btn-ghost btn-sm" href="idea.html?id=${id}" style="padding-inline-start:0">${icon.back} ${esc(t('unlock.back'))}</a>
-  <div class="page-head" style="margin-top:8px"><div class="stack" style="gap:8px"><span class="eyebrow">${esc(t('unlock.eyebrow'))}</span><h1 id="title">${esc(t('common.loading'))}</h1></div></div>
+  <div class="page-head" style="margin-top:8px"><div class="stack" style="gap:8px"><span class="eyebrow">${esc(t('unlock.eyebrow'))}</span><h1 id="title">${esc(t('commonInv.loading'))}</h1></div></div>
   <div id="body"><div class="card stack" style="gap:14px;max-width:720px" role="status"><div class="row"><span class="spinner"></span><strong>${esc(t('unlock.pricing'))}</strong></div><p class="muted small">${esc(t('unlock.pricingText'))}</p></div></div>`;
 
 let idea;
@@ -44,8 +44,8 @@ $('#body').innerHTML = `
   <div id="gate" class="gate-wrap"></div>
   <div class="split">
     <div class="stack" style="gap:20px">
-      <section class="card stack" style="gap:16px">
-        <div class="card-head" style="margin:0"><h2>${esc(t('unlock.howPriced'))}</h2><span class="badge">${icon.spark} ${esc(t('unlock.aiQuote'))}</span></div>
+      <section class="card ai-card stack" style="gap:16px">
+        <div class="card-head" style="margin:0"><h2>${esc(t('unlock.howPriced'))}</h2><span class="badge badge-ai">${icon.spark} ${esc(t('unlock.aiQuote'))}</span></div>
         ${factors.map(([name, v]) => `
           <div class="stack" style="gap:6px">
             <div class="row small" style="justify-content:space-between"><span>${esc(name)}</span><strong class="num">${v ?? '—'}/100</strong></div>
@@ -130,7 +130,7 @@ function drawGate() {
           <div class="field"><label for="crNumber">${esc(t('inv.cr'))}</label>
             <input class="input" id="crNumber" name="crNumber" inputmode="numeric" maxlength="10" dir="ltr" autocomplete="off" placeholder="${esc(t('gate.crPh'))}" value="${esc(user.crNumber || '')}">
             <span class="error" aria-live="polite"></span></div>
-          <button class="btn" type="submit" data-loading="${esc(t('common.saving'))}">${esc(t('acct.sendCr'))}</button>
+          <button class="btn" type="submit" data-loading="${esc(t('commonInv.saving'))}">${esc(t('acct.sendCr'))}</button>
         </form>
       </section>`;
     $('#cr-form').addEventListener('submit', (e) => {
@@ -157,7 +157,7 @@ function drawGate() {
   } else {
     gate.innerHTML = `
       <section class="card gate stack" style="gap:8px">
-        <div class="row" style="gap:10px"><span class="badge badge-amber">${esc(t('investorStatus.PENDING'))}</span><h2 style="font-size:20px">${esc(t('gate.pendingTitle'))}</h2></div>
+        <div class="row" style="gap:10px"><span class="badge badge-amber">${esc(t('investorStatusInv.PENDING'))}</span><h2 style="font-size:20px">${esc(t('gate.pendingTitle'))}</h2></div>
         <p class="small muted">${esc(t('gate.pendingText'))}</p>
       </section>`;
   }

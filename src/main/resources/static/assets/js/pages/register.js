@@ -1,95 +1,122 @@
-// Email sign-up. Residents add their neighborhood here; investors only create the account:
-// their budget, fields and areas come from the onboarding questions, and the CR from the first unlock.
-import { api, session } from '../api.js';
-import { $, $$, icon, homeFor, params, toast, withLoading, applyFieldErrors, errorMessage, initPage, t } from '../ui.js';
-import { langButton } from '../i18n.js';
-import { setupLocationCard, showFieldError } from '../profile-fields.js';
+// Email sign-up in steps. Residents: account type → your details → your home → verify email (verify.html).
+// Investors: account type → your details → verify email; their budget, fields and areas come from the
+// onboarding questions right after (onboarding.html) and the CR before the first unlock.
+// One auth/register call at the end. A resident's home is a pin they place; it decides where they vote.
+import { api, ApiError, session } from '../api.js';
+import { $, $$, icon, homeFor, params, withLoading, applyFieldErrors, errorMessage, toast, initPage, t } from '../ui.js';
+import { langButton, lang } from '../i18n.js';
+import { stepper } from '../components.js';
+import { addressPicker } from '../address-picker.js';
+import { normalizePhone, showFieldError, clearFieldErrors, wirePasswordToggle } from '../profile-fields.js';
 
 $('#lang-slot').innerHTML = langButton();
 initPage();
-document.querySelectorAll('.g-icon').forEach((el) => { el.innerHTML = icon.google; });
+$$('.g-icon').forEach((el) => { el.innerHTML = icon.google; });
 if (session.isLoggedIn() && session.user()) location.replace(homeFor(session.user()));
 
 const form = $('#register-form');
-let location$ = null; // created the first time the resident form shows, so investors aren't asked for a location
-let role = params().get('role') === 'INVESTOR' ? 'INVESTOR' : 'RESIDENT';
+let step = 0;
+let picker = null;
+if (params().get('role') === 'INVESTOR') form.querySelector('input[value="INVESTOR"]').checked = true;
+wirePasswordToggle($('#password'));
 
-function setRole(next) {
-  role = next;
-  const investor = role === 'INVESTOR';
-  form.querySelectorAll('[data-role]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.role === role)));
-  $('#resident-fields').classList.toggle('hidden', investor);
-  $('#investor-fields').classList.toggle('hidden', !investor);
-  $('#role-hint').textContent = investor ? '' : t('register.residentHint');
-  $('#role-hint').classList.toggle('hidden', investor);
-  // The side panel speaks to the person signing up
-  $('#aside-title').innerHTML = t(investor ? 'register.asideTitleInv' : 'register.asideTitle');
-  $('#aside-text').textContent = t(investor ? 'register.asideTextInv' : 'register.asideText');
-  if (!investor && !location$) location$ = setupLocationCard(form);
+const role = () => form.querySelector('input[name="role"]:checked').value;
+const isInvestor = () => role() === 'INVESTOR';
+// The step that sends the form: residents after their home, investors right after their details
+const lastStep = () => (isInvestor() ? 1 : 2);
+const labels = () => (isInvestor()
+  ? [t('signup.stepType'), t('signup.stepDetails'), t('signup.stepVerify')]
+  : [t('signup.stepType'), t('signup.stepDetails'), t('signup.stepHome'), t('signup.stepVerify')]);
+
+function show(next, { focus = true } = {}) {
+  step = next;
+  $('#stepper').innerHTML = stepper(labels(), step);
+  $$('[data-step]', form).forEach((s) => {
+    const forRole = s.dataset.role;
+    s.hidden = Number(s.dataset.step) !== step || (forRole && forRole !== role());
+  });
+  $('[data-final]', form).hidden = step !== lastStep();
+  // Investors send the form from the details step, so its own Back / Next row gives way to the final one
+  $('[data-step="1"] .step-actions', form).hidden = isInvestor();
+  // The map is created when its step first shows (a hidden map can't measure itself)
+  if (step === 2 && !isInvestor() && !picker) picker = addressPicker($('#home-picker'), { labelPlaceholder: t('addr.labelPh') });
+  if (step === 2 && picker) setTimeout(() => picker.map.invalidateSize(), 50);
+  if (focus) form.querySelector(`[data-step="${step}"]:not([hidden]) h1`)?.focus();
 }
-form.querySelectorAll('[data-role]').forEach((b) => b.addEventListener('click', () => setRole(b.dataset.role)));
-setRole(role);
 
-// ---------- Password: show/hide and live rules ----------
-const password = form.password;
-const toggle = $('#pw-toggle');
-const eye = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-const eyeOff = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.7 0 3.2-.5 4.5-1.2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
-toggle.innerHTML = eye;
-toggle.addEventListener('click', () => {
-  const show = password.type === 'password';
-  password.type = show ? 'text' : 'password';
-  toggle.setAttribute('aria-pressed', String(show));
-  toggle.setAttribute('aria-label', t(show ? 'pw.hide' : 'pw.show'));
-  toggle.innerHTML = show ? eyeOff : eye;
-});
+// Each step is a history entry, so the browser's back button goes one step back
+function go(next) {
+  history.pushState({ step: next }, '', `#step-${next + 1}`);
+  show(next);
+  window.scrollTo({ top: 0 });
+}
+window.addEventListener('popstate', (e) => show(e.state?.step ?? 0));
+history.replaceState({ step: 0 }, '', location.pathname + location.search);
 
-const RULES = {
-  len: (v) => v.length >= 8,
-  letter: (v) => /[A-Za-z]/.test(v), // the server asks for Latin letters
-  digit: (v) => /\d/.test(v),
-};
-const checkPassword = () => {
-  const v = password.value;
-  $$('#pw-rules [data-rule]').forEach((li) => li.classList.toggle('ok', RULES[li.dataset.rule](v)));
-  return Object.values(RULES).every((ok) => ok(v));
-};
-password.addEventListener('input', checkPassword);
+function checkDetails() {
+  clearFieldErrors(form);
+  const pw = form.password.value;
+  const problem = form.fullName.value.trim().length < 3 ? ['fullName', 'signup.nameInvalid']
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.value.trim()) ? ['email', 'signup.emailInvalid']
+      : pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw) ? ['password', 'signup.passwordInvalid']
+        : normalizePhone(form.phone.value) === false ? ['phone', 'signup.phoneInvalid'] : null;
+  if (problem) showFieldError(form, problem[0], t(problem[1]));
+  return !problem;
+}
 
-// ---------- Submit ----------
+// The steps follow the account type
+$$('input[name="role"]', form).forEach((r) => r.addEventListener('change', () => { $('#stepper').innerHTML = stepper(labels(), step); }));
+
+$$('[data-next]', form).forEach((b) => b.addEventListener('click', () => {
+  if (step === 1 && !checkDetails()) return;
+  go(step + 1);
+}));
+$$('[data-back]', form).forEach((b) => b.addEventListener('click', () => history.back()));
+
+// Server field errors go back to the step that has the field
+const DETAILS_FIELDS = ['fullName', 'email', 'password', 'phone'];
+function showServerError(err) {
+  const fields = err instanceof ApiError && err.fieldErrors ? Object.keys(err.fieldErrors) : [];
+  const onDetails = fields.some((f) => DETAILS_FIELDS.includes(f)) || /email|phone/i.test(err.message || '');
+  if (onDetails) {
+    show(1);
+    if (!applyFieldErrors(form, err)) {
+      const field = /phone/i.test(err.message) ? 'phone' : 'email';
+      showFieldError(form, field, errorMessage(err));
+    }
+    return;
+  }
+  if (!applyFieldErrors(form, err)) toast(errorMessage(err), 'error');
+}
+
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-  applyFieldErrors(form, null);
-  if (!checkPassword()) {
-    showFieldError(form, 'password', t('form.passwordHint'));
-    return;
-  }
-  if (!$('#terms').checked) {
-    toast(t('form.acceptTerms'), 'error');
-    return;
-  }
+  if (step !== lastStep()) return;
+  if (isInvestor() && !checkDetails()) return;
+  clearFieldErrors(form);
   const body = {
     fullName: form.fullName.value.trim(),
     email: form.email.value.trim(),
-    password: password.value,
-    phone: form.phone.value.trim() || null,
-    role,
+    password: form.password.value,
+    phone: normalizePhone(form.phone.value) || null,
+    role: role(),
+    preferredLanguage: lang,
   };
-  if (role === 'RESIDENT') {
-    const loc = location$.values();
-    Object.assign(body, loc);
-    if (!body.neighborhoodId && body.latitude === null) {
-      showFieldError(form, 'neighborhoodId', t('form.chooseYourHood'));
-      return;
-    }
+  if (!isInvestor()) {
+    if (!picker.validate()) return;
+    body.address = picker.values();
   }
+  if (!$('#terms').checked) { showFieldError(form, 'terms', t('form.acceptTerms')); return; }
 
   withLoading(form.querySelector('[type="submit"]'), async () => {
     try {
       await api.post('auth/register', body, { auth: false });
-      location.href = `verify.html?email=${encodeURIComponent(body.email)}`;
+      try { sessionStorage.setItem('naseej.signupRole', body.role); } catch { /* only used for the step label */ }
+      location.href = `verify.html?email=${encodeURIComponent(body.email)}&from=signup`;
     } catch (err) {
-      if (!applyFieldErrors(form, err)) toast(errorMessage(err), 'error');
+      showServerError(err);
     }
   });
 });
+
+show(0, { focus: false });

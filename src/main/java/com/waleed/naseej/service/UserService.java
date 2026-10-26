@@ -101,13 +101,17 @@ public class UserService {
                 .longitude(user.getLongitude())
                 .crNumber(user.getCrNumber())
                 .investmentBudget(user.getInvestmentBudget())
-                .budgetMin(user.getBudgetMin())
-                .budgetMax(user.getBudgetMax())
                 .investmentFields(user.getInvestmentFields())
                 .investmentFieldsOther(user.getInvestmentFieldsOther())
                 .investmentFieldsOtherCategories(user.getInvestmentFieldsOtherCategories())
                 .investmentAreas(user.getInvestmentAreas())
                 .investorStatus(user.getInvestorStatus())
+                .budgetMin(user.getBudgetMin() != null ? user.getBudgetMin() : ProfileService.bucketMin(user.getInvestmentBudget()))
+                .budgetMax(user.getBudgetMin() != null ? user.getBudgetMax() : ProfileService.bucketMax(user.getInvestmentBudget()))
+                .companyName(user.getCompanyName())
+                .preferredLanguage(user.getPreferredLanguage())
+                .neighborhoodName(user.getNeighborhood() != null ? user.getNeighborhood().getName() : null)
+                .city(user.getNeighborhood() != null ? user.getNeighborhood().getCity() : null)
                 .build();
     }
 }

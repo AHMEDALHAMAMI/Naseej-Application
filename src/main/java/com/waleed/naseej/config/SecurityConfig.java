@@ -79,6 +79,8 @@ public class SecurityConfig {
                         // ----- Website flow -----
                         .requestMatchers(paths("/discover/vote/**")).hasRole("RESIDENT")
                         .requestMatchers(paths("/discover/**")).hasAnyRole("RESIDENT", "INVESTOR", "ADMIN")
+                        // A project's agreement is readable by both sides (the founder may be a resident)
+                        .requestMatchers(paths("/unlock/agreement/**")).hasAnyRole("RESIDENT", "INVESTOR", "ADMIN")
                         .requestMatchers(paths("/explore/**", "/unlock/**")).hasRole("INVESTOR")
                         .requestMatchers(paths("/projects/**")).hasAnyRole("RESIDENT", "INVESTOR")
                         .requestMatchers(paths("/admin/**")).hasRole("ADMIN")
@@ -87,6 +89,10 @@ public class SecurityConfig {
                         .requestMatchers(paths(HttpMethod.GET, "/payments/mine", "/subscriptions/mine")).hasRole("INVESTOR")
                         .requestMatchers(paths(HttpMethod.POST, "/subscriptions/subscribe")).hasRole("INVESTOR")
                         .requestMatchers(paths(HttpMethod.PUT, "/subscriptions/cancel")).hasRole("INVESTOR")
+                        // The user's own account (profile, saved addresses)
+                        .requestMatchers(paths("/account/**")).hasAnyRole("RESIDENT", "INVESTOR", "ADMIN")
+                        // The bell in the header: each member reads only their own notifications
+                        .requestMatchers(paths("/notifications", "/notifications/**")).hasAnyRole("RESIDENT", "INVESTOR", "ADMIN")
                         // ----- Raw CRUD and AI endpoints take ids in the body, so only admins call them -----
                         .requestMatchers(paths(
                                 "/users/**", "/neighborhoods/**", "/ideas/**", "/idea-checks/**",

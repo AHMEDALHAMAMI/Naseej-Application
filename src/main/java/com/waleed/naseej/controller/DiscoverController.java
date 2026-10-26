@@ -31,8 +31,9 @@ public class DiscoverController {
     @GetMapping("/map")
     public List<MapIdeaResponse> map(@AuthenticationPrincipal User user,
                                      @RequestParam(required = false) Double lat,
-                                     @RequestParam(required = false) Double lng) {
-        return discoverService.map(user, lat, lng);
+                                     @RequestParam(required = false) Double lng,
+                                     @RequestParam(required = false) Integer addressId) {
+        return discoverService.map(user, lat, lng, addressId);
     }
 
     @GetMapping("/idea/{id}")
@@ -52,6 +53,25 @@ public class DiscoverController {
     public ResponseEntity<IdeaDetailResponse> propose(@AuthenticationPrincipal User user,
                                                       @Valid @RequestBody ProposeIdeaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(discoverService.propose(user, request));
+    }
+
+    /** Edit and recheck a draft or an idea that didn't pass. */
+    @PutMapping("/draft/{id}")
+    public IdeaDetailResponse updateDraft(@AuthenticationPrincipal User user,
+                                          @PathVariable Integer id,
+                                          @Valid @RequestBody ProposeIdeaRequest request) {
+        return discoverService.updateDraft(user, id, request);
+    }
+
+    @PostMapping("/publish/{id}")
+    public IdeaDetailResponse publish(@AuthenticationPrincipal User user, @PathVariable Integer id) {
+        return discoverService.publish(user, id);
+    }
+
+    @DeleteMapping("/draft/{id}")
+    public ResponseEntity<Void> cancelDraft(@AuthenticationPrincipal User user, @PathVariable Integer id) {
+        discoverService.cancelDraft(user, id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/retry-ai/{id}")

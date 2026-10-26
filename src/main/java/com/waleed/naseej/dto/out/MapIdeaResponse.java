@@ -28,4 +28,11 @@ public class MapIdeaResponse {
     private Boolean canVote;
     private Boolean voted;
     private Boolean mine;
+
+    // Short brief for the map popup
+    private String summary;
+    // Adopted ideas: the project stage, e.g. "Licensing" (index 1 of 7)
+    private String stage;
+    private Integer stageIndex;
+    private Integer stageCount;
 }

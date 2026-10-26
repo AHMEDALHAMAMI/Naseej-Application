@@ -6,6 +6,7 @@ import com.waleed.naseej.dto.out.PublicStatsResponse;
 import com.waleed.naseej.entity.Idea;
 import com.waleed.naseej.entity.Neighborhood;
 import com.waleed.naseej.enums.IdeaStatus;
+import com.waleed.naseej.exception.BadRequestException;
 import com.waleed.naseej.exception.ResourceNotFoundException;
 import com.waleed.naseej.repository.IdeaRepository;
 import com.waleed.naseej.repository.NeighborhoodRepository;
@@ -27,6 +28,7 @@ public class PublicService {
     private final NeighborhoodRepository neighborhoodRepository;
     private final VoteRepository voteRepository;
     private final LocationService locationService;
+    private final OsmService osmService;
 
     public PublicStatsResponse stats() {
         List<Neighborhood> neighborhoods = neighborhoodRepository.findAll();
@@ -67,7 +69,7 @@ public class PublicService {
 
     /** Sign-up: fill the neighborhood from the browser location. */
     public NeighborhoodResponse nearestNeighborhood(double latitude, double longitude) {
-        Neighborhood n = locationService.findNearestNeighborhood(latitude, longitude)
+        Neighborhood n = locationService.resolveNeighborhood(latitude, longitude)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Naseej isn't available in your area yet. Choose your neighborhood from the list"));
         return NeighborhoodResponse.builder()
@@ -77,6 +79,15 @@ public class PublicService {
                 .latitude(n.getLatitude())
                 .longitude(n.getLongitude())
                 .build();
+    }
+
+    /** Map search box: cities and districts in Saudi Arabia by name (Arabic or English). */
+    public List<OsmService.SearchResult> searchPlaces(String query) {
+        String text = query == null ? "" : query.trim();
+        if (text.length() < 2 || text.length() > 100) {
+            throw new BadRequestException("Type 2 to 100 characters to search");
+        }
+        return osmService.search(text);
     }
 
     private static double distance(double lat, double lng, Idea idea) {

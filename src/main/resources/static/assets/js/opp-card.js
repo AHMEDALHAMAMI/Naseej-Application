@@ -41,7 +41,7 @@ export function oppCard(o, { showPlace = true } = {}) {
         ${o.gapScore != null ? `<div><dt>${esc(t('idea.gapScore'))}</dt><dd class="num">${o.gapScore}/100</dd></div>` : ''}
       </dl>
       <div class="opp-actions">
-        <a class="btn btn-secondary btn-sm" href="idea.html?id=${o.id}">${esc(t('common.viewDetails'))}</a>
+        <a class="btn btn-secondary btn-sm" href="idea.html?id=${o.id}">${esc(t('commonInv.viewDetails'))}</a>
         ${action}
       </div>
     </article>`;

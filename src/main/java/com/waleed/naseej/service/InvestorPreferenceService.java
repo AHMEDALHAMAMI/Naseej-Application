@@ -5,6 +5,7 @@ import com.waleed.naseej.entity.User;
 import com.waleed.naseej.exception.BadRequestException;
 import com.waleed.naseej.exception.ExternalServiceException;
 import com.waleed.naseej.repository.NeighborhoodRepository;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -93,12 +94,12 @@ public class InvestorPreferenceService {
             user.setBudgetMax(null);
             return;
         }
-        Long min = request.getBudgetMin();
-        Long max = request.getBudgetMax();
+        BigDecimal min = request.getBudgetMin() != null ? BigDecimal.valueOf(request.getBudgetMin()) : null;
+        BigDecimal max = request.getBudgetMax() != null ? BigDecimal.valueOf(request.getBudgetMax()) : null;
         if (min == null && max == null) {
             throw new BadRequestException("Enter at least one end of your budget range");
         }
-        if (min != null && max != null && min > max) {
+        if (min != null && max != null && min.compareTo(max) > 0) {
             throw new BadRequestException("The lowest budget can't be more than the highest");
         }
         user.setInvestmentBudget(CUSTOM);

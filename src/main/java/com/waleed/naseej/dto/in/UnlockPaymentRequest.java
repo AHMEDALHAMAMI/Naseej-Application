@@ -18,4 +18,7 @@ public class UnlockPaymentRequest {
 
     // Sandbox only: pay with Moyasar's test card (default true in test mode)
     private Boolean useSandboxTestCard;
+
+    // The investor accepts the confidentiality and non-circumvention terms before paying
+    private Boolean ndaAccepted;
 }

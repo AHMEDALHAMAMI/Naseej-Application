@@ -30,7 +30,7 @@ function setProgress(n) {
 function intro() {
   setProgress(0);
   app.innerHTML = `
-    <section class="flow-card" aria-labelledby="flow-h">
+    <section class="onb-card" aria-labelledby="flow-h">
       <span class="flow-emoji" aria-hidden="true">👋</span>
       <h1 id="flow-h" tabindex="-1">${esc(t('onb.hello', { name: firstName }))}</h1>
       <p class="muted">${esc(t('onb.intro'))}</p>
@@ -44,7 +44,7 @@ function step(i) {
   setProgress(i + 1);
   const s = STEPS[i];
   app.innerHTML = `
-    <section class="flow-card" aria-labelledby="flow-h">
+    <section class="onb-card" aria-labelledby="flow-h">
       <span class="eyebrow">${esc(t('onb.step', { n: i + 1 }))}</span>
       <h1 id="flow-h" tabindex="-1">${esc(t(s.q))}</h1>
       <p class="muted">${esc(t(s.hint))}</p>
@@ -91,7 +91,7 @@ async function done(saved) {
   const hoods = await loadNeighborhoods().catch(() => []);
   const parts = prefsSummary(saved, hoods);
   app.innerHTML = `
-    <section class="flow-card" aria-labelledby="flow-h">
+    <section class="onb-card" aria-labelledby="flow-h">
       <span class="flow-emoji" aria-hidden="true">✨</span>
       <h1 id="flow-h" tabindex="-1">${esc(t('onb.doneTitle'))}</h1>
       ${parts.length ? `<div class="chips">${parts.map((p) => `<span class="chip chip-static">${esc(p)}</span>`).join('')}</div>` : ''}

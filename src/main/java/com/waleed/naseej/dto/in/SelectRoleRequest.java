@@ -1,7 +1,11 @@
 package com.waleed.naseej.dto.in;
 
 import com.waleed.naseej.enums.Role;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -52,4 +56,23 @@ public class SelectRoleRequest {
     @Pattern(regexp = "^(FOOD|RETAIL|HEALTH|FITNESS|HOME_SERVICES|EDUCATION)(,(FOOD|RETAIL|HEALTH|FITNESS|HOME_SERVICES|EDUCATION))*$",
             message = "Investment fields must be a comma-separated list of FOOD, RETAIL, HEALTH, FITNESS, HOME_SERVICES, EDUCATION")
     private String investmentFields;
+
+    // Budget range in SAR (instead of investmentBudget). budgetMax empty means "and above"
+    @PositiveOrZero(message = "Budget can't be negative")
+    private BigDecimal budgetMin;
+
+    @PositiveOrZero(message = "Budget can't be negative")
+    private BigDecimal budgetMax;
+
+    @Size(max = 120, message = "Company name must be at most 120 characters")
+    private String companyName;
+
+    // ---------- Everyone ----------
+
+    @Pattern(regexp = "^(ar|en)$", message = "Language must be ar or en")
+    private String preferredLanguage;
+
+    // Residents: the home address (map pin required). When sent, it decides the neighborhood
+    @Valid
+    private AddressRequest address;
 }

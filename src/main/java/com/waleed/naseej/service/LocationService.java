@@ -6,6 +6,7 @@ import com.waleed.naseej.repository.NeighborhoodRepository;
 import java.util.Comparator;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 /** Distances on the map and finding the neighborhood a point belongs to. */
@@ -18,7 +19,13 @@ public class LocationService {
     // A point farther than this from every neighborhood center isn't matched to any neighborhood
     private static final double MAX_NEIGHBORHOOD_DISTANCE_KM = 8.0;
 
+    // A saved neighborhood center this close is taken without asking OpenStreetMap
+    private static final double SAME_NEIGHBORHOOD_KM = 1.2;
+
+    private static final String SAUDI_ARABIA = "sa";
+
     private final NeighborhoodRepository neighborhoodRepository;
+    private final OsmService osmService;
 
     /** Great-circle distance in km between two points. */
     public static double distanceKm(double lat1, double lng1, double lat2, double lng2) {
@@ -45,6 +52,26 @@ public class LocationService {
             return new double[]{n.getLatitude(), n.getLongitude()};
         }
         return null;
+    }
+
+    /** Radius of the approximate area investors see before unlocking; it always contains the real spot. */
+    public static final int APPROX_RADIUS_M = 600;
+
+    /**
+     * A point 250–490 m away from the idea's real spot, the same every time for the same idea.
+     * Drawn as a circle of {@link #APPROX_RADIUS_M}, so investors see the area without the exact location.
+     */
+    public static double[] approximatePointOf(Idea idea) {
+        double[] point = pointOf(idea);
+        if (point == null) {
+            return null;
+        }
+        int seed = idea.getId() != null ? idea.getId() : 0;
+        double angle = Math.toRadians((seed * 137.508) % 360);
+        double km = 0.25 + (seed % 5) * 0.06;
+        double dLat = km / 111.32 * Math.cos(angle);
+        double dLng = km / (111.32 * Math.cos(Math.toRadians(point[0]))) * Math.sin(angle);
+        return new double[]{point[0] + dLat, point[1] + dLng};
     }
 
     /**
@@ -74,9 +101,50 @@ public class LocationService {
 
     /** The closest neighborhood with coordinates, if one is near enough. */
     public Optional<Neighborhood> findNearestNeighborhood(double lat, double lng) {
+        return findNearestWithin(lat, lng, MAX_NEIGHBORHOOD_DISTANCE_KM);
+    }
+
+    /**
+     * The neighborhood a point is in, for any point in Saudi Arabia:
+     * 1. a saved neighborhood whose center is very close,
+     * 2. otherwise the district OpenStreetMap says the point is in (saved as a new neighborhood the first time),
+     * 3. otherwise the nearest saved neighborhood within 8 km.
+     */
+    public Optional<Neighborhood> resolveNeighborhood(double lat, double lng) {
+        Optional<Neighborhood> close = findNearestWithin(lat, lng, SAME_NEIGHBORHOOD_KM);
+        if (close.isPresent()) {
+            return close;
+        }
+        Optional<OsmService.District> district = osmService.reverse(lat, lng)
+                .filter(d -> SAUDI_ARABIA.equalsIgnoreCase(d.countryCode()));
+        if (district.isPresent()) {
+            return Optional.of(saveDistrict(district.get()));
+        }
+        return findNearestNeighborhood(lat, lng);
+    }
+
+    private Neighborhood saveDistrict(OsmService.District d) {
+        return neighborhoodRepository.findByNameIgnoreCaseAndCityIgnoreCase(d.name(), d.city())
+                .orElseGet(() -> {
+                    try {
+                        return neighborhoodRepository.save(Neighborhood.builder()
+                                .name(d.name())
+                                .city(d.city())
+                                .latitude(d.latitude())
+                                .longitude(d.longitude())
+                                .build());
+                    } catch (DataIntegrityViolationException e) {
+                        // Saved by another request at the same moment
+                        return neighborhoodRepository.findByNameIgnoreCaseAndCityIgnoreCase(d.name(), d.city())
+                                .orElseThrow(() -> e);
+                    }
+                });
+    }
+
+    private Optional<Neighborhood> findNearestWithin(double lat, double lng, double maxKm) {
         return neighborhoodRepository.findAll().stream()
                 .filter(n -> n.getLatitude() != null && n.getLongitude() != null)
                 .min(Comparator.comparingDouble(n -> distanceKm(lat, lng, n.getLatitude(), n.getLongitude())))
-                .filter(n -> distanceKm(lat, lng, n.getLatitude(), n.getLongitude()) <= MAX_NEIGHBORHOOD_DISTANCE_KM);
+                .filter(n -> distanceKm(lat, lng, n.getLatitude(), n.getLongitude()) <= maxKm);
     }
 }

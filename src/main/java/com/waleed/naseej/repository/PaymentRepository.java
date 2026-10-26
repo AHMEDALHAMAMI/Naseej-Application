@@ -23,4 +23,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
 
     // A user's payments, newest first ("My payments")
     List<Payment> findByUserIdOrderByIdDesc(Integer userId);
+    boolean existsByUserId(Integer userId);
+
+    // The latest payment of a kind for an idea (an owner who paid the fee but closed the page before it was confirmed)
+    Optional<Payment> findFirstByUserIdAndIdeaIdAndPurposeAndStatusOrderByIdDesc(Integer userId, Integer ideaId,
+                                                                               String purpose, PaymentStatus status);
 }

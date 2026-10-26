@@ -4,6 +4,7 @@
 import { api } from '../api.js';
 import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, applyFieldErrors, cityLabel, placeLabel, t } from '../ui.js';
 import { serverText, tn } from '../i18n.js';
+import { stepper } from '../components.js';
 
 const user = await guard(['INVESTOR', 'RESIDENT']);
 const id = Number(params().get('id'));
@@ -56,9 +57,7 @@ function render() {
       </div>
       <button type="button" class="btn btn-secondary btn-sm" id="read-full">${esc(t('ctr.readFull'))}</button>
     </div>
-    <ol class="stepper" aria-label="${esc(t('ctr.steps'))}">
-      ${steps.map((s, i) => `<li class="${s.done ? 'done' : ''} ${i === current ? 'current' : ''}" ${i === current ? 'aria-current="step"' : ''}><span class="dot">${s.done ? icon.check : i + 1}</span><span>${esc(t(s.key))}</span></li>`).join('')}
-    </ol>
+    ${stepper(steps.map((s) => t(s.key)), current === -1 ? steps.length - 1 : current)}
     <div class="contract-body" id="body"></div>`;
   $('#read-full').addEventListener('click', openDocument);
   body();
@@ -130,7 +129,7 @@ function benefitsForm(box) {
           <input class="input" id="benefitsNote" name="benefitsNote" maxlength="500" placeholder="${esc(t('ctr.notePh'))}" value="${esc(p.benefitsNote || '')}"><span class="error" aria-live="polite"></span></div>
         <div class="row" style="justify-content:space-between">
           <span class="small muted">${esc(t('ctr.benefitsLocked'))}</span>
-          <button class="btn" type="submit" data-loading="${esc(t('common.saving'))}">${esc(t('ctr.saveBenefits'))}</button>
+          <button class="btn" type="submit" data-loading="${esc(t('commonInv.saving'))}">${esc(t('ctr.saveBenefits'))}</button>
         </div>
       </form>
     </section>`;
@@ -185,7 +184,7 @@ function signForm(box) {
         <div class="field"><label for="code">${esc(t('ctr.code'))}</label>
           <div class="code-row">
             <input class="input" id="code" name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" dir="ltr" placeholder="••••••">
-            <button type="button" class="btn btn-secondary" id="send-code" data-loading="${esc(t('verify.sending'))}">${esc(t('ctr.sendCode'))}</button>
+            <button type="button" class="btn btn-secondary" id="send-code" data-loading="${esc(t('verifyInv.sending'))}">${esc(t('ctr.sendCode'))}</button>
           </div>
           <span class="error" aria-live="polite"></span>
         </div>

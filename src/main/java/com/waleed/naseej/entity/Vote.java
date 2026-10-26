@@ -37,6 +37,11 @@ public class Vote {
     // Distance between the voter and the idea when the vote was cast
     private Double distanceKm;
 
+    // The saved address that made the voter eligible (null for votes from before addresses existed)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "address_id")
+    private Address address;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

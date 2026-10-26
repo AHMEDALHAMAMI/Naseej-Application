@@ -26,4 +26,6 @@ public interface OpportunityAccessRepository extends JpaRepository<OpportunityAc
     boolean existsByIdeaId(Integer ideaId);
 
     long countByAccessType(AccessType accessType);
+
+    boolean existsByInvestorId(Integer investorId);
 }

@@ -19,7 +19,7 @@ export function budgetPicker(root, user = {}) {
       <button type="button" class="chip" data-budget="CUSTOM" aria-pressed="false" aria-controls="budget-range">${esc(t('pref.custom'))}</button>
     </div>
     <div class="range-box hidden" id="budget-range">
-      <div class="range-inputs">
+      <div class="prefs-range">
         <div class="field">
           <label for="budget-min">${esc(t('pref.min'))}</label>
           <div class="input-affix"><input class="input num" id="budget-min" inputmode="numeric" autocomplete="off" placeholder="200,000"><span>${esc(t('fmt.sar', { v: '' }).trim())}</span></div>

@@ -1,5 +1,6 @@
 package com.waleed.naseej.service;
 
+import com.waleed.naseej.dto.in.AddressRequest;
 import com.waleed.naseej.dto.in.LoginRequest;
 import com.waleed.naseej.dto.in.RefreshTokenRequest;
 import com.waleed.naseej.dto.in.RegisterRequest;
@@ -31,6 +32,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -58,6 +60,7 @@ public class AuthService {
     private final UserService userService;
     private final LocationService locationService;
     private final InvestorPreferenceService investorPreferenceService;
+    private final AddressService addressService;
 
     @Value("${jwt.refresh-token-days}")
     private long refreshTokenDays;
@@ -66,11 +69,15 @@ public class AuthService {
 
     public MessageResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
+        AddressRequest home = request.getRole() == Role.RESIDENT ? request.getAddress() : null;
+        Double latitude = home != null ? home.getLatitude() : request.getLatitude();
+        Double longitude = home != null ? home.getLongitude() : request.getLongitude();
+        // A home pin decides the neighborhood; without one the older fields still work
         Integer neighborhoodId = resolveNeighborhoodId(
-                request.getRole(), request.getNeighborhoodId(), request.getLatitude(), request.getLongitude());
+                request.getRole(), home != null ? null : request.getNeighborhoodId(), latitude, longitude);
         validateSignUpRole(request.getRole(), neighborhoodId);
-        validateInvestorProfile(request.getRole(), request.getCrNumber(),
-                request.getInvestmentBudget(), request.getInvestmentFields());
+        String budget = budgetBucket(request.getInvestmentBudget(), request.getBudgetMin(), request.getBudgetMax());
+        validateInvestorProfile(request.getRole(), request.getCrNumber(), budget, request.getInvestmentFields());
 
         if (userRepository.existsByEmail(email)) {
             throw new DuplicateResourceException("Email is already registered");
@@ -87,15 +94,19 @@ public class AuthService {
                 .authProvider(AuthProvider.LOCAL)
                 .role(request.getRole())
                 .neighborhood(findNeighborhood(neighborhoodId))
-                .latitude(request.getLatitude())
-                .longitude(request.getLongitude())
+                .latitude(latitude)
+                .longitude(longitude)
+                .preferredLanguage(request.getPreferredLanguage())
                 .whatsappOptIn(Boolean.TRUE.equals(request.getWhatsappOptIn()))
                 .emailVerified(false)
                 .enabled(false)
                 .build();
-        applyInvestorProfile(user, request.getRole(), request.getCrNumber(),
-                request.getInvestmentBudget(), request.getInvestmentFields());
+        applyInvestorProfile(user, request.getRole(), request.getCrNumber(), budget, request.getInvestmentFields());
+        applyInvestorExtras(user, request.getRole(), request.getBudgetMin(), request.getBudgetMax(), request.getCompanyName());
         userRepository.save(user);
+        if (home != null) {
+            addressService.createFirst(user, home);
+        }
 
         otpService.sendOtp(user, OtpPurpose.REGISTER);
         return new MessageResponse("Account created. Enter the 6-digit code we sent to " + email);
@@ -304,14 +315,16 @@ public class AuthService {
         if (user.getRole() != Role.PENDING) {
             throw new BadRequestException("Membership type is already chosen");
         }
-        Integer neighborhoodId = request.getNeighborhoodId() != null
+        AddressRequest home = request.getRole() == Role.RESIDENT ? request.getAddress() : null;
+        Double latitude = home != null ? home.getLatitude() : request.getLatitude();
+        Double longitude = home != null ? home.getLongitude() : request.getLongitude();
+        Integer neighborhoodId = home != null ? null : (request.getNeighborhoodId() != null
                 ? request.getNeighborhoodId()
-                : (user.getNeighborhood() != null ? user.getNeighborhood().getId() : null);
-        neighborhoodId = resolveNeighborhoodId(
-                request.getRole(), neighborhoodId, request.getLatitude(), request.getLongitude());
+                : (user.getNeighborhood() != null ? user.getNeighborhood().getId() : null));
+        neighborhoodId = resolveNeighborhoodId(request.getRole(), neighborhoodId, latitude, longitude);
         validateSignUpRole(request.getRole(), neighborhoodId);
-        validateInvestorProfile(request.getRole(), request.getCrNumber(),
-                request.getInvestmentBudget(), request.getInvestmentFields());
+        String budget = budgetBucket(request.getInvestmentBudget(), request.getBudgetMin(), request.getBudgetMax());
+        validateInvestorProfile(request.getRole(), request.getCrNumber(), budget, request.getInvestmentFields());
 
         if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
             if (userRepository.existsByPhone(request.getPhone())) {
@@ -322,26 +335,38 @@ public class AuthService {
         if (neighborhoodId != null) {
             user.setNeighborhood(findNeighborhood(neighborhoodId));
         }
-        if (request.getLatitude() != null && request.getLongitude() != null) {
-            user.setLatitude(request.getLatitude());
-            user.setLongitude(request.getLongitude());
+        if (latitude != null && longitude != null) {
+            user.setLatitude(latitude);
+            user.setLongitude(longitude);
+        }
+        if (request.getPreferredLanguage() != null) {
+            user.setPreferredLanguage(request.getPreferredLanguage());
         }
         user.setRole(request.getRole());
-        applyInvestorProfile(user, request.getRole(), request.getCrNumber(),
-                request.getInvestmentBudget(), request.getInvestmentFields());
+        applyInvestorProfile(user, request.getRole(), request.getCrNumber(), budget, request.getInvestmentFields());
+        applyInvestorExtras(user, request.getRole(), request.getBudgetMin(), request.getBudgetMax(), request.getCompanyName());
         userRepository.save(user);
+        if (home != null) {
+            addressService.createFirst(user, home);
+        }
         return issueTokens(user);
     }
 
     // ---------- Location ----------
 
-    /** Saves the user's current location; a resident without a neighborhood gets the nearest one. */
+    /**
+     * Saves a non-resident's current location. Residents vote from their saved addresses, which change only
+     * from their account settings, so their location can't be set from the device.
+     */
     public UserResponse updateLocation(User currentUser, UpdateLocationRequest request) {
         User user = getUser(currentUser.getId());
+        if (user.getRole() == Role.RESIDENT) {
+            throw new BadRequestException("Change your home address from your account settings");
+        }
         user.setLatitude(request.getLatitude());
         user.setLongitude(request.getLongitude());
         if (user.getNeighborhood() == null && user.getRole() == Role.RESIDENT) {
-            locationService.findNearestNeighborhood(request.getLatitude(), request.getLongitude())
+            locationService.resolveNeighborhood(request.getLatitude(), request.getLongitude())
                     .ifPresent(user::setNeighborhood);
         }
         return userService.toResponse(userRepository.save(user));
@@ -387,7 +412,7 @@ public class AuthService {
         if (neighborhoodId != null || role != Role.RESIDENT || latitude == null || longitude == null) {
             return neighborhoodId;
         }
-        return locationService.findNearestNeighborhood(latitude, longitude)
+        return locationService.resolveNeighborhood(latitude, longitude)
                 .map(Neighborhood::getId)
                 .orElseThrow(() -> new BadRequestException(
                         "Naseej isn't available in your area yet. Choose your neighborhood from the list"));
@@ -422,6 +447,30 @@ public class AuthService {
             user.setInvestmentFieldsOtherCategories(null);
             user.setInvestmentAreas(null);
             user.setInvestorStatus(null);
+        }
+    }
+
+    // The older bucket, or the one matching a budget range (kept so older screens and reports still work)
+    private String budgetBucket(String bucket, BigDecimal min, BigDecimal max) {
+        if (min == null && max == null) {
+            return bucket;
+        }
+        if (min != null && max != null && min.compareTo(max) > 0) {
+            throw new BadRequestException("The minimum budget can't be more than the maximum");
+        }
+        return ProfileService.bucketFor(max);
+    }
+
+    private void applyInvestorExtras(User user, Role role, BigDecimal min, BigDecimal max, String companyName) {
+        if (role != Role.INVESTOR) {
+            return;
+        }
+        if (min != null || max != null) {
+            user.setBudgetMin(min != null ? min : BigDecimal.ZERO);
+            user.setBudgetMax(max);
+        }
+        if (companyName != null && !companyName.isBlank()) {
+            user.setCompanyName(companyName.trim());
         }
     }
 

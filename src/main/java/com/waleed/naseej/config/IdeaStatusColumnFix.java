@@ -10,9 +10,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Databases created before IdeaStatus.REJECTED (or HIDDEN) existed have ideas.status as
- * ENUM('SCREENING','PUBLISHED','COMPLETED','ADOPTED','OPENED'), and ddl-auto=update doesn't widen it,
- * so saving a rejected or hidden idea fails with "Data truncated for column 'status'".
+ * Databases created before IdeaStatus.REJECTED, HIDDEN or DRAFT existed have ideas.status as an ENUM
+ * without them, and ddl-auto=update doesn't widen it, so saving such an idea fails with
+ * "Data truncated for column 'status'".
  * This turns the column into VARCHAR once, on startup, when one of them is missing.
  */
 @Slf4j
@@ -33,9 +33,10 @@ public class IdeaStatusColumnFix implements CommandLineRunner {
                 return;
             }
             String type = types.get(0).toLowerCase();
-            if (type.startsWith("enum") && (!type.contains("'rejected'") || !type.contains("'hidden'"))) {
+            if (type.startsWith("enum")
+                    && !(type.contains("'rejected'") && type.contains("'hidden'") && type.contains("'draft'"))) {
                 jdbcTemplate.execute("ALTER TABLE ideas MODIFY COLUMN status VARCHAR(20) NOT NULL");
-                log.info("ideas.status changed from {} to VARCHAR(20) so rejected and hidden ideas can be saved", type);
+                log.info("ideas.status changed from {} to VARCHAR(20) so drafts, rejected and hidden ideas can be saved", type);
             }
         } catch (DataAccessException e) {
             log.warn("Could not check the ideas.status column: {}", e.getMessage());

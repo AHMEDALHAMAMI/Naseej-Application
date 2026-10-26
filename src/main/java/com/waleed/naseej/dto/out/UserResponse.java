@@ -31,11 +31,15 @@ public class UserResponse {
     private Double longitude;
     private String crNumber;
     private String investmentBudget;
-    private Long budgetMin;
-    private Long budgetMax;
     private String investmentFields;
     private String investmentFieldsOther;
     private String investmentFieldsOtherCategories;
     private String investmentAreas;
     private InvestorStatus investorStatus;
+    private java.math.BigDecimal budgetMin;
+    private java.math.BigDecimal budgetMax;
+    private String companyName;
+    private String preferredLanguage;
+    private String neighborhoodName;
+    private String city;
 }

@@ -5,6 +5,7 @@ import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -82,6 +83,9 @@ public class User {
 
     private Double longitude;
 
+    // Last time the resident added an address or moved one beyond a small fix (one change every 30 days)
+    private LocalDateTime lastAddressChangeAt;
+
     // ---------- Investor profile (only for role INVESTOR) ----------
 
     // Added later, when the investor first wants to unlock; null until then
@@ -91,11 +95,6 @@ public class User {
     // UP_TO_300K, FROM_300K_TO_700K, ABOVE_700K or CUSTOM (then budgetMin / budgetMax hold the range)
     @Column(length = 20)
     private String investmentBudget;
-
-    // Custom budget range in SAR; either end may be empty
-    private Long budgetMin;
-
-    private Long budgetMax;
 
     // Comma-separated fields, e.g. "FOOD,HEALTH"
     @Column(length = 200)
@@ -119,4 +118,22 @@ public class User {
     private InvestorStatus investorStatus;
 
     private LocalDateTime investorReviewedAt;
+
+    // Budget range in SAR chosen by the investor: the CUSTOM range from the investor preferences, or the range
+    // from the account page (investmentBudget then keeps the closest bucket for older screens). Either end may be empty
+    @Column(precision = 12, scale = 2)
+    private BigDecimal budgetMin;
+
+    // Null means "and above"
+    @Column(precision = 12, scale = 2)
+    private BigDecimal budgetMax;
+
+    @Column(length = 120)
+    private String companyName;
+
+    // ---------- Preferences ----------
+
+    // "ar" or "en": the language of the website and of AI text written for this user
+    @Column(length = 2)
+    private String preferredLanguage;
 }

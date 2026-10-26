@@ -30,4 +30,10 @@ public class UnlockQuoteResponse {
     // Success partnership: share of the project's net profit that goes to the founding member
     private BigDecimal partnershipPercent;
     private Integer partnershipYears;
+
+    // Early access: before the vote target is reached the price is lower, because the demand is still growing
+    private Boolean earlyAccess;
+    private BigDecimal fullPrice;
+    private Integer earlyDiscountPercent;
+    private Integer votePercent;
 }

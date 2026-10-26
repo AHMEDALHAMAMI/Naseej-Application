@@ -2,11 +2,22 @@
 import { api, session } from '../api.js';
 import { $, esc, homeFor, params, toast, withLoading, errorMessage, initPage, t } from '../ui.js';
 import { langButton } from '../i18n.js';
+import { stepper } from '../components.js';
 
 $('#lang-slot').innerHTML = langButton();
 initPage();
 
 const email = params().get('email') || '';
+// Coming from email sign-up: this is the last of its four steps
+if (params().get('from') === 'signup') {
+  let investor = false;
+  try { investor = sessionStorage.getItem('naseej.signupRole') === 'INVESTOR'; } catch { /* default to the resident label */ }
+  // Investors have three steps (no home step); residents four
+  const steps = investor
+    ? [t('signup.stepType'), t('signup.stepDetails'), t('signup.stepVerify')]
+    : [t('signup.stepType'), t('signup.stepDetails'), t('signup.stepHome'), t('signup.stepVerify')];
+  $('.auth-card').insertAdjacentHTML('afterbegin', stepper(steps, steps.length - 1));
+}
 if (!email) location.replace('register.html');
 $('#sent-to').innerHTML = t('verify.sentTo', { email: `<strong dir="ltr">${esc(email)}</strong>` });
 

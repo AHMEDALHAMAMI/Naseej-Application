@@ -1,7 +1,7 @@
 // API client for the Spring backend. Pages live under the same context path as the API
 // (e.g. http://localhost:8080/api/v1/login.html), so relative URLs like "auth/login" hit the API.
 
-import { t } from './i18n.js';
+import { t, lang } from './i18n.js';
 
 const STORE_KEY = 'naseej.session';
 
@@ -88,7 +88,8 @@ function query(params) {
  * Adds the Bearer token, refreshes it once on 401, and turns API errors into ApiError with a readable message.
  */
 export async function request(method, path, { body, query: params, auth = true, retry = true } = {}) {
-  const headers = { Accept: 'application/json' };
+  // The server writes and translates AI text in the reader's language (AiLanguage / AiTranslationService)
+  const headers = { Accept: 'application/json', 'Accept-Language': lang };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const { accessToken } = tokens();
   if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;

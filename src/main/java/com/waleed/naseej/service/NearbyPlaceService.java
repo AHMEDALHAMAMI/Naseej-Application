@@ -97,13 +97,14 @@ public class NearbyPlaceService {
                     "This idea check was entered manually and has no place type. Run the idea check first");
         }
 
-        Neighborhood neighborhood = idea.getNeighborhood();
-        if (neighborhood.getLatitude() == null || neighborhood.getLongitude() == null) {
+        // Around the idea's own spot, like the idea check, otherwise around the neighborhood center
+        double[] center = LocationService.pointOf(idea);
+        if (center == null) {
             throw new BadRequestException("The idea's neighborhood has no latitude/longitude, so competitors can't be searched");
         }
 
         List<FoundPlace> found = googlePlacesService.searchNearby(
-                neighborhood.getLatitude(), neighborhood.getLongitude(), check.getSearchRadiusKm(), check.getPlaceType());
+                center[0], center[1], check.getSearchRadiusKm(), check.getPlaceType());
         replaceForIdea(idea, found);
         return getByIdea(ideaId);
     }

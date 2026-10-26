@@ -3,6 +3,7 @@ package com.waleed.naseej.controller;
 import com.waleed.naseej.dto.out.NeighborhoodResponse;
 import com.waleed.naseej.dto.out.PublicIdeaPinResponse;
 import com.waleed.naseej.dto.out.PublicStatsResponse;
+import com.waleed.naseej.service.OsmService;
 import com.waleed.naseej.service.PublicService;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,11 @@ public class PublicController {
     @GetMapping("/nearest-neighborhood")
     public NeighborhoodResponse nearestNeighborhood(@RequestParam double lat, @RequestParam double lng) {
         return publicService.nearestNeighborhood(lat, lng);
+    }
+
+    @GetMapping("/search-places")
+    public List<OsmService.SearchResult> searchPlaces(@RequestParam String q) {
+        return publicService.searchPlaces(q);
     }
 
     @GetMapping("/map-config")

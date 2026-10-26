@@ -16,6 +16,7 @@ import com.waleed.naseej.exception.ResourceNotFoundException;
 import com.waleed.naseej.repository.BusinessModelRepository;
 import com.waleed.naseej.repository.ContractRepository;
 import com.waleed.naseej.repository.FeasibilityReportRepository;
+import com.waleed.naseej.repository.IdeaCheckRepository;
 import com.waleed.naseej.repository.IdeaRepository;
 import com.waleed.naseej.repository.NeighborhoodRepository;
 import com.waleed.naseej.repository.OpportunityAccessRepository;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -62,7 +64,9 @@ public class ExploreService {
     private final OpportunityAccessRepository opportunityAccessRepository;
     private final UserRepository userRepository;
     private final ContractRepository contractRepository;
+    private final IdeaCheckRepository ideaCheckRepository;
     private final BusinessModelRepository businessModelRepository;
+    private final ProjectService projectService;
 
     public List<CityStatResponse> cities() {
         Map<String, List<Idea>> byCity = ideaRepository.findByStatusIn(OPEN_STATUSES).stream()
@@ -284,6 +288,172 @@ public class ExploreService {
                 .thenComparing(Comparator.comparing(OpportunityResponse::getVotePercent).reversed());
     }
 
+    // ---------- Matches by budget and area, top list and AI search candidates (confidential summaries) ----------
+
+    /**
+     * Every opportunity an investor can still unlock (published or target reached, not adopted), across all cities,
+     * as the same confidential summaries the map shows. Used by the top list and the AI search.
+     */
+    public List<OpportunityResponse> openOpportunities(User currentUser) {
+        User investor = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getId()));
+        boolean verified = investor.getInvestorStatus() == InvestorStatus.VERIFIED;
+        List<Idea> ideas = ideaRepository.findByStatusIn(List.of(IdeaStatus.PUBLISHED, IdeaStatus.COMPLETED)).stream()
+                .filter(idea -> !opportunityAccessRepository.existsByIdeaId(idea.getId()))
+                .toList();
+        if (ideas.isEmpty()) {
+            return List.of();
+        }
+        Map<Integer, Long> votes = new HashMap<>();
+        voteRepository.countByIdeaIds(ideas.stream().map(Idea::getId).toList())
+                .forEach(row -> votes.put((Integer) row[0], (Long) row[1]));
+        LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
+        return ideas.stream()
+                .map(idea -> toOpportunity(idea, investor, verified, votes.getOrDefault(idea.getId(), 0L), weekAgo))
+                .toList();
+    }
+
+    public Optional<String> neighborhoodName(Integer id) {
+        return neighborhoodRepository.findById(id).map(n -> n.getName() + ", " + n.getCity());
+    }
+
+    // Opportunities this close to the chosen neighborhood also count as "near you"
+    private static final double NEARBY_KM = 6.0;
+
+    // Budget fit labels (OpportunityResponse.budgetFit)
+    public static final String FIT_FULL = "FULL";
+    public static final String FIT_PARTIAL = "PARTIAL";
+    public static final String FIT_UNKNOWN = "UNKNOWN";
+    static final String FIT_NONE = "NONE";
+
+    /**
+     * How an opportunity's estimated capital [cMin, cMax] sits in the investor's range [bMin, bMax]
+     * (a null bMax means "and above"): FULL when it is inside, PARTIAL when the ranges overlap, UNKNOWN when the
+     * capital isn't estimated yet, NONE when they don't overlap. Null when no budget was given.
+     */
+    public static String budgetFit(BigDecimal cMin, BigDecimal cMax, BigDecimal bMin, BigDecimal bMax) {
+        if (bMin == null && bMax == null) {
+            return null;
+        }
+        if (cMin == null && cMax == null) {
+            return FIT_UNKNOWN;
+        }
+        BigDecimal lo = cMin != null ? cMin : cMax;
+        BigDecimal hi = cMax != null ? cMax : cMin;
+        BigDecimal from = bMin != null ? bMin : BigDecimal.ZERO;
+        boolean startsInside = lo.compareTo(from) >= 0;
+        boolean endsInside = bMax == null || hi.compareTo(bMax) <= 0;
+        if (startsInside && endsInside) {
+            return FIT_FULL;
+        }
+        boolean overlaps = hi.compareTo(from) >= 0 && (bMax == null || lo.compareTo(bMax) <= 0);
+        return overlaps ? FIT_PARTIAL : FIT_NONE;
+    }
+
+    static int fitRank(String fit) {
+        if (fit == null || FIT_FULL.equals(fit)) {
+            return 0;
+        }
+        return FIT_PARTIAL.equals(fit) ? 1 : 2;
+    }
+
+    /**
+     * Opportunities that fit the investor's search before they type anything: a city, a neighborhood
+     * (its own opportunities first, then the ones in nearby neighborhoods with their distance) and a budget range
+     * (opportunities whose estimated capital is inside the range first, then partial overlaps, then the ones
+     * without an estimate; no overlap = left out). Every filter is optional, and none of them changes the profile.
+     */
+    public List<OpportunityResponse> match(User currentUser, String city, Integer neighborhoodId, BigDecimal budgetMin,
+                                           BigDecimal budgetMax, int limit) {
+        if (budgetMin != null && budgetMax != null && budgetMin.compareTo(budgetMax) > 0) {
+            throw new BadRequestException("The minimum budget must be at or below the maximum");
+        }
+        Neighborhood home = neighborhoodId == null ? null : neighborhoodRepository.findById(neighborhoodId)
+                .orElseThrow(() -> new ResourceNotFoundException("Neighborhood not found with id: " + neighborhoodId));
+        String wantedCity = home != null ? home.getCity() : (city == null || city.isBlank() ? null : city.trim());
+        boolean located = home != null && home.getLatitude() != null && home.getLongitude() != null;
+
+        return openOpportunities(currentUser).stream()
+                .peek(o -> o.setBudgetFit(budgetFit(o.getCapitalMin(), o.getCapitalMax(), budgetMin, budgetMax)))
+                .filter(o -> !FIT_NONE.equals(o.getBudgetFit()))
+                .peek(o -> {
+                    if (located && o.getLatitude() != null) {
+                        o.setDistanceKm(LocationService.round2(LocationService.distanceKm(
+                                home.getLatitude(), home.getLongitude(), o.getLatitude(), o.getLongitude())));
+                    }
+                })
+                .filter(o -> {
+                    if (home != null) {
+                        return home.getId().equals(o.getNeighborhoodId())
+                                || (o.getDistanceKm() != null && o.getDistanceKm() <= NEARBY_KM);
+                    }
+                    return wantedCity == null || wantedCity.equalsIgnoreCase(o.getCity());
+                })
+                .sorted(Comparator.comparingInt((OpportunityResponse o) -> fitRank(o.getBudgetFit()))
+                        .thenComparing(o -> home == null || !home.getId().equals(o.getNeighborhoodId()))
+                        .thenComparing(o -> o.getDistanceKm() == null ? 0 : o.getDistanceKm())
+                        .thenComparing(Comparator.comparingDouble(ExploreService::strength).reversed()))
+                .limit(Math.max(1, Math.min(80, limit)))
+                .toList();
+    }
+
+    /** The strongest opportunities right now: closest to (or past) the vote target and gaining votes fastest. */
+    public List<OpportunityResponse> top(User currentUser, int limit) {
+        return openOpportunities(currentUser).stream()
+                .sorted(Comparator.comparingDouble(ExploreService::strength).reversed())
+                .limit(Math.max(1, Math.min(12, limit)))
+                .toList();
+    }
+
+    static double strength(OpportunityResponse o) {
+        return o.getVotePercent() + 4.0 * nz(o.getVotesLast7Days()) + 0.3 * nz(o.getCheckScore()) + 0.3 * nz(o.getGapScore());
+    }
+
+    private static double nz(Number n) {
+        return n == null ? 0 : n.doubleValue();
+    }
+
+    private OpportunityResponse toOpportunity(Idea idea, User investor, boolean verified, long count, LocalDateTime weekAgo) {
+        int threshold = DiscoverService.threshold(idea);
+        boolean unlocked = opportunityAccessRepository.existsByInvestorIdAndIdeaId(investor.getId(), idea.getId());
+        boolean mine = Objects.equals(idea.getOwner().getId(), investor.getId());
+        boolean teaser = !unlocked && !mine;
+        double[] point = teaser ? LocationService.approximatePointOf(idea) : LocationService.pointOf(idea);
+        boolean open = idea.getStatus() == IdeaStatus.PUBLISHED || idea.getStatus() == IdeaStatus.COMPLETED;
+        var check = ideaCheckRepository.findByIdeaId(idea.getId()).orElse(null);
+        var model = businessModelRepository.findByIdeaId(idea.getId()).orElse(null);
+        var stage = projectService.stageOfIdea(idea).orElse(null);
+        return OpportunityResponse.builder()
+                .id(idea.getId())
+                .title(teaser ? null : idea.getTitle())
+                .category(idea.getCategory())
+                .status(idea.getStatus().name())
+                .teaser(teaser)
+                .approxRadiusM(teaser ? LocationService.APPROX_RADIUS_M : null)
+                .neighborhoodId(idea.getNeighborhood().getId())
+                .neighborhoodName(idea.getNeighborhood().getName())
+                .city(idea.getNeighborhood().getCity())
+                .locationLabel(teaser ? null : LocationService.sideOf(idea))
+                .latitude(point != null ? point[0] : null)
+                .longitude(point != null ? point[1] : null)
+                .checkScore(check != null ? check.getScore() : null)
+                .competitorsCount(check != null ? check.getCompetitorsCount() : null)
+                .votesLast7Days(voteRepository.countByIdeaIdAndCreatedAtAfter(idea.getId(), weekAgo))
+                .capitalMin(model != null ? model.getEstimatedCapitalMin() : null)
+                .capitalMax(model != null ? model.getEstimatedCapitalMax() : null)
+                .stage(stage != null ? stage.stage() : null)
+                .stageIndex(stage != null ? stage.index() : null)
+                .stageCount(stage != null ? stage.count() : null)
+                .votesCount(count)
+                .membershipThreshold(threshold)
+                .votePercent(DiscoverService.percent(count, threshold))
+                .gapScore(feasibilityReportRepository.findByIdeaId(idea.getId())
+                        .map(FeasibilityReport::getGapScore).orElse(null))
+                .unlocked(unlocked)
+                // Early access: open ideas can be unlocked before they reach the vote target
+                .canUnlock(verified && !mine && !unlocked && open)
+                .build();
+    }
     private static boolean isTaken(String status) {
         return IdeaStatus.ADOPTED.name().equals(status) || IdeaStatus.OPENED.name().equals(status);
     }

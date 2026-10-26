@@ -5,6 +5,7 @@ import com.waleed.naseej.dto.in.MoyasarCreatePaymentApiRequest;
 import com.waleed.naseej.dto.in.MoyasarPaymentSourceApiRequest;
 import com.waleed.naseej.dto.in.MoyasarWebhookRequest;
 import com.waleed.naseej.dto.in.PaymentRequest;
+import com.waleed.naseej.dto.out.CheckoutResponse;
 import com.waleed.naseej.dto.out.ContractResponse;
 import com.waleed.naseej.dto.out.InitiateMoyasarPaymentResponse;
 import com.waleed.naseej.dto.out.MoyasarCreatePaymentApiResponse;
@@ -13,6 +14,7 @@ import com.waleed.naseej.dto.out.MoyasarWebhookResponse;
 import com.waleed.naseej.dto.out.PaymentResponse;
 import com.waleed.naseej.enums.PaymentMethod;
 import com.waleed.naseej.entity.Contract;
+import com.waleed.naseej.entity.Idea;
 import com.waleed.naseej.entity.Payment;
 import com.waleed.naseej.entity.Subscription;
 import com.waleed.naseej.entity.User;
@@ -45,6 +47,7 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -57,6 +60,10 @@ public class PaymentService {
     private static final BigDecimal VAT_RATE = new BigDecimal("0.15");
     private static final String MOYASAR_PAYMENTS_URL = "https://api.moyasar.com/v1/payments/";
     private static final String MOYASAR_CREATE_PAYMENT_URL = "https://api.moyasar.com/v1/payments";
+
+    // A payment opened for the payment form has this id until Moyasar's own id is linked
+    static final String PENDING_PREFIX = "pending-";
+    static final String METADATA_PAYMENT_ID = "naseej_payment_id";
 
     private final PaymentRepository paymentRepository;
     private final RestTemplate restTemplate;
@@ -114,19 +121,129 @@ public class PaymentService {
         return toResponse(paymentRepository.save(entity));
     }
 
+    /**
+     * Moyasar's webhook. The secret comes in the body (secret_token) or the X-Webhook-Secret header. The event itself
+     * is never trusted: the payment is fetched from Moyasar and must be paid, for the right amount, before it counts.
+     * A payment made in the payment form may not be linked yet (the investor closed the page): it is found by the
+     * naseej_payment_id Naseej put in its metadata.
+     */
     @Transactional
     public MoyasarWebhookResponse handleMoyasarWebhook(String webhookSecretHeader, MoyasarWebhookRequest webhook) {
-        validateWebhookSecret(webhookSecretHeader);
-
-        if (!"paid".equalsIgnoreCase(webhook.getStatus())) {
-            throw new BadRequestException("Webhook ignored: payment status is not paid");
+        validateWebhookSecret(StringUtils.hasText(webhookSecretHeader) ? webhookSecretHeader : webhook.getSecretToken());
+        String moyasarId = webhook.paymentId();
+        if (!StringUtils.hasText(moyasarId)) {
+            throw new BadRequestException("Webhook has no payment id");
         }
-
-        Payment payment = paymentRepository.findByMoyasarPaymentId(webhook.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Payment not found for moyasar id: " + webhook.getId()));
-
+        MoyasarPaymentStatusResponse remote = getPaymentStatus(moyasarId);
+        if (!"paid".equalsIgnoreCase(remote.getStatus())) {
+            return MoyasarWebhookResponse.builder().message("Ignored: the payment is " + remote.getStatus()).build();
+        }
+        Payment payment = paymentRepository.findByMoyasarPaymentId(moyasarId)
+                .orElseGet(() -> paymentRepository.findById(naseejPaymentId(remote))
+                        .orElseThrow(() -> new ResourceNotFoundException("Payment not found for moyasar id: " + moyasarId)));
+        if (!moyasarId.equals(payment.getMoyasarPaymentId())) {
+            attachMoyasarPayment(payment, moyasarId);
+        }
         return finalizePaidMoyasarPayment(payment);
+    }
+
+    // ---------- Moyasar payment form (the card details never reach Naseej) ----------
+
+    /**
+     * Opens a checkout for Moyasar's payment form: a Naseej payment row (INITIATED) remembers the investor,
+     * the idea and the amount, and the form carries its id in the metadata. Nothing is charged here.
+     */
+    @Transactional
+    public CheckoutResponse startFormCheckout(User user, Idea idea, BigDecimal amount, String description) {
+        return startFormCheckout(user, idea, amount, description, PaymentPurpose.OPPORTUNITY_ACCESS);
+    }
+
+    /** The same checkout for another purpose (the owner launch fee). amount is before VAT. */
+    @Transactional
+    public CheckoutResponse startFormCheckout(User user, Idea idea, BigDecimal amount, String description, String purpose) {
+        if (!StringUtils.hasText(moyasarPublishableKey) || !StringUtils.hasText(moyasarApiKey)) {
+            throw new BadRequestException("Online payment isn't set up yet. Try again later");
+        }
+        if (amount == null || amount.signum() <= 0) {
+            throw new BadRequestException("Unlock amount must be greater than zero");
+        }
+        BigDecimal price = amount.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal vat = vatOf(price);
+        BigDecimal total = price.add(vat);
+        Payment payment = paymentRepository.save(Payment.builder()
+                .user(user)
+                .purpose(purpose)
+                .idea(idea)
+                .amount(price)
+                .vat(vat)
+                .totalAmount(total)
+                .currency("SAR")
+                .method(PaymentMethod.CREDIT_CARD)
+                // Replaced by Moyasar's id once the form has made the payment
+                .moyasarPaymentId(PENDING_PREFIX + UUID.randomUUID())
+                .status(PaymentStatus.INITIATED)
+                .build());
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put(METADATA_PAYMENT_ID, String.valueOf(payment.getId()));
+        metadata.put("idea_id", String.valueOf(idea.getId()));
+        return CheckoutResponse.builder()
+                .paymentId(payment.getId())
+                .ideaId(idea.getId())
+                .amount(price)
+                .vat(vat)
+                .total(total)
+                .amountHalalas(toHalalas(total))
+                .currency("SAR")
+                .description(description)
+                .publishableKey(moyasarPublishableKey)
+                .testMode(isTestMoyasarEnvironment())
+                .metadata(metadata)
+                .build();
+    }
+
+    /**
+     * Links a Naseej payment to the Moyasar payment the form made, after checking with Moyasar that it is this
+     * payment (metadata), for the same amount and currency, and not already linked elsewhere.
+     */
+    @Transactional
+    public void attachMoyasarPayment(Payment payment, String moyasarId) {
+        String id = moyasarId == null ? "" : moyasarId.trim();
+        if (id.isEmpty() || id.startsWith(PENDING_PREFIX)) {
+            throw new BadRequestException("Moyasar payment id is required");
+        }
+        if (id.equals(payment.getMoyasarPaymentId())) {
+            return;
+        }
+        if (!payment.getMoyasarPaymentId().startsWith(PENDING_PREFIX)) {
+            throw new BadRequestException("This payment is already linked to another Moyasar payment");
+        }
+        if (paymentRepository.existsByMoyasarPaymentId(id)) {
+            throw new DuplicateResourceException("This Moyasar payment was already used");
+        }
+        MoyasarPaymentStatusResponse remote = getPaymentStatus(id);
+        Integer ours = payment.getId();
+        if (!ours.equals(naseejPaymentId(remote))) {
+            throw new BadRequestException("This Moyasar payment belongs to another checkout");
+        }
+        checkAmount(payment, remote);
+        payment.setMoyasarPaymentId(id);
+        paymentRepository.save(payment);
+    }
+
+    private static Integer naseejPaymentId(MoyasarPaymentStatusResponse remote) {
+        Object value = remote.getMetadata() == null ? null : remote.getMetadata().get(METADATA_PAYMENT_ID);
+        try {
+            return value == null ? -1 : Integer.valueOf(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    private static void checkAmount(Payment payment, MoyasarPaymentStatusResponse remote) {
+        if (remote.getAmount() == null || remote.getAmount() != toHalalas(payment.getTotalAmount())
+                || !"SAR".equalsIgnoreCase(remote.getCurrency())) {
+            throw new BadRequestException("The paid amount doesn't match this checkout");
+        }
     }
 
     @Transactional
@@ -137,7 +254,7 @@ public class PaymentService {
         }
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
-        return createMoyasarPayment(user, PaymentPurpose.OPPORTUNITY_ACCESS, ACCESS_FEE_AMOUNT,
+        return createMoyasarPayment(user, PaymentPurpose.OPPORTUNITY_ACCESS, null, ACCESS_FEE_AMOUNT,
                 "Naseej opportunity access fee", request.getCallbackUrl(), request.getUseSandboxTestCard());
     }
 
@@ -146,12 +263,13 @@ public class PaymentService {
      * Used by the investor checkout; the access is granted after the payment is confirmed as PAID.
      */
     @Transactional
-    public InitiateMoyasarPaymentResponse initiateUnlockPayment(User investor, BigDecimal amount, String description,
-                                                                String callbackUrl, Boolean useSandboxTestCard) {
+    public InitiateMoyasarPaymentResponse initiateUnlockPayment(User investor, Idea idea, BigDecimal amount,
+                                                                String description, String callbackUrl,
+                                                                Boolean useSandboxTestCard) {
         if (amount == null || amount.signum() <= 0) {
             throw new BadRequestException("Unlock amount must be greater than zero");
         }
-        return createMoyasarPayment(investor, PaymentPurpose.OPPORTUNITY_ACCESS,
+        return createMoyasarPayment(investor, PaymentPurpose.OPPORTUNITY_ACCESS, idea,
                 amount.setScale(2, RoundingMode.HALF_UP), description, callbackUrl, useSandboxTestCard);
     }
 
@@ -165,7 +283,7 @@ public class PaymentService {
         if (amount == null || amount.signum() <= 0) {
             throw new BadRequestException("Subscription amount must be greater than zero");
         }
-        return createMoyasarPayment(user, PaymentPurpose.SUBSCRIPTION,
+        return createMoyasarPayment(user, PaymentPurpose.SUBSCRIPTION, null,
                 amount.setScale(2, RoundingMode.HALF_UP), description, callbackUrl, useSandboxTestCard);
     }
 
@@ -222,7 +340,8 @@ public class PaymentService {
         return toResponse(paymentRepository.save(payment));
     }
 
-    private InitiateMoyasarPaymentResponse createMoyasarPayment(User user, String purpose, BigDecimal amount,
+    // idea is null for payments that aren't for one idea (the old access fee, subscriptions)
+    private InitiateMoyasarPaymentResponse createMoyasarPayment(User user, String purpose, Idea idea, BigDecimal amount,
                                                                 String description, String requestCallbackUrl,
                                                                 Boolean useSandboxTestCard) {
         String createApiKey = resolveCreatePaymentApiKey();
@@ -266,6 +385,7 @@ public class PaymentService {
         Payment payment = Payment.builder()
                 .user(user)
                 .purpose(purpose)
+                .idea(idea)
                 .amount(amount)
                 .vat(vat)
                 .totalAmount(total)
@@ -439,12 +559,22 @@ public class PaymentService {
         if (!StringUtils.hasText(payment.getMoyasarPaymentId())) {
             throw new BadRequestException("Payment has no Moyasar payment id");
         }
+        if (payment.getMoyasarPaymentId().startsWith(PENDING_PREFIX)) {
+            throw new BadRequestException("The payment wasn't completed");
+        }
         MoyasarPaymentStatusResponse remote = getPaymentStatus(payment.getMoyasarPaymentId());
+        if ("failed".equalsIgnoreCase(remote.getStatus())) {
+            String reason = remote.getSource() != null && StringUtils.hasText(remote.getSource().getMessage())
+                    ? remote.getSource().getMessage() : "The card was declined";
+            throw new BadRequestException("The payment failed: " + reason);
+        }
         if (!"paid".equalsIgnoreCase(remote.getStatus())) {
             throw new BadRequestException(
                     "Moyasar payment status is '" + remote.getStatus()
                             + "'. Complete checkout or wait, then sync again.");
         }
+        // Paid, and for exactly what this payment was opened for
+        checkAmount(payment, remote);
         return finalizePaidMoyasarPayment(payment);
     }
 
@@ -483,6 +613,9 @@ public class PaymentService {
             message = subscriptionRepository.findByPaymentId(payment.getId())
                     .map(this::activateSubscription)
                     .orElse("Payment confirmed; no subscription linked to this payment yet");
+        } else if (PaymentPurpose.OWNER_LAUNCH.equals(payment.getPurpose())) {
+            // The project starts when the owner's browser comes back (UnlockService.confirmOwnerLaunch)
+            message = "Owner launch fee confirmed";
         }
 
         return MoyasarWebhookResponse.builder()
@@ -575,7 +708,8 @@ public class PaymentService {
     private void validatePaymentPurposeAndAmounts(Payment payment) {
         // The unlock price is quoted per idea by the AI, so only the VAT math is checked here
         if (PaymentPurpose.OPPORTUNITY_ACCESS.equals(payment.getPurpose())
-                || PaymentPurpose.SUBSCRIPTION.equals(payment.getPurpose())) {
+                || PaymentPurpose.SUBSCRIPTION.equals(payment.getPurpose())
+                || PaymentPurpose.OWNER_LAUNCH.equals(payment.getPurpose())) {
             if (payment.getAmount() == null || payment.getAmount().signum() <= 0
                     || payment.getVat() == null
                     || payment.getTotalAmount() == null

@@ -1,17 +1,19 @@
-// Google sign-up: step 1 choose the membership, step 2 the role's own form.
-// Investors only confirm here; their preferences come next in onboarding.html and the CR at the first unlock.
+// Google sign-up in steps: account type → your home (resident) or a last confirmation (investor, whose
+// preferences come next in onboarding.html and the CR before the first unlock).
 import { api, session } from '../api.js';
-import { $, homeFor, toast, withLoading, applyFieldErrors, errorMessage, initPage, t } from '../ui.js';
-import { langButton } from '../i18n.js';
-import { setupLocationCard, showFieldError } from '../profile-fields.js';
+import { $, $$, homeFor, withLoading, applyFieldErrors, errorMessage, toast, initPage, t } from '../ui.js';
+import { langButton, lang } from '../i18n.js';
+import { stepper } from '../components.js';
+import { addressPicker } from '../address-picker.js';
+import { normalizePhone, showFieldError, clearFieldErrors } from '../profile-fields.js';
 
 $('#lang-slot').innerHTML = langButton();
 initPage();
 if (!session.isLoggedIn()) location.replace('login.html');
 
 const form = $('#role-form');
-let role = null;
-let location$ = null;
+let step = 0;
+let picker = null;
 
 // Only PENDING users belong here
 api.get('auth/me').then((user) => {
@@ -19,36 +21,44 @@ api.get('auth/me').then((user) => {
   if (user.role !== 'PENDING') location.replace(homeFor(user));
 }).catch(() => {});
 
-document.querySelectorAll('[data-pick]').forEach((card) => card.addEventListener('click', () => {
-  role = card.dataset.pick;
-  $('#step-1').classList.add('hidden');
-  $('#step-2').classList.remove('hidden');
-  $('#step2-title').textContent = role === 'RESIDENT' ? t('choose.residentTitle') : t('choose.investorTitle');
-  $('#resident-fields').classList.toggle('hidden', role !== 'RESIDENT');
-  $('#investor-fields').classList.toggle('hidden', role !== 'INVESTOR');
-  if (role === 'RESIDENT' && !location$) location$ = setupLocationCard(form);
-}));
+const role = () => form.querySelector('input[name="role"]:checked').value;
+const labels = () => [t('signup.stepType'), role() === 'RESIDENT' ? t('signup.stepHome') : t('choose.investorTitle')];
 
-$('#back').addEventListener('click', () => {
-  $('#step-2').classList.add('hidden');
-  $('#step-1').classList.remove('hidden');
+function show(next, { focus = true } = {}) {
+  step = next;
+  $('#stepper').innerHTML = stepper(labels(), step);
+  $$('[data-step]', form).forEach((s) => {
+    const forRole = s.dataset.role;
+    s.hidden = Number(s.dataset.step) !== step || (forRole && forRole !== role());
+  });
+  $('[data-final]', form).hidden = step !== 1;
+  if (step === 1 && role() === 'RESIDENT' && !picker) picker = addressPicker($('#home-picker'));
+  if (step === 1 && picker) setTimeout(() => picker.map.invalidateSize(), 50);
+  if (focus) form.querySelector(`[data-step="${step}"]:not([hidden]) h1`)?.focus();
+}
+
+window.addEventListener('popstate', (e) => show(e.state?.step ?? 0));
+history.replaceState({ step: 0 }, '', location.pathname);
+$('[data-next]', form).addEventListener('click', () => {
+  history.pushState({ step: 1 }, '', '#step-2');
+  show(1);
+  window.scrollTo({ top: 0 });
 });
+$('[data-back]', form).addEventListener('click', () => history.back());
+$$('input[name="role"]', form).forEach((r) => r.addEventListener('change', () => { $('#stepper').innerHTML = stepper(labels(), step); }));
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
-  applyFieldErrors(form, null);
-  if (!$('#terms').checked) {
-    toast(t('form.acceptTerms'), 'error');
-    return;
+  if (step !== 1) return;
+  clearFieldErrors(form);
+  const phone = normalizePhone(form.phone.value);
+  if (phone === false) { showFieldError(form, 'phone', t('signup.phoneInvalid')); return; }
+  const body = { role: role(), phone, preferredLanguage: lang };
+  if (role() === 'RESIDENT') {
+    if (!picker.validate()) return;
+    body.address = picker.values();
   }
-  const body = { role, phone: form.phone.value.trim() || null };
-  if (role === 'RESIDENT') {
-    Object.assign(body, location$.values());
-    if (!body.neighborhoodId && body.latitude === null) {
-      showFieldError(form, 'neighborhoodId', t('form.chooseYourHood'));
-      return;
-    }
-  }
+  if (!$('#terms').checked) { showFieldError(form, 'terms', t('form.acceptTerms')); return; }
   withLoading(form.querySelector('[type="submit"]'), async () => {
     try {
       const auth = await api.put('auth/select-role', body);
@@ -60,3 +70,5 @@ form.addEventListener('submit', (e) => {
     }
   });
 });
+
+show(0, { focus: false });

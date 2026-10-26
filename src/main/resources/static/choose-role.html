@@ -8,11 +8,13 @@
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="assets/css/app.css">
 <title data-i18n-title="choose.title">Naseej</title>
 </head>
 <body>
+<a class="sr-only" href="#main" data-i18n="common.skip">Skip to content</a>
 <div class="auth">
   <aside class="auth-aside">
     <a class="brand" href="index.html" style="color:#fff" data-i18n-attr="aria-label:brand.home"><img src="assets/img/mark-white.png" alt=""><span data-i18n="brand.name">NASEEJ</span></a>
@@ -25,64 +27,69 @@
   </aside>
   <main class="auth-main" id="main">
     <div class="auth-top"><a class="btn btn-ghost btn-sm" href="index.html" data-i18n="auth.home"></a><span id="lang-slot"></span></div>
-    <div class="auth-card wide" id="step-1">
-      <div class="stack" style="gap:6px">
-        <span class="eyebrow" data-i18n="choose.step1"></span>
-        <h1 data-i18n="choose.heading"></h1>
-      </div>
-      <div class="grid grid-2" style="gap:14px">
-        <button type="button" class="card stack choice-card" data-pick="RESIDENT">
-          <span class="badge" style="align-self:flex-start" data-i18n="choose.free"></span>
-          <strong data-i18n="role.RESIDENT"></strong>
-          <span class="small muted" data-i18n="choose.residentText"></span>
-        </button>
-        <button type="button" class="card stack choice-card" data-pick="INVESTOR">
-          <span class="badge badge-sand" style="align-self:flex-start" data-i18n="choose.crRequired"></span>
-          <strong data-i18n="role.INVESTOR"></strong>
-          <span class="small muted" data-i18n="choose.investorText"></span>
-        </button>
-      </div>
-    </div>
-    <div class="auth-card wide hidden" id="step-2">
-      <div class="stack" style="gap:6px">
-        <button type="button" class="btn btn-ghost btn-sm" id="back" style="align-self:flex-start;padding:0 4px" data-i18n="choose.change"></button>
-        <span class="eyebrow" data-i18n="choose.step2"></span>
-        <h1 id="step2-title"></h1>
-      </div>
+    <div class="auth-card wide">
+      <div id="stepper"></div>
       <form id="role-form" class="stack" novalidate>
-        <div class="field">
-          <label for="phone"><span data-i18n="form.mobile"></span> <span class="muted" data-i18n="form.optional"></span></label>
-          <input class="input" id="phone" name="phone" type="tel" inputmode="numeric" placeholder="9665XXXXXXXX" dir="ltr">
-          <span class="error" aria-live="polite"></span>
-        </div>
-        <div id="resident-fields" class="stack">
-          <div class="surface-sand stack" style="gap:10px">
-            <div class="row" style="justify-content:space-between">
-              <span style="font-size:13px;font-weight:600" data-i18n="loc.yourHood"></span>
-              <span class="badge badge-sand" id="loc-status" data-i18n="loc.detecting"></span>
-            </div>
-            <div id="loc-result" class="small muted" data-i18n="loc.willFill"></div>
-            <div class="grid grid-2" style="gap:10px">
-              <div class="field">
-                <label for="city" data-i18n="form.city"></label>
-                <select class="select" id="city"><option value="" data-i18n="form.chooseCity"></option></select>
-              </div>
-              <div class="field">
-                <label for="neighborhoodId" data-i18n="form.hood"></label>
-                <select class="select" id="neighborhoodId" name="neighborhoodId"><option value="" data-i18n="form.chooseHood"></option></select>
-                <span class="error" aria-live="polite"></span>
-              </div>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" id="detect" style="align-self:flex-start" data-i18n="loc.useMine" data-i18n-attr="data-loading:loc.locating"></button>
+
+        <!-- Step 1: account type -->
+        <section class="stack" data-step="0" aria-labelledby="h-type">
+          <h1 id="h-type" tabindex="-1" data-i18n="signup.typeTitle"></h1>
+          <fieldset class="stack" style="gap:12px;border:0;padding:0;margin:0">
+            <legend class="sr-only" data-i18n="choose.heading"></legend>
+            <label class="option">
+              <input type="radio" name="role" value="RESIDENT" checked>
+              <span class="badge" style="align-self:flex-start" data-i18n="choose.free"></span>
+              <strong data-i18n="signup.resident"></strong>
+              <span class="small muted" data-i18n="signup.residentText"></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="role" value="INVESTOR">
+              <span class="badge badge-sand" style="align-self:flex-start" data-i18n="choose.crRequired"></span>
+              <strong data-i18n="signup.investor"></strong>
+              <span class="small muted" data-i18n="register.investorHint"></span>
+            </label>
+          </fieldset>
+          <button type="button" class="btn btn-block" data-next data-i18n="signup.next"></button>
+        </section>
+
+        <!-- Step 2 (resident): home address -->
+        <section class="stack" data-step="1" data-role="RESIDENT" aria-labelledby="h-home" hidden>
+          <div class="stack" style="gap:6px">
+            <h1 id="h-home" tabindex="-1" data-i18n="addr.title"></h1>
+            <p class="muted" data-i18n="addr.why"></p>
+          </div>
+          <div id="home-picker"></div>
+          <div class="notice notice-info small"><span data-i18n="addr.rule"></span></div>
+        </section>
+
+        <!-- Step 2 (investor): the last step. Budget, fields and areas come next in the onboarding questions,
+             the CR before the first unlock -->
+        <section class="stack" data-step="1" data-role="INVESTOR" aria-labelledby="h-company" hidden>
+          <h1 id="h-company" tabindex="-1" data-i18n="choose.investorTitle"></h1>
+          <div class="notice notice-info"><span data-i18n="register.investorHint"></span></div>
+        </section>
+
+        <!-- Last step footer -->
+        <div class="stack" data-final hidden>
+          <div class="field">
+            <label for="phone"><span data-i18n="form.mobile"></span> <span class="muted" data-i18n="form.optional"></span></label>
+            <input class="input" id="phone" name="phone" type="tel" inputmode="numeric" data-i18n-attr="placeholder:signup.phonePh" autocomplete="tel" dir="ltr">
+            <span class="error" aria-live="polite"></span>
+          </div>
+          <div class="field">
+            <label class="check"><input type="checkbox" id="terms" name="terms"><span data-i18n="form.terms"></span></label>
+            <span class="error" aria-live="polite"></span>
+          </div>
+          <div class="row step-actions">
+            <button type="button" class="btn btn-secondary" data-back data-i18n="signup.back"></button>
+            <button class="btn" type="submit" data-i18n="choose.finish" data-i18n-attr="data-loading:common.saving"></button>
           </div>
         </div>
-        <div id="investor-fields" class="notice notice-info hidden"><span data-i18n="register.investorHint"></span></div>
-        <label class="check"><input type="checkbox" id="terms" required><span data-i18n="form.terms"></span></label>
-        <button class="btn btn-block" type="submit" data-i18n="choose.finish" data-i18n-attr="data-loading:common.saving"></button>
       </form>
     </div>
   </main>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script type="module" src="assets/js/pages/choose-role.js"></script>
 </body>
 </html>

@@ -18,7 +18,7 @@ app.innerHTML = `
       <label class="sr-only" for="q">${esc(t('ask.label'))}</label>
       <span class="ask-icon" aria-hidden="true">${icon.spark}</span>
       <input id="q" name="q" autocomplete="off" maxlength="300" placeholder="${esc(t('ask.placeholder'))}">
-      <button class="btn" type="submit" data-loading="${esc(t('common.wait'))}">${esc(t('ask.submit'))}</button>
+      <button class="btn" type="submit" data-loading="${esc(t('commonInv.wait'))}">${esc(t('ask.submit'))}</button>
     </form>
     <div class="ask-examples" role="group" aria-label="${esc(t('ask.examples'))}">
       <span>${esc(t('ask.examples'))}</span>

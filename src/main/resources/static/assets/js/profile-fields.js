@@ -1,78 +1,66 @@
-// Sign-up pieces shared by register.html and choose-role.html: the resident's neighborhood filled
-// from the browser location. (Investor preferences live in investor-prefs.js.)
-import { api } from './api.js';
-import { $, esc, withLoading, errorMessage, t } from './ui.js';
-import { locate } from './maps.js';
+// Sign-up and account pieces shared by register.html, choose-role.html and account.html:
+// the investor profile (CR, company, budget range, fields) and small form helpers.
+import { $, esc, LABELS, t } from './ui.js';
+import { rangeSlider } from './components.js';
 
-/** Location card: detects the nearest neighborhood, with city/neighborhood dropdowns as a fallback. */
-export function setupLocationCard(root) {
-  const state = { latitude: null, longitude: null, neighborhoodId: null };
-  const status = $('#loc-status', root);
-  const result = $('#loc-result', root);
-  const citySel = $('#city', root);
-  const hoodSel = $('#neighborhoodId', root);
-  let all = [];
+/**
+ * Investor fields inside root: #crNumber, #companyName, #budget-range and #field-chips.
+ * value: an existing profile ({ crNumber, companyName, budgetMin, budgetMax, investmentFields }).
+ */
+export function setupInvestorFields(root, value = {}) {
+  const fieldBox = $('#field-chips', root);
+  const fieldsInput = root.querySelector('[name="investmentFields"]');
+  const chosen = new Set((value.investmentFields || '').split(',').filter(Boolean));
 
-  const setStatus = (text, cls = 'badge-sand') => {
-    status.className = `badge ${cls}`;
-    status.textContent = text;
-  };
+  if (value.crNumber) $('#crNumber', root).value = value.crNumber;
+  if (value.companyName && $('#companyName', root)) $('#companyName', root).value = value.companyName;
 
-  const fillHoods = (city, selectedId) => {
-    const hoods = all.filter((n) => n.city === city).sort((a, b) => a.name.localeCompare(b.name));
-    hoodSel.innerHTML = `<option value="">${esc(t('form.chooseHood'))}</option>`
-      + hoods.map((n) => `<option value="${n.id}"${n.id === selectedId ? ' selected' : ''}>${esc(n.name)}</option>`).join('');
-  };
-
-  const ready = api.get('neighborhoods/get-all', null, { auth: false }).then((list) => {
-    all = list || [];
-    const cities = [...new Set(all.map((n) => n.city))].sort();
-    citySel.innerHTML = `<option value="">${esc(t('form.chooseCity'))}</option>`
-      + cities.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  }).catch(() => {
-    result.textContent = t('loc.hoodsFailed');
+  fieldBox.innerHTML = Object.entries(LABELS.field)
+    .map(([k, v]) => `<button type="button" class="chip" data-v="${k}" aria-pressed="${chosen.has(k)}">${esc(v)}</button>`).join('');
+  fieldsInput.value = [...chosen].join(',');
+  fieldBox.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    chip.setAttribute('aria-pressed', String(chip.getAttribute('aria-pressed') !== 'true'));
+    fieldsInput.value = [...fieldBox.querySelectorAll('.chip[aria-pressed="true"]')].map((c) => c.dataset.v).join(',');
   });
 
-  citySel.addEventListener('change', () => { fillHoods(citySel.value); state.neighborhoodId = null; });
-  hoodSel.addEventListener('change', () => {
-    state.neighborhoodId = hoodSel.value ? Number(hoodSel.value) : null;
-    if (state.neighborhoodId) setStatus(t('loc.chosen'), '');
-  });
-
-  const detect = async () => {
-    setStatus(t('loc.detecting'));
-    try {
-      const loc = await locate();
-      state.latitude = loc.lat;
-      state.longitude = loc.lng;
-      await ready;
-      const hood = await api.get('public/nearest-neighborhood', { lat: loc.lat, lng: loc.lng }, { auth: false });
-      state.neighborhoodId = hood.id;
-      // The server may have just added this district from the map, so it can be missing from the lists
-      if (!all.some((n) => n.id === hood.id)) all.push(hood);
-      if (![...citySel.options].some((o) => o.value === hood.city)) {
-        citySel.insertAdjacentHTML('beforeend', `<option value="${esc(hood.city)}">${esc(hood.city)}</option>`);
-      }
-      citySel.value = hood.city;
-      fillHoods(hood.city, hood.id);
-      result.innerHTML = `<strong style="color:var(--ink);font-size:16px">${esc(hood.name)}, ${esc(hood.city)}</strong><br>${esc(t('loc.fromLocationHint'))}`;
-      setStatus(t('loc.fromLocation'), '');
-    } catch (err) {
-      result.textContent = errorMessage(err) || t('loc.pickFromList');
-      setStatus(t('loc.chooseManually'), 'badge-amber');
-    }
-  };
-
-  $('#detect', root).addEventListener('click', (e) => withLoading(e.currentTarget, detect));
-  detect();
+  const min = value.budgetMin != null ? Number(value.budgetMin) : 200000;
+  const max = value.budgetMin != null ? (value.budgetMax != null ? Number(value.budgetMax) : null) : 800000;
+  const budget = rangeSlider($('#budget-range', root), { value: [min, max], label: t('inv.budget') });
 
   return {
-    values: () => ({
-      neighborhoodId: hoodSel.value ? Number(hoodSel.value) : state.neighborhoodId,
-      latitude: state.latitude,
-      longitude: state.longitude,
-    }),
+    values: () => {
+      const [budgetMin, budgetMax] = budget.get();
+      return {
+        crNumber: $('#crNumber', root).value.trim(),
+        companyName: $('#companyName', root)?.value.trim() || null,
+        budgetMin,
+        budgetMax,
+        investmentFields: fieldsInput.value || null,
+      };
+    },
   };
+}
+
+/** Client-side checks that mirror the server rules, so mistakes show before sending. */
+export function checkInvestor(values) {
+  if (!/^\d{10}$/.test(values.crNumber || '')) return ['crNumber', t('inv.crInvalid')];
+  if (!values.investmentFields) return ['investmentFields', t('inv.fieldsRequired')];
+  return null;
+}
+
+/** 05XXXXXXXX, 5XXXXXXXX, +9665… or 9665… → 9665XXXXXXXX (what the server stores). Null when empty, false when invalid. */
+export function normalizePhone(raw) {
+  const digits = String(raw || '').replace(/[^\d]/g, '');
+  if (!digits) return null;
+  const local = digits.replace(/^(00966|966|0)/, '');
+  return /^5\d{8}$/.test(local) ? `966${local}` : false;
+}
+
+/** 9665XXXXXXXX → 05XXXXXXXX for showing in a form. */
+export function displayPhone(stored) {
+  return stored && /^9665\d{8}$/.test(stored) ? `0${stored.slice(3)}` : (stored || '');
 }
 
 export function showFieldError(form, name, message) {
@@ -83,4 +71,26 @@ export function showFieldError(form, name, message) {
     input.setAttribute('aria-invalid', 'true');
     input.focus();
   }
+}
+
+/** Clears the errors shown by showFieldError / applyFieldErrors inside root. */
+export function clearFieldErrors(root) {
+  root.querySelectorAll('[aria-invalid="true"]').forEach((el) => el.removeAttribute('aria-invalid'));
+  root.querySelectorAll('.field .error').forEach((el) => { el.textContent = ''; });
+}
+
+/** A show/hide button for a password input (the button sits after the input inside .password-wrap). */
+export function wirePasswordToggle(input) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-ghost btn-sm password-toggle';
+  btn.textContent = t('signup.show');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? t('signup.hide') : t('signup.show');
+    btn.setAttribute('aria-pressed', String(show));
+  });
+  input.after(btn);
 }

@@ -5,6 +5,7 @@ import com.waleed.naseej.exception.ExternalServiceException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -23,6 +24,8 @@ import org.springframework.web.client.RestClientResponseException;
  * Finds businesses of one type inside a circle around a point, nearest first.
  * Uses Google Places API (New) when GOOGLE_PLACES_API_KEY is set; otherwise OpenStreetMap
  * (Overpass API), which is free, needs no key, and is the same map data the website shows.
+ * Some networks can't reach the Overpass servers at all, so the same OpenStreetMap data is then
+ * read through Nominatim instead (see OsmService).
  */
 @Slf4j
 @Service
@@ -120,11 +123,16 @@ public class GooglePlacesService {
             Map.entry("cell_phone_store", List.of("shop=mobile_phone")),
             Map.entry("sporting_goods_store", List.of("shop=sports")));
 
+    // After every Overpass server failed, go straight to Nominatim for a while instead of waiting again
+    private static final long OVERPASS_RETRY_AFTER_MS = 10 * 60 * 1000;
+
     private final RestClient restClient;
     private final RestClient overpassClient;
     private final String apiKey;
+    private final OsmService osmService;
+    private volatile long overpassDownUntil = 0;
 
-    public GooglePlacesService(@Value("${google.places.api.key:}") String apiKey) {
+    public GooglePlacesService(@Value("${google.places.api.key:}") String apiKey, OsmService osmService) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(10));
         requestFactory.setReadTimeout(Duration.ofSeconds(30));
@@ -135,12 +143,13 @@ public class GooglePlacesService {
 
         // Shorter wait per Overpass server, so trying the backups still answers in reasonable time
         SimpleClientHttpRequestFactory overpassFactory = new SimpleClientHttpRequestFactory();
-        overpassFactory.setConnectTimeout(Duration.ofSeconds(5));
-        overpassFactory.setReadTimeout(Duration.ofSeconds(20));
+        overpassFactory.setConnectTimeout(Duration.ofSeconds(4));
+        overpassFactory.setReadTimeout(Duration.ofSeconds(12));
         this.overpassClient = RestClient.builder()
                 .requestFactory(overpassFactory)
                 .build();
         this.apiKey = apiKey;
+        this.osmService = osmService;
     }
 
     /**
@@ -207,6 +216,9 @@ public class GooglePlacesService {
         // places in the corners of the box are dropped below by their real distance
         double latDelta = radiusKm / 111.32;
         double lngDelta = radiusKm / (111.32 * Math.max(0.2, Math.cos(Math.toRadians(latitude))));
+        if (System.currentTimeMillis() < overpassDownUntil) {
+            return searchNominatim(latitude, longitude, radiusKm, placeType, tags, latDelta, lngDelta);
+        }
         String bbox = String.format(Locale.ROOT, "[bbox:%.6f,%.6f,%.6f,%.6f]",
                 latitude - latDelta, longitude - lngDelta, latitude + latDelta, longitude + lngDelta);
         StringBuilder query = new StringBuilder("[out:json][timeout:15]").append(bbox).append(";(");
@@ -239,14 +251,15 @@ public class GooglePlacesService {
                 busy = true;
                 log.warn("Overpass server {} returned {}, trying the next one", url, e.getStatusCode());
             } catch (RestClientException e) {
-                log.warn("Overpass server {} didn't answer ({}), trying the next one", url, e.getMostSpecificCause().getMessage());
+                // No answer at all usually means the network blocks Overpass, so the other servers won't answer either
+                log.warn("Overpass server {} didn't answer ({})", url, e.getMostSpecificCause().getMessage());
+                break;
             }
         }
         if (!answered) {
-            log.error("No OpenStreetMap (Overpass) server answered");
-            throw new ExternalServiceException(busy
-                    ? "The map data service is busy, please try again in a minute"
-                    : "Could not reach the map data service, please try again later");
+            log.warn("No Overpass server answered{}, reading OpenStreetMap through Nominatim", busy ? " (busy)" : "");
+            overpassDownUntil = System.currentTimeMillis() + OVERPASS_RETRY_AFTER_MS;
+            return searchNominatim(latitude, longitude, radiusKm, placeType, tags, latDelta, lngDelta);
         }
         if (response == null || response.elements() == null) {
             return List.of();
@@ -268,6 +281,35 @@ public class GooglePlacesService {
                     distanceKm(latitude, longitude, lat, lon)));
         }
         return places.stream()
+                .filter(place -> place.distanceKm() <= radiusKm)
+                .sorted(Comparator.comparingDouble(FoundPlace::distanceKm))
+                .limit(MAX_RESULTS)
+                .toList();
+    }
+
+    /** Same OpenStreetMap tags through Nominatim, one tag value per request. */
+    private List<FoundPlace> searchNominatim(double latitude, double longitude, double radiusKm, String placeType,
+                                             List<String> tags, double latDelta, double lngDelta) {
+        Map<String, FoundPlace> unique = new LinkedHashMap<>();
+        boolean anyAnswer = false;
+        for (String tag : tags) {
+            String[] parts = tag.split("[=~]", 2);
+            for (String value : parts[1].split("\\|")) {
+                List<OsmService.Place> found = osmService.searchTag(parts[0], value,
+                        latitude - latDelta, longitude - lngDelta, latitude + latDelta, longitude + lngDelta);
+                if (found == null) {
+                    continue;
+                }
+                anyAnswer = true;
+                found.forEach(p -> unique.putIfAbsent(p.id(), new FoundPlace(p.id(), p.name(), placeType,
+                        distanceKm(latitude, longitude, p.latitude(), p.longitude()))));
+            }
+        }
+        if (!anyAnswer) {
+            log.error("Neither Overpass nor Nominatim answered");
+            throw new ExternalServiceException("Could not reach the map data service, please try again later");
+        }
+        return unique.values().stream()
                 .filter(place -> place.distanceKm() <= radiusKm)
                 .sorted(Comparator.comparingDouble(FoundPlace::distanceKm))
                 .limit(MAX_RESULTS)

@@ -14,4 +14,5 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
 
     // A user's subscriptions, newest first
     List<Subscription> findByUserIdOrderByIdDesc(Integer userId);
+    boolean existsByUserId(Integer userId);
 }

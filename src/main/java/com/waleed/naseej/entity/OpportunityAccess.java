@@ -39,4 +39,7 @@ public class OpportunityAccess {
     private AccessType accessType;
 
     private LocalDateTime priorityUntil;
+
+    // When the investor accepted the confidentiality and non-circumvention terms
+    private LocalDateTime ndaAcceptedAt;
 }

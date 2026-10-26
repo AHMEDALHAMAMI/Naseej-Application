@@ -54,6 +54,10 @@ public class Idea {
 
     private Double longitude;
 
+    // How many times the author edited the idea and ran the check again (limited, each check calls the AI)
+    @Builder.Default
+    private Integer recheckCount = 0;
+
     // Why the AI check rejected the idea (status REJECTED)
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;

@@ -28,6 +28,11 @@ public class Payment {
     @Column(nullable = false)
     private String purpose;
 
+    // The idea an unlock payment is for, so a payment can't be reused for another (pricier) idea
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idea_id")
+    private Idea idea;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
@@ -58,6 +63,17 @@ public class Payment {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    // Owner launch: the agreement the investor signed before paying. It becomes the contract's signature
+    // once Moyasar confirms the payment
+    @Column(name = "signer_name", length = 120)
+    private String signerName;
+
+    @Column(name = "signer_ip", length = 64)
+    private String signerIp;
+
+    @Column(name = "terms_version", length = 40)
+    private String termsVersion;
 
     public void confirm() {
         if (this.status == PaymentStatus.REFUNDED) {

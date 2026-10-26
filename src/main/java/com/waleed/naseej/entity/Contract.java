@@ -50,6 +50,17 @@ public class Contract {
     @Builder.Default
     private ContractStatus status = ContractStatus.DRAFT;
 
+    // Owner launch (OWNER_SERVICE): the platform's service fee the owner signed, as a share of the project's
+    // net profit for a number of years, and the version of the terms they read. Null for investor agreements.
+    @Column(name = "platform_fee_percent", precision = 5, scale = 2)
+    private BigDecimal platformFeePercent;
+
+    @Column(name = "platform_fee_years")
+    private Integer platformFeeYears;
+
+    @Column(name = "terms_version", length = 40)
+    private String termsVersion;
+
     @Column(name = "opening_deadline")
     private LocalDate openingDeadline;
 

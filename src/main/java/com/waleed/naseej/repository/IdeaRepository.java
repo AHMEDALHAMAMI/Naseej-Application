@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,11 +20,7 @@ public interface IdeaRepository extends JpaRepository<Idea, Integer> {
     @EntityGraph(attributePaths = "neighborhood")
     Optional<Idea> findWithNeighborhoodById(Integer id);
 
-    // Every other idea that isn't in screening anymore, used to look for similar ideas
-    @EntityGraph(attributePaths = "neighborhood")
-    List<Idea> findByIdNotAndStatusNot(Integer id, IdeaStatus status);
-
-    // Map, explore and stats: ideas in some statuses with their neighborhood
+    // Map, explore, stats and the similar-ideas check: ideas in some statuses with their neighborhood
     @EntityGraph(attributePaths = "neighborhood")
     List<Idea> findByStatusIn(Collection<IdeaStatus> statuses);
 
@@ -34,4 +31,12 @@ public interface IdeaRepository extends JpaRepository<Idea, Integer> {
     List<Idea> findByOwnerIdOrderByIdDesc(Integer ownerId);
 
     long countByStatus(IdeaStatus status);
+
+    // [ownerId, ideas] for the admin members list
+    @Query("select i.owner.id, count(i) from Idea i group by i.owner.id")
+    List<Object[]> countPerOwner();
+
+    boolean existsByOwnerId(Integer ownerId);
+
+    long countByOwnerId(Integer ownerId);
 }

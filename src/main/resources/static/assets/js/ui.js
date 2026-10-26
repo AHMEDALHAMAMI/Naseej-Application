@@ -58,6 +58,8 @@ export const CATEGORIES = [
 ];
 export const categoryLabel = (value) => label('cat', value);
 
+// ---------- Investor experience helpers (budget, fields, places) ----------
+
 // Which idea categories belong to each investment field (used to match opportunities to an investor)
 export const FIELD_CATEGORIES = {
   FOOD: ['Grocery', 'Bakery', 'Cafe', 'Restaurant'],
@@ -132,6 +134,7 @@ export const stageLabel = (value) => label('stage', value);
 // ---------- Icons ----------
 
 export const icon = {
+  bell: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0c0 4.5 1.8 6.5 2.5 7.5h-17C4.2 16 6 14 6 9.5z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></svg>',
   pin: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
   check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg>',
   info: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
@@ -220,22 +223,33 @@ export async function withLoading(button, task) {
 
 // ---------- Modal ----------
 
-export function modal({ title, body, confirmText = t('common.confirm'), cancelText = t('common.cancel'), danger = false, onConfirm }) {
+export function modal({ title, body, confirmText = t('common.confirm'), cancelText = t('common.cancel'), danger = false, wide = false, onConfirm }) {
   return new Promise((resolve) => {
     const back = document.createElement('div');
     back.className = 'modal-backdrop';
     back.innerHTML = `
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal${wide ? ' modal-wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <h2 id="modal-title">${esc(title)}</h2>
         <div class="stack" style="margin-top:8px">${body}</div>
-        <div class="row" style="justify-content:flex-end;margin-top:22px">
+        <div class="row modal-actions" style="justify-content:flex-end;margin-top:22px">
           <button type="button" class="btn btn-secondary" data-act="cancel">${esc(cancelText)}</button>
           <button type="button" class="btn ${danger ? 'btn-danger' : ''}" data-act="ok">${esc(confirmText)}</button>
         </div>
       </div>`;
     const previous = document.activeElement;
     const close = (value) => { back.remove(); document.removeEventListener('keydown', onKey); previous?.focus?.(); resolve(value); };
-    const onKey = (e) => { if (e.key === 'Escape') close(false); };
+    // Escape closes; Tab stays inside the dialog
+    const onKey = (e) => {
+      if (e.key === 'Escape') { close(false); return; }
+      if (e.key !== 'Tab') return;
+      const items = $$('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])', back)
+        .filter((el) => el.offsetParent !== null);
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', onKey);
     back.addEventListener('click', (e) => { if (e.target === back) close(false); });
     back.querySelector('[data-act="cancel"]').onclick = () => close(false);
@@ -301,7 +315,7 @@ export async function guard(roles, { header = true } = {}) {
 
 const NAV = {
   RESIDENT: [['resident.html', 'nav.around'], ['propose.html', 'nav.propose'], ['projects.html', 'nav.myIdeas']],
-  // Opportunities (list + map), AI search, projects (and ideas). The account is in the avatar menu
+  // Opportunities that fit (list + map), AI search, projects (and proposed ideas). The account is in the avatar menu
   INVESTOR: [['investor.html', 'nav.forYou'], ['ask.html', 'nav.ask'], ['projects.html', 'nav.myProjects']],
   ADMIN: [['admin.html', 'nav.dashboard'], ['admin.html#members', 'nav.members'], ['admin.html#investors', 'nav.verification'], ['admin.html#neighborhoods', 'nav.neighborhoods']],
 };
@@ -320,28 +334,137 @@ export function renderHeader(user) {
       <a class="brand" href="${homeFor(user)}" aria-label="${esc(t('brand.home'))}"><img src="assets/img/mark.png" alt=""><span>${esc(t('brand.name'))}</span></a>
       <nav class="app-nav" aria-label="${esc(t('nav.main'))}">${links}</nav>
       ${langButton('btn-ghost')}
+      <div class="bell">
+        <button type="button" class="bell-btn" aria-expanded="false" aria-controls="notif-panel" aria-label="${esc(t('notif.title'))}">
+          ${icon.bell}<span class="notif-badge" hidden></span>
+        </button>
+        <section class="menu notif" id="notif-panel" aria-labelledby="notif-h">
+          <div class="notif-head"><strong id="notif-h">${esc(t('notif.title'))}</strong><span class="small muted" id="notif-count" aria-live="polite"></span></div>
+          <ul class="notif-list" id="notif-list"><li class="notif-empty">${esc(t('common.loading'))}</li></ul>
+        </section>
+      </div>
       <div class="account">
-        <button type="button" class="account-btn" aria-haspopup="menu" aria-expanded="false">
+        <button type="button" class="account-btn" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(t('nav.accountMenu'))}">
           <span class="avatar" aria-hidden="true">${esc(initials)}</span>
           <span class="who"><strong>${esc(user.fullName)}</strong><span>${esc(roleText)}</span></span>
         </button>
         <div class="menu" role="menu">
-          <div class="small muted" style="padding:8px 12px">${esc(user.email)}</div>
-          ${user.role === 'INVESTOR' ? `<a role="menuitem" href="account.html">${esc(t('nav.account'))}</a>` : ''}
+          <div class="small muted menu-email">${esc(user.email)}</div>
+          <a role="menuitem" href="account.html">${esc(t('nav.account'))}</a>
           <button type="button" role="menuitem" data-act="logout">${esc(t('nav.logout'))}</button>
         </div>
       </div>
     </div>`;
   const skip = document.querySelector('a.sr-only');
   if (skip) skip.after(header); else document.body.prepend(header);
-  const btn = header.querySelector('.account-btn');
-  const menu = header.querySelector('.menu');
-  const toggle = (open) => { menu.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open)); };
-  btn.onclick = (e) => { e.stopPropagation(); toggle(!menu.classList.contains('open')); };
-  document.addEventListener('click', () => toggle(false));
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggle(false); });
+  // Two popovers that never overlap: the notifications under the bell, the account menu under the name
+  const pops = [
+    [header.querySelector('.bell-btn'), header.querySelector('#notif-panel')],
+    [header.querySelector('.account-btn'), header.querySelector('.account .menu')],
+  ];
+  const closeAll = () => pops.forEach(([b, m]) => { m.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); });
+  pops.forEach(([b, m], i) => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const opening = !m.classList.contains('open');
+      closeAll();
+      if (!opening) return;
+      m.classList.add('open');
+      b.setAttribute('aria-expanded', 'true');
+      if (i === 0) openNotifications();
+    };
+    m.addEventListener('click', (e) => e.stopPropagation());
+  });
+  document.addEventListener('click', closeAll);
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const open = pops.find(([, m]) => m.classList.contains('open'));
+    closeAll();
+    open?.[0].focus();
+  });
   header.querySelector('[data-act="logout"]').onclick = logout;
   wireLangButtons(header);
+  watchNotifications();
+  renderFooter(user);
+}
+
+// A quiet close for every app page: the name, the home for this role, the other language
+function renderFooter(user) {
+  if (document.querySelector('.app-foot')) return;
+  const foot = document.createElement('footer');
+  foot.className = 'app-foot';
+  foot.innerHTML = `<div class="container">
+    <span>© ${new Date().getFullYear()} ${esc(t('brand.name'))} · ${esc(t('land.footer'))}</span>
+    <span class="row" style="gap:16px"><a href="index.html">${esc(t('foot.about'))}</a><a href="${homeFor(user)}">${esc(t('foot.home'))}</a><a href="account.html">${esc(t('nav.account'))}</a></span>
+  </div>`;
+  document.body.appendChild(foot);
+}
+
+// ---------- Notifications (the bell next to the account button, with a red count of new ones) ----------
+
+let notifItems = [];
+const AGO = typeof Intl.RelativeTimeFormat === 'function' ? new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }) : null;
+function ago(value) {
+  if (!value || !AGO) return fmt.dateTime(value);
+  const mins = Math.round((new Date(value) - Date.now()) / 60000);
+  if (Math.abs(mins) < 60) return AGO.format(mins, 'minute');
+  if (Math.abs(mins) < 1440) return AGO.format(Math.round(mins / 60), 'hour');
+  return AGO.format(Math.round(mins / 1440), 'day');
+}
+
+/** The sentence for a notification, in the reader's language (only the facts come from the server). */
+export function notifText(n) {
+  const title = isolate(n.ideaTitle || '');
+  if (n.type === 'IDEA_ADOPTED') return t(n.detail === 'PARTNERSHIP' ? 'notif.adoptedPartner' : 'notif.adopted', { title });
+  if (n.type === 'VOTED_IDEA_ADOPTED') return t('notif.votedAdopted', { title });
+  if (n.type === 'VOTE_TARGET_REACHED') return t('notif.target', { title });
+  if (n.type === 'PROJECT_STAGE') return t('notif.stage', { title, stage: stageLabel(n.detail) });
+  return t('notif.generic', { title });
+}
+
+function setBadge(unread) {
+  const badge = $('.notif-badge');
+  if (!badge) return;
+  badge.hidden = !unread;
+  badge.textContent = unread > 9 ? '9+' : String(unread || '');
+  $('.bell-btn')?.setAttribute('aria-label', unread ? t('notif.titleUnread', { n: unread }) : t('notif.title'));
+}
+
+function renderNotifications() {
+  const list = $('#notif-list');
+  if (!list) return;
+  list.innerHTML = notifItems.length
+    ? notifItems.map((n) => `<li><a class="notif-item${n.read ? '' : ' unread'}" href="${esc(n.link || 'projects.html')}">
+        <span>${esc(notifText(n))}</span><small>${esc(ago(n.createdAt))}</small></a></li>`).join('')
+    : `<li class="notif-empty">${esc(t('notif.empty'))}</li>`;
+}
+
+async function loadNotifications() {
+  try {
+    const res = await api.get('notifications');
+    notifItems = res.items || [];
+    setBadge(res.unread || 0);
+    renderNotifications();
+  } catch { /* the header works without them */ }
+}
+
+// Opening the menu shows the list and marks everything as read
+async function openNotifications() {
+  await loadNotifications();
+  const unread = notifItems.filter((n) => !n.read).length;
+  $('#notif-count').textContent = unread ? t('notif.new', { n: unread }) : '';
+  if (unread) {
+    try { await api.put('notifications/read-all'); setBadge(0); } catch { /* try again next time */ }
+  }
+}
+
+function watchNotifications() {
+  loadNotifications();
+  // A light check every minute while the tab is open
+  setInterval(async () => {
+    if (document.hidden) return;
+    try { setBadge((await api.get('notifications/unread-count')).unread || 0); } catch { /* ignore */ }
+  }, 60000);
 }
 
 export async function logout() {
@@ -390,9 +513,17 @@ export function statusBadge(status) {
   return `<span class="badge ${cls}">${esc(label('status', status))}</span>`;
 }
 
+/**
+ * Wraps a name in Unicode isolation marks so an English name inside Arabic text (or the other way round)
+ * keeps its own word order. Plain text, so it still goes through esc().
+ */
+const FSI = String.fromCharCode(0x2068); // first strong isolate
+const PDI = String.fromCharCode(0x2069); // pop directional isolate
+export const isolate = (text) => (text ? FSI + text + PDI : '');
+
 /** An idea's name: its title, or "Pharmacy in Al Yasmin" for a confidential opportunity (investors before unlocking). */
 export function ideaName(idea) {
-  return idea.title || t('teaser.headline', { cat: categoryLabel(idea.category), hood: idea.neighborhoodName || '' });
+  return idea.title || t('teaser.headline', { cat: categoryLabel(idea.category), hood: isolate(idea.neighborhoodName) });
 }
 
 const LIFE = ['PUBLISHED', 'COMPLETED', 'ADOPTED', 'OPENED'];

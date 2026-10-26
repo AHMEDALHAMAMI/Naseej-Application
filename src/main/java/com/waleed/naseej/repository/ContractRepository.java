@@ -37,4 +37,5 @@ public interface ContractRepository extends JpaRepository<Contract, Integer> {
     // Contracts past their opening deadline whose project never opened (the 90-day rule)
     List<Contract> findByStatusInAndOpenedAtIsNullAndOpeningDeadlineBefore(
             Collection<ContractStatus> statuses, LocalDate date);
+    boolean existsByInvestorIdOrIdeaOwnerId(Integer investorId, Integer ideaOwnerId);
 }

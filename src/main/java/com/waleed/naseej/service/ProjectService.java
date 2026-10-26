@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +42,7 @@ public class ProjectService {
     private final IdeaRepository ideaRepository;
     private final ProjectUpdateService projectUpdateService;
     private final ContractSignatureRepository contractSignatureRepository;
+    private final NotificationService notificationService;
 
     public List<ProjectResponse> mine(User currentUser) {
         List<ProjectResponse> projects = new ArrayList<>();
@@ -71,6 +73,11 @@ public class ProjectService {
 
         String note = request.getNote() == null || request.getNote().isBlank() ? null : request.getNote().trim();
         projectUpdateService.createForActiveContract(contract.getId(), stage, note);
+        // The founder follows the opening (no notification when the founder is the investor)
+        if (!contract.getIdeaOwner().getId().equals(contract.getInvestor().getId())) {
+            notificationService.notify(contract.getIdeaOwner(), NotificationService.PROJECT_STAGE, contract.getIdea(),
+                    stage, "projects.html");
+        }
 
         if ("Opened".equals(stage)) {
             contract.setOpenedAt(LocalDateTime.now());
@@ -158,6 +165,26 @@ public class ProjectService {
             return "INVESTOR_SIGN";
         }
         return founderSigned ? "WAITING_PAYMENT" : "FOUNDER_SIGN";
+    }
+
+    /** Where an adopted idea's project is, e.g. "Fit-out" (index 3 of 7). Empty for ideas nobody adopted. */
+    public Optional<StageInfo> stageOfIdea(Idea idea) {
+        if (idea.getStatus() == IdeaStatus.OPENED) {
+            return Optional.of(new StageInfo(STAGES.get(STAGES.size() - 1), STAGES.size() - 1, STAGES.size()));
+        }
+        if (idea.getStatus() != IdeaStatus.ADOPTED) {
+            return Optional.empty();
+        }
+        return contractRepository.findByIdeaId(idea.getId()).stream()
+                .filter(contract -> contract.getStatus() != ContractStatus.TERMINATED)
+                .findFirst()
+                .map(contract -> {
+                    int index = currentIndex(updatesOf(contract.getId()));
+                    return new StageInfo(STAGES.get(index), index, STAGES.size());
+                });
+    }
+
+    public record StageInfo(String stage, int index, int count) {
     }
 
     private List<ProjectUpdate> updatesOf(Integer contractId) {

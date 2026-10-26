@@ -3,6 +3,8 @@ package com.waleed.naseej.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "idea_checks")
 @Getter
@@ -24,8 +26,16 @@ public class IdeaCheck {
     @JoinColumn(name = "similar_idea_id")
     private Idea similarIdea;
 
+    // The headline score: the rounded average of the three parts below (older checks have only the headline)
     @Column(nullable = false)
     private Integer score;
+
+    // 0-100 each: shortage in the area, competitors nearby (higher = fewer) and expected demand
+    private Integer shortageScore;
+
+    private Integer competitionScore;
+
+    private Integer demandScore;
 
     @Column(nullable = false, length = 20)
     private String decision;
@@ -43,6 +53,9 @@ public class IdeaCheck {
 
     @Column(columnDefinition = "text")
     private String feasibilitySummary;
+
+    // When the check ran; a draft whose check is too old is checked again before it can be published
+    private LocalDateTime checkedAt;
 
     // Google Places type the AI chose for the idea (e.g. "cafe"), reused when competitors are refreshed
     @Column(length = 50)

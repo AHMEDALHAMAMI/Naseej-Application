@@ -8,17 +8,19 @@
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="assets/css/app.css">
 <title data-i18n-title="register.title">Naseej</title>
 </head>
 <body>
+<a class="sr-only" href="#main" data-i18n="common.skip">Skip to content</a>
 <div class="auth">
   <aside class="auth-aside">
     <a class="brand" href="index.html" style="color:#fff" data-i18n-attr="aria-label:brand.home"><img src="assets/img/mark-white.png" alt=""><span data-i18n="brand.name">NASEEJ</span></a>
     <div class="stack" style="gap:18px">
-      <h2 id="aside-title" data-i18n-html="register.asideTitle"></h2>
-      <p id="aside-text" data-i18n="register.asideText"></p>
+      <h2 data-i18n-html="register.asideTitle"></h2>
+      <p data-i18n="register.asideText"></p>
     </div>
     <span class="small" style="color:#C9D8CE" data-i18n="auth.asideFoot"></span>
     <img class="weave" src="assets/img/mark-white.png" alt="">
@@ -26,80 +28,89 @@
   <main class="auth-main" id="main">
     <div class="auth-top"><a class="btn btn-ghost btn-sm" href="index.html" data-i18n="auth.home"></a><span id="lang-slot"></span></div>
     <div class="auth-card wide">
-      <div class="stack" style="gap:6px">
-        <span class="eyebrow" data-i18n="register.eyebrow"></span>
-        <h1 data-i18n="register.heading"></h1>
-      </div>
-      <a class="btn google-btn btn-block" href="oauth2/authorization/google"><span class="g-icon" aria-hidden="true"></span><span data-i18n="register.google"></span></a>
-      <div class="divider-text" data-i18n="auth.orEmail"></div>
+      <div id="stepper"></div>
       <form id="register-form" class="stack" novalidate>
-        <div class="field">
-          <span class="label" id="role-label" data-i18n="register.joiningAs"></span>
-          <div class="segmented" role="group" aria-labelledby="role-label">
-            <button type="button" data-role="RESIDENT" aria-pressed="true" data-i18n="role.RESIDENT"></button>
-            <button type="button" data-role="INVESTOR" aria-pressed="false" data-i18n="role.INVESTOR"></button>
-          </div>
-          <span class="hint" id="role-hint"></span>
-        </div>
-        <div class="grid grid-2" style="gap:14px">
+
+        <!-- Step 1: account type -->
+        <section class="stack" data-step="0" aria-labelledby="h-type">
+          <h1 id="h-type" tabindex="-1" data-i18n="signup.typeTitle"></h1>
+          <fieldset class="stack" style="gap:12px;border:0;padding:0;margin:0">
+            <legend class="sr-only" data-i18n="register.joiningAs"></legend>
+            <label class="option">
+              <input type="radio" name="role" value="RESIDENT" checked>
+              <span class="badge" style="align-self:flex-start" data-i18n="choose.free"></span>
+              <strong data-i18n="signup.resident"></strong>
+              <span class="small muted" data-i18n="signup.residentText"></span>
+            </label>
+            <label class="option">
+              <input type="radio" name="role" value="INVESTOR">
+              <span class="badge badge-sand" style="align-self:flex-start" data-i18n="choose.crRequired"></span>
+              <strong data-i18n="signup.investor"></strong>
+              <span class="small muted" data-i18n="register.investorHint"></span>
+            </label>
+          </fieldset>
+          <button type="button" class="btn btn-block" data-next data-i18n="signup.next"></button>
+          <div class="divider-text" data-i18n="auth.orEmail"></div>
+          <a class="btn google-btn btn-block" href="oauth2/authorization/google"><span class="g-icon" aria-hidden="true"></span><span data-i18n="register.google"></span></a>
+          <p class="small muted"><span data-i18n="register.have"></span> <a href="login.html" data-i18n="register.login"></a></p>
+        </section>
+
+        <!-- Step 2: personal details -->
+        <section class="stack" data-step="1" aria-labelledby="h-details" hidden>
+          <h1 id="h-details" tabindex="-1" data-i18n="signup.stepDetails"></h1>
           <div class="field">
             <label for="fullName" data-i18n="form.fullName"></label>
             <input class="input" id="fullName" name="fullName" autocomplete="name" required minlength="3" maxlength="100">
             <span class="error" aria-live="polite"></span>
           </div>
           <div class="field">
-            <label for="phone"><span data-i18n="form.mobile"></span> <span class="muted" data-i18n="form.optional"></span></label>
-            <input class="input" id="phone" name="phone" type="tel" inputmode="numeric" placeholder="9665XXXXXXXX" autocomplete="tel" dir="ltr">
+            <label for="email" data-i18n="form.email"></label>
+            <input class="input" id="email" name="email" type="email" autocomplete="email" required dir="ltr">
             <span class="error" aria-live="polite"></span>
           </div>
-        </div>
-        <div class="field">
-          <label for="email" data-i18n="form.email"></label>
-          <input class="input" id="email" name="email" type="email" autocomplete="email" required dir="ltr">
-          <span class="error" aria-live="polite"></span>
-        </div>
-        <div class="field">
-          <label for="password" data-i18n="form.password"></label>
-          <div class="input-affix pw">
-            <input class="input" id="password" name="password" type="password" autocomplete="new-password" required minlength="8" dir="ltr" aria-describedby="pw-rules">
-            <button type="button" class="pw-toggle" id="pw-toggle" aria-pressed="false" data-i18n-attr="aria-label:pw.show"></button>
+          <div class="field">
+            <label for="password" data-i18n="form.password"></label>
+            <div class="password-wrap"><input class="input" id="password" name="password" type="password" autocomplete="new-password" required minlength="8" dir="ltr"></div>
+            <span class="hint" data-i18n="form.passwordHint"></span>
+            <span class="error" aria-live="polite"></span>
           </div>
-          <ul class="pw-rules" id="pw-rules" aria-live="polite">
-            <li data-rule="len" data-i18n="pw.len"></li>
-            <li data-rule="letter" data-i18n="pw.letter"></li>
-            <li data-rule="digit" data-i18n="pw.digit"></li>
-          </ul>
-          <span class="error" aria-live="polite"></span>
-        </div>
-        <div id="resident-fields" class="stack">
-          <div class="surface-sand stack" style="gap:10px">
-            <div class="row" style="justify-content:space-between">
-              <span style="font-size:13px;font-weight:600" data-i18n="loc.yourHood"></span>
-              <span class="badge badge-sand" id="loc-status" data-i18n="loc.detecting"></span>
-            </div>
-            <div id="loc-result" class="small muted" data-i18n="loc.willFill"></div>
-            <div class="grid grid-2" style="gap:10px">
-              <div class="field">
-                <label for="city" data-i18n="form.city"></label>
-                <select class="select" id="city"><option value="" data-i18n="form.chooseCity"></option></select>
-              </div>
-              <div class="field">
-                <label for="neighborhoodId" data-i18n="form.hood"></label>
-                <select class="select" id="neighborhoodId" name="neighborhoodId"><option value="" data-i18n="form.chooseHood"></option></select>
-                <span class="error" aria-live="polite"></span>
-              </div>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" id="detect" style="align-self:flex-start" data-i18n="loc.useMine" data-i18n-attr="data-loading:loc.locating"></button>
+          <div class="field">
+            <label for="phone"><span data-i18n="form.mobile"></span> <span class="muted" data-i18n="form.optional"></span></label>
+            <input class="input" id="phone" name="phone" type="tel" inputmode="numeric" data-i18n-attr="placeholder:signup.phonePh" autocomplete="tel" dir="ltr">
+            <span class="error" aria-live="polite"></span>
+          </div>
+          <div class="row step-actions">
+            <button type="button" class="btn btn-secondary" data-back data-i18n="signup.back"></button>
+            <button type="button" class="btn" data-next data-i18n="signup.next"></button>
+          </div>
+        </section>
+
+        <!-- Step 3 (resident): home address -->
+        <section class="stack" data-step="2" data-role="RESIDENT" aria-labelledby="h-home" hidden>
+          <div class="stack" style="gap:6px">
+            <h1 id="h-home" tabindex="-1" data-i18n="addr.title"></h1>
+            <p class="muted" data-i18n="addr.why"></p>
+          </div>
+          <div id="home-picker"></div>
+          <div class="notice notice-info small"><span data-i18n="addr.rule"></span></div>
+        </section>
+
+        <!-- Last step footer -->
+        <div class="stack" data-final hidden>
+          <div class="field">
+            <label class="check"><input type="checkbox" id="terms" name="terms"><span data-i18n="form.terms"></span></label>
+            <span class="error" aria-live="polite"></span>
+          </div>
+          <div class="row step-actions">
+            <button type="button" class="btn btn-secondary" data-back data-i18n="signup.back"></button>
+            <button class="btn" type="submit" data-i18n="register.submit" data-i18n-attr="data-loading:register.loading"></button>
           </div>
         </div>
-        <div id="investor-fields" class="notice notice-info hidden"><span data-i18n="register.investorHint"></span></div>
-        <label class="check"><input type="checkbox" id="terms" required><span data-i18n="form.terms"></span></label>
-        <button class="btn btn-block" type="submit" data-i18n="register.submit" data-i18n-attr="data-loading:register.loading"></button>
       </form>
-      <p class="small muted"><span data-i18n="register.have"></span> <a href="login.html" data-i18n="register.login"></a></p>
     </div>
   </main>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script type="module" src="assets/js/pages/register.js"></script>
 </body>
 </html>
