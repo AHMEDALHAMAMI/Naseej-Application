@@ -74,6 +74,7 @@ public class ContractFlowService {
     private final OtpService otpService;
     private final N8nService n8nService;
     private final ProjectService projectService;
+    private final NotificationService notificationService;
 
     @Value("${server.servlet.context-path:}")
     private String contextPath;
@@ -152,6 +153,11 @@ public class ContractFlowService {
                 .build();
         contract.sign(signature);
         contractSignatureRepository.save(signature);
+        // The idea owner hears that it's their turn (the bell links straight to the signing page)
+        if (ROLE_INVESTOR.equals(role) && !isSelfOwned(contract)) {
+            notificationService.notify(contract.getIdeaOwner(), NotificationService.CONTRACT_TO_SIGN,
+                    contract.getIdea(), null, "contract.html?id=" + contract.getId());
+        }
 
         if (isReadyToActivate(contract)) {
             activate(contract);

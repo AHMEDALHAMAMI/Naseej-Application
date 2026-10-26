@@ -419,6 +419,7 @@ export function notifText(n) {
   if (n.type === 'VOTED_IDEA_ADOPTED') return t('notif.votedAdopted', { title });
   if (n.type === 'VOTE_TARGET_REACHED') return t('notif.target', { title });
   if (n.type === 'PROJECT_STAGE') return t('notif.stage', { title, stage: stageLabel(n.detail) });
+  if (n.type === 'CONTRACT_TO_SIGN') return t('notif.signContract', { title });
   return t('notif.generic', { title });
 }
 

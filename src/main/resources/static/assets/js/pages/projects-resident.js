@@ -3,7 +3,7 @@
 import { api } from '../api.js';
 import { $, $$, esc, fmt, guard, icon, toast, errorMessage, statusBadge, progressBar, animateBars, emptyState, skeletonCards, label, categoryLabel, stageLabel, modal, isolate, t } from '../ui.js';
 import { wireTabs } from '../components.js';
-import { serverText } from '../i18n.js';
+import { serverText, tn } from '../i18n.js';
 
 const user = await guard(['RESIDENT', 'INVESTOR']);
 const isInvestor = user.role === 'INVESTOR';
@@ -29,7 +29,26 @@ app.innerHTML = `
   </section>`;
 let projectsById = new Map();
 
+// The idea owner's side of the contract: what happens next, and the way to sign when it's their turn
+function contractStatus(p) {
+  if (p.myRole === 'INVESTOR') return '';
+  const needsMe = !!p.canSign;
+  const key = `proj.owner.${p.nextStep}`;
+  const text = t(key) === key ? '' : t(key);
+  let deadline = '';
+  if (p.nextStep === 'IN_PROGRESS' && p.openingDeadline) {
+    const days = Math.ceil((new Date(`${p.openingDeadline}T23:59:59`) - new Date()) / 86400000);
+    deadline = days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed');
+  }
+  return `<div class="project-status ${needsMe ? 'is-action' : ''}">
+      <span>${needsMe ? icon.info : icon.check} <strong>${esc(text)}</strong>${deadline ? ` · <span class="muted">${esc(deadline)}</span>` : ''}</span>
+      <a class="btn btn-sm ${needsMe ? '' : 'btn-secondary'}" href="contract.html?id=${p.contractId}">${esc(t(needsMe ? 'proj.owner.sign' : 'proj.owner.view'))}</a>
+    </div>`;
+}
+
 function projectCard(p) {
+  // Execution progress starts once the contract is active
+  const running = p.nextStep === 'IN_PROGRESS' || p.nextStep === 'OPENED' || p.contractStatus === 'ACTIVE';
   const stages = p.stages.map((s, i) => `<li class="${i <= p.stageIndex ? 'done' : ''} ${i === p.stageIndex ? 'current' : ''}">${esc(stageLabel(s))}</li>`).join('');
   const updates = [...(p.updates || [])].reverse();
   const form = p.canPostUpdate && p.stageIndex < p.stages.length - 1
@@ -44,15 +63,17 @@ function projectCard(p) {
         <div class="stack" style="gap:4px">
           <div class="row" style="gap:8px"><span class="badge ${p.myRole === 'INVESTOR' ? 'badge-solid' : ''}">${esc(t(p.myRole === 'INVESTOR' ? 'proj.youInvestor' : 'proj.youFounder'))}</span><span class="badge badge-sand">${esc(label('access', p.accessType))}</span></div>
           <h3 class="project-title" style="font-size:20px;margin-top:6px"><a href="idea.html?id=${p.ideaId}" style="color:inherit;text-decoration:none">${esc(p.ideaTitle)}</a></h3>
-          <span class="small muted">${esc(isolate(`${p.neighborhoodName}, ${p.city}`))} · ${esc(t('proj.since', { date: fmt.date(p.activatedAt) }))}</span>
+          <span class="small muted">${esc(isolate(`${p.neighborhoodName}, ${p.city}`))}${p.activatedAt ? ` · ${esc(t('proj.since', { date: fmt.date(p.activatedAt) }))}` : ''}</span>
           <span class="small muted num">${esc(t('proj.contract', { n: p.contractNumber }))}</span>
           <span class="small muted">${p.accessType === 'OWNER' ? esc(t('proj.ownerLaunch')) : esc(other)}${p.accessType === 'PARTNERSHIP' ? ` · ${esc(t('proj.profitShare'))}` : ''}</span>
         </div>
-        <div class="stack" style="align-items:center;gap:6px"><div class="ring" style="--p:${p.progressPercent}"><div><strong>${p.progressPercent}%</strong><span>${esc(t('proj.done'))}</span></div></div><span class="small" style="font-weight:600">${esc(stageLabel(p.currentStage))}</span></div>
+        ${running ? `<div class="stack" style="align-items:center;gap:6px"><div class="ring" style="--p:${p.progressPercent}"><div><strong>${p.progressPercent}%</strong><span>${esc(t('proj.done'))}</span></div></div><span class="small" style="font-weight:600">${esc(stageLabel(p.currentStage))}</span></div>` : ''}
       </div>
+      ${contractStatus(p)}
+      ${running ? `
       ${progressBar(p.progressPercent, t('proj.execProgress'))}
       <ol class="stages" aria-label="${esc(t('proj.stages'))}">${stages}</ol>
-      ${updates.length ? `<ul class="list">${updates.map((u) => `<li><span><strong>${esc(stageLabel(u.stage))}</strong>${u.note ? ` · ${esc(u.note)}` : ''}</span><span class="small muted">${fmt.date(u.createdAt)}</span></li>`).join('')}</ul>` : `<span class="small muted">${esc(t('proj.noUpdates'))}</span>`}
+      ${updates.length ? `<ul class="list">${updates.map((u) => `<li><span><strong>${esc(stageLabel(u.stage))}</strong>${u.note ? ` · ${esc(u.note)}` : ''}</span><span class="small muted">${fmt.date(u.createdAt)}</span></li>`).join('')}</ul>` : `<span class="small muted">${esc(t('proj.noUpdates'))}</span>`}` : `<span class="small muted">${esc(t('proj.owner.notStarted'))}</span>`}
       <div class="row" style="justify-content:space-between">
         <a class="btn btn-ghost btn-sm" href="agreement.html?contract=${p.contractId}" title="${esc(t('proj.contract', { n: p.contractNumber }))}">${esc(t('agr.view'))}</a>
         ${form}

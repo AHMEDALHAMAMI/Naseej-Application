@@ -34,10 +34,12 @@ async function load() {
 function stepState() {
   const p = project;
   const active = p.contractStatus === 'ACTIVE' || p.nextStep === 'IN_PROGRESS' || p.nextStep === 'OPENED';
+  // The two signatures are named from the reader's side
+  const owner = p.myRole !== 'INVESTOR';
   return [
     { key: 'ctr.s1', done: p.benefitsSet },
-    { key: 'ctr.s2', done: p.investorSigned },
-    { key: 'ctr.s3', done: p.founderSigned },
+    { key: owner ? 'ctr.s2Owner' : 'ctr.s2', done: p.investorSigned },
+    { key: owner ? 'ctr.s3Owner' : 'ctr.s3', done: p.founderSigned },
     { key: 'ctr.s4', done: active },
   ];
 }

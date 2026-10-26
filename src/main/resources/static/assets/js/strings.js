@@ -1138,6 +1138,18 @@ export const STRINGS = {
   'notif.target': ['Your idea “{title}” reached its vote target. Investors can unlock it now.', 'فكرتك «{title}» اكتمل هدف تصويتها، والمستثمرين يقدرون يفتحونها الحين.'],
   'notif.stage': ['“{title}” moved to: {stage}.', '«{title}» وصلت لمرحلة: {stage}.'],
   'notif.generic': ['News about “{title}”.', 'جديد عن «{title}».'],
+  'notif.signContract': ['The investor signed the contract for “{title}”. It’s your turn to sign.', 'المستثمر وقّع عقد «{title}»، والحين دورك توقّع.'],
+  // The contract on the idea owner's project card (the investor's own steps are worded for the owner)
+  'proj.owner.SET_BENEFITS': ['The investor is setting the founding members’ benefits', 'المستثمر يحدد مزايا الأعضاء المؤسسين'],
+  'proj.owner.INVESTOR_SIGN': ['Waiting for the investor to sign', 'بانتظار توقيع المستثمر'],
+  'proj.owner.FOUNDER_SIGN': ['Your signature is needed', 'العقد بانتظار توقيعك'],
+  'proj.owner.WAITING_PAYMENT': ['Waiting for the payment to confirm', 'بانتظار تأكيد الدفع'],
+  'proj.owner.IN_PROGRESS': ['Contract active', 'العقد ساري'],
+  'proj.owner.OPENED': ['Opened 🎉', 'تم الافتتاح 🎉'],
+  'proj.owner.ENDED': ['Contract ended', 'العقد انتهى'],
+  'proj.owner.sign': ['Sign the contract', 'وقّع العقد'],
+  'proj.owner.view': ['Contract', 'العقد'],
+  'proj.owner.notStarted': ['The project starts once both of you sign.', 'المشروع يبدأ بعد ما توقّعون أنتم الاثنين.'],
 
   // ---------- Landing (short version) ----------
   'land.title': ["What's your neighborhood missing?", 'وش ينقص حيّك؟'],
@@ -1455,6 +1467,8 @@ export const STRINGS = {
   'ctr.s1': ["Benefits", "المزايا"],
   'ctr.s2': ["Your signature", "توقيعك"],
   'ctr.s3': ["Idea owner", "صاحب الفكرة"],
+  'ctr.s2Owner': ["Investor signs", "توقيع المستثمر"],
+  'ctr.s3Owner': ["Your signature", "توقيعك"],
   'ctr.s4': ["Active", "ساري"],
   'ctr.benefitsTitle': ["What the founding members get", "وش ياخذون الأعضاء المؤسسين؟"],
   'ctr.benefitsText': ["Residents who backed the idea get these once you open. They show on the idea page.", "السكان اللي دعموا الفكرة ياخذون هذي المزايا بعد الافتتاح، وتظهر في صفحة الفكرة."],

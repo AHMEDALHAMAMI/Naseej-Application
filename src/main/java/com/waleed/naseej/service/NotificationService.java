@@ -29,6 +29,8 @@ public class NotificationService {
     public static final String VOTED_IDEA_ADOPTED = "VOTED_IDEA_ADOPTED";
     public static final String VOTE_TARGET_REACHED = "VOTE_TARGET_REACHED";
     public static final String PROJECT_STAGE = "PROJECT_STAGE";
+    // To the idea owner once the investor has signed: the contract now waits for the owner's signature
+    public static final String CONTRACT_TO_SIGN = "CONTRACT_TO_SIGN";
 
     private final NotificationRepository notificationRepository;
 
