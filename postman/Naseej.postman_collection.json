@@ -281,6 +281,14 @@
     {
       "key": "adminToken",
       "value": ""
+    },
+    {
+      "key": "seedNeighborhoodName",
+      "value": ""
+    },
+    {
+      "key": "crudNeighborhoodName",
+      "value": ""
     }
   ],
   "event": [
@@ -357,10 +365,20 @@
             "url": "{{baseUrl}}/neighborhoods/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Al Olaya\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.7136,\n  \"longitude\": 46.6753\n}"
+              "raw": "{\n  \"name\": \"{{seedNeighborhoodName}}\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.7136,\n  \"longitude\": 46.6753\n}"
             }
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Unique name per run, so re-running never hits the 409 duplicate check",
+                  "pm.collectionVariables.set('seedNeighborhoodName', 'Al Olaya (test ' + String(Date.now()).slice(-6) + ')');"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -370,8 +388,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedNeighborhoodId', data.id);",
-                  "pm.collectionVariables.set('neighborhoodId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedNeighborhoodId', data.id);",
+                  "    pm.collectionVariables.set('neighborhoodId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -413,10 +434,13 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedUserId', data.id);",
-                  "pm.collectionVariables.set('userId', data.id);",
-                  "pm.collectionVariables.set('investorId', data.id);",
-                  "pm.collectionVariables.set('ideaOwnerId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedUserId', data.id);",
+                  "    pm.collectionVariables.set('userId', data.id);",
+                  "    pm.collectionVariables.set('investorId', data.id);",
+                  "    pm.collectionVariables.set('ideaOwnerId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -448,8 +472,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedIdeaId', data.id);",
-                  "pm.collectionVariables.set('ideaId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedIdeaId', data.id);",
+                  "    pm.collectionVariables.set('ideaId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -481,8 +508,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedFoundingMemberId', data.id);",
-                  "pm.collectionVariables.set('foundingMemberId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedFoundingMemberId', data.id);",
+                  "    pm.collectionVariables.set('foundingMemberId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -514,8 +544,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedBusinessModelId', data.id);",
-                  "pm.collectionVariables.set('businessModelId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedBusinessModelId', data.id);",
+                  "    pm.collectionVariables.set('businessModelId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -547,8 +580,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedIdeaCheckId', data.id);",
-                  "pm.collectionVariables.set('ideaCheckId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedIdeaCheckId', data.id);",
+                  "    pm.collectionVariables.set('ideaCheckId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -589,8 +625,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedNearbyPlaceId', data.id);",
-                  "pm.collectionVariables.set('nearbyPlaceId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedNearbyPlaceId', data.id);",
+                  "    pm.collectionVariables.set('nearbyPlaceId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -622,8 +661,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedFeasibilityReportId', data.id);",
-                  "pm.collectionVariables.set('feasibilityReportId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedFeasibilityReportId', data.id);",
+                  "    pm.collectionVariables.set('feasibilityReportId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -664,8 +706,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedPaymentId', data.id);",
-                  "pm.collectionVariables.set('paymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedPaymentId', data.id);",
+                  "    pm.collectionVariables.set('paymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -697,8 +742,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedAccessId', data.id);",
-                  "pm.collectionVariables.set('accessId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedAccessId', data.id);",
+                  "    pm.collectionVariables.set('accessId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -730,8 +778,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedPartnershipAgreementId', data.id);",
-                  "pm.collectionVariables.set('partnershipAgreementId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedPartnershipAgreementId', data.id);",
+                  "    pm.collectionVariables.set('partnershipAgreementId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -775,8 +826,11 @@
                   "pm.test('Contract is DRAFT', function () {",
                   "    pm.expect(data.status).to.eql('DRAFT');",
                   "});",
-                  "pm.collectionVariables.set('seedContractId', data.id);",
-                  "pm.collectionVariables.set('contractId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedContractId', data.id);",
+                  "    pm.collectionVariables.set('contractId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -872,8 +926,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedContractSignatureId', data.id);",
-                  "pm.collectionVariables.set('contractSignatureId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedContractSignatureId', data.id);",
+                  "    pm.collectionVariables.set('contractSignatureId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1040,8 +1097,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedProjectUpdateId', data.id);",
-                  "pm.collectionVariables.set('projectUpdateId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedProjectUpdateId', data.id);",
+                  "    pm.collectionVariables.set('projectUpdateId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1116,8 +1176,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedSubscriptionPaymentId', data.id);",
-                  "pm.collectionVariables.set('subscriptionPaymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedSubscriptionPaymentId', data.id);",
+                  "    pm.collectionVariables.set('subscriptionPaymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1149,8 +1212,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedSubscriptionId', data.id);",
-                  "pm.collectionVariables.set('subscriptionId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedSubscriptionId', data.id);",
+                  "    pm.collectionVariables.set('subscriptionId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1175,10 +1241,20 @@
             "url": "{{baseUrl}}/neighborhoods/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Al Malqa\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8000,\n  \"longitude\": 46.6200\n}"
+              "raw": "{\n  \"name\": \"{{crudNeighborhoodName}}\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8000,\n  \"longitude\": 46.6200\n}"
             }
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Unique name per run, so re-running never hits the 409 duplicate check",
+                  "pm.collectionVariables.set('crudNeighborhoodName', 'Al Malqa (test ' + String(Date.now()).slice(-6) + ')');"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -1188,7 +1264,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudNeighborhoodId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudNeighborhoodId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1285,7 +1364,7 @@
             "url": "{{baseUrl}}/neighborhoods/update/{{crudNeighborhoodId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Al Malqa Updated\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8001,\n  \"longitude\": 46.6201\n}"
+              "raw": "{\n  \"name\": \"{{crudNeighborhoodName}} Updated\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8001,\n  \"longitude\": 46.6201\n}"
             }
           },
           "event": [
@@ -1370,7 +1449,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudUserId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudUserId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1516,7 +1598,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudIdeaId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudIdeaId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1662,7 +1747,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudFoundingMemberId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudFoundingMemberId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1834,7 +1922,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudBusinessModelId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudBusinessModelId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2006,7 +2097,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudIdeaCheckId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudIdeaCheckId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2187,7 +2281,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudNearbyPlaceId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudNearbyPlaceId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2359,7 +2456,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudFeasibilityReportId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudFeasibilityReportId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2540,7 +2640,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudPaymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudPaymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2885,7 +2988,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudAccessId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudAccessId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3031,7 +3137,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudPartnershipAgreementId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudPartnershipAgreementId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3303,7 +3412,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudContractId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudContractId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3482,7 +3594,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudContractSignatureId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudContractSignatureId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3811,7 +3926,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudProjectUpdateId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudProjectUpdateId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3992,7 +4110,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudSubscriptionPaymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudSubscriptionPaymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -4024,7 +4145,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudSubscriptionId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudSubscriptionId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -4170,7 +4294,10 @@
                   "pm.test('Admin logged in', () => pm.response.to.have.status(200));",
                   "const login = pm.response.json();",
                   "pm.test('The account is an admin', () => pm.expect(login.user.role).to.eql('ADMIN'));",
-                  "pm.collectionVariables.set('adminToken', login.accessToken);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 200 && login.accessToken != null) {",
+                  "    pm.collectionVariables.set('adminToken', login.accessToken);",
+                  "}"
                 ]
               }
             }

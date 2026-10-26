@@ -391,7 +391,7 @@ export const STRINGS = {
   'inv.cityTotal': ["{opps} in {hoods}", "{opps} في {hoods}"],
   'inv.ofTarget': ["{p}% of vote target", "{p}% من هدف الأصوات"],
   'inv.nothingHere': ["Nothing open here now", "ما فيه شي مفتوح هنا الحين"],
-  'inv.nothingHereText': ["Ideas here were adopted or are still being checked.", "أفكار هالحي انتبنّت أو لسّا تحت الفحص."],
+  'inv.nothingHereText': ["Ideas here were adopted or are still being checked.", "أفكار هالحي قد تم تبنّيها أو لسّا تحت الفحص."],
   'inv.inProjects': ["In my projects", "في مشاريعي"],
   'inv.taken': ["Taken by another investor", "تبنّاها مستثمر ثاني"],
   'inv.unlock': ["Unlock", "فتح"],

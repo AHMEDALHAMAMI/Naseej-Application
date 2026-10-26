@@ -2,7 +2,7 @@
   "info": {
     "name": "Naseej API (seed only — no deletes)",
     "_postman_id": "naseej-api-seed-only",
-    "description": "Creates seed + CRUD-lane data and leaves it in the database. No DELETE requests and no teardown folder. Run on empty DB (or expect duplicate-key errors on re-run). Same baseUrl variable as the main collection.",
+    "description": "Creates seed + CRUD-lane data and leaves it in the database. No DELETE requests and no teardown folder. Safe to re-run: neighborhood names get a unique suffix each run, and IDs are only saved when a request succeeds. Same baseUrl variable as the main collection. Before running: set adminPassword (and adminEmail if different) to ADMIN_PASSWORD / ADMIN_EMAIL from your .env, and if MOYASAR_WEBHOOK_SECRET is set in .env, put the same value in moyasarWebhookSecret (or in the environment's MOYASAR_WEBHOOK_SECRET).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -273,6 +273,14 @@
     {
       "key": "adminToken",
       "value": ""
+    },
+    {
+      "key": "seedNeighborhoodName",
+      "value": ""
+    },
+    {
+      "key": "crudNeighborhoodName",
+      "value": ""
     }
   ],
   "event": [
@@ -283,6 +291,24 @@
         "exec": [
           "if (!pm.collectionVariables.get('baseUrl')) {",
           "    pm.collectionVariables.set('baseUrl', 'http://localhost:8080/api/v1');",
+          "}",
+          "function resolveMoyasarWebhookSecret() {",
+          "    const keys = ['moyasarWebhookSecret', 'MOYASAR_WEBHOOK_SECRET'];",
+          "    for (let i = 0; i < keys.length; i++) {",
+          "        const v = pm.variables.get(keys[i]);",
+          "        if (v && String(v).trim()) {",
+          "            return String(v).trim();",
+          "        }",
+          "    }",
+          "    return '';",
+          "}",
+          "const secret = resolveMoyasarWebhookSecret();",
+          "if (secret && !pm.variables.get('moyasarWebhookSecret')) {",
+          "    pm.collectionVariables.set('moyasarWebhookSecret', secret);",
+          "}",
+          "const url = pm.request.url ? pm.request.url.toString() : '';",
+          "if (url.includes('/payments/webhook/moyasar') && secret) {",
+          "    pm.request.headers.upsert({ key: 'X-Webhook-Secret', value: secret });",
           "}"
         ]
       }
@@ -306,10 +332,20 @@
             "url": "{{baseUrl}}/neighborhoods/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Al Olaya\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.7136,\n  \"longitude\": 46.6753\n}"
+              "raw": "{\n  \"name\": \"{{seedNeighborhoodName}}\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.7136,\n  \"longitude\": 46.6753\n}"
             }
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Unique name per run, so re-running never hits the 409 duplicate check",
+                  "pm.collectionVariables.set('seedNeighborhoodName', 'Al Olaya (test ' + String(Date.now()).slice(-6) + ')');"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -319,8 +355,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedNeighborhoodId', data.id);",
-                  "pm.collectionVariables.set('neighborhoodId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedNeighborhoodId', data.id);",
+                  "    pm.collectionVariables.set('neighborhoodId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -362,10 +401,13 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedUserId', data.id);",
-                  "pm.collectionVariables.set('userId', data.id);",
-                  "pm.collectionVariables.set('investorId', data.id);",
-                  "pm.collectionVariables.set('ideaOwnerId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedUserId', data.id);",
+                  "    pm.collectionVariables.set('userId', data.id);",
+                  "    pm.collectionVariables.set('investorId', data.id);",
+                  "    pm.collectionVariables.set('ideaOwnerId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -397,8 +439,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedIdeaId', data.id);",
-                  "pm.collectionVariables.set('ideaId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedIdeaId', data.id);",
+                  "    pm.collectionVariables.set('ideaId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -430,8 +475,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedFoundingMemberId', data.id);",
-                  "pm.collectionVariables.set('foundingMemberId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedFoundingMemberId', data.id);",
+                  "    pm.collectionVariables.set('foundingMemberId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -463,8 +511,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedBusinessModelId', data.id);",
-                  "pm.collectionVariables.set('businessModelId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedBusinessModelId', data.id);",
+                  "    pm.collectionVariables.set('businessModelId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -496,8 +547,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedIdeaCheckId', data.id);",
-                  "pm.collectionVariables.set('ideaCheckId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedIdeaCheckId', data.id);",
+                  "    pm.collectionVariables.set('ideaCheckId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -538,8 +592,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedNearbyPlaceId', data.id);",
-                  "pm.collectionVariables.set('nearbyPlaceId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedNearbyPlaceId', data.id);",
+                  "    pm.collectionVariables.set('nearbyPlaceId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -571,8 +628,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedFeasibilityReportId', data.id);",
-                  "pm.collectionVariables.set('feasibilityReportId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedFeasibilityReportId', data.id);",
+                  "    pm.collectionVariables.set('feasibilityReportId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -613,8 +673,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedPaymentId', data.id);",
-                  "pm.collectionVariables.set('paymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedPaymentId', data.id);",
+                  "    pm.collectionVariables.set('paymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -646,8 +709,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedAccessId', data.id);",
-                  "pm.collectionVariables.set('accessId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedAccessId', data.id);",
+                  "    pm.collectionVariables.set('accessId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -679,8 +745,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedPartnershipAgreementId', data.id);",
-                  "pm.collectionVariables.set('partnershipAgreementId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedPartnershipAgreementId', data.id);",
+                  "    pm.collectionVariables.set('partnershipAgreementId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -724,8 +793,11 @@
                   "pm.test('Contract is DRAFT', function () {",
                   "    pm.expect(data.status).to.eql('DRAFT');",
                   "});",
-                  "pm.collectionVariables.set('seedContractId', data.id);",
-                  "pm.collectionVariables.set('contractId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedContractId', data.id);",
+                  "    pm.collectionVariables.set('contractId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -821,8 +893,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedContractSignatureId', data.id);",
-                  "pm.collectionVariables.set('contractSignatureId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedContractSignatureId', data.id);",
+                  "    pm.collectionVariables.set('contractSignatureId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -907,26 +982,15 @@
           },
           "event": [
             {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const secret = pm.collectionVariables.get('moyasarWebhookSecret');",
-                  "if (secret) {",
-                  "    pm.request.headers.add({ key: 'X-Webhook-Secret', value: secret });",
-                  "}"
-                ]
-              }
-            },
-            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "const body = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
                   "pm.test('Status is 200', function () {",
-                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.code, 'server said: ' + (body.message || pm.response.text())).to.eql(200);",
                   "});",
-                  "const data = pm.response.json();",
+                  "const data = body;",
                   "pm.test('Payment confirmed', function () {",
                   "    pm.expect(data.paymentStatus).to.eql('PAID');",
                   "});",
@@ -994,8 +1058,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedProjectUpdateId', data.id);",
-                  "pm.collectionVariables.set('projectUpdateId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedProjectUpdateId', data.id);",
+                  "    pm.collectionVariables.set('projectUpdateId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1036,8 +1103,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedSubscriptionPaymentId', data.id);",
-                  "pm.collectionVariables.set('subscriptionPaymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedSubscriptionPaymentId', data.id);",
+                  "    pm.collectionVariables.set('subscriptionPaymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1069,8 +1139,11 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('seedSubscriptionId', data.id);",
-                  "pm.collectionVariables.set('subscriptionId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('seedSubscriptionId', data.id);",
+                  "    pm.collectionVariables.set('subscriptionId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1095,10 +1168,20 @@
             "url": "{{baseUrl}}/neighborhoods/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Al Malqa\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8000,\n  \"longitude\": 46.6200\n}"
+              "raw": "{\n  \"name\": \"{{crudNeighborhoodName}}\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8000,\n  \"longitude\": 46.6200\n}"
             }
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Unique name per run, so re-running never hits the 409 duplicate check",
+                  "pm.collectionVariables.set('crudNeighborhoodName', 'Al Malqa (test ' + String(Date.now()).slice(-6) + ')');"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -1108,7 +1191,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudNeighborhoodId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudNeighborhoodId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1205,7 +1291,7 @@
             "url": "{{baseUrl}}/neighborhoods/update/{{crudNeighborhoodId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Al Malqa Updated\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8001,\n  \"longitude\": 46.6201\n}"
+              "raw": "{\n  \"name\": \"{{crudNeighborhoodName}} Updated\",\n  \"city\": \"Riyadh\",\n  \"latitude\": 24.8001,\n  \"longitude\": 46.6201\n}"
             }
           },
           "event": [
@@ -1264,7 +1350,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudUserId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudUserId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1410,7 +1499,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudIdeaId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudIdeaId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1556,7 +1648,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudFoundingMemberId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudFoundingMemberId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1702,7 +1797,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudBusinessModelId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudBusinessModelId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -1848,7 +1946,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudIdeaCheckId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudIdeaCheckId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2003,7 +2104,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudNearbyPlaceId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudNearbyPlaceId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2149,7 +2253,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudFeasibilityReportId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudFeasibilityReportId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2304,7 +2411,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudPaymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudPaymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2450,7 +2560,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudAccessId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudAccessId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2596,7 +2709,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudPartnershipAgreementId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudPartnershipAgreementId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2709,6 +2825,39 @@
               }
             }
           ]
+        },
+        {
+          "name": "Accept Terms (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/partnership-agreements/accept-terms/{{crudPartnershipAgreementId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"termsAccepted\": true,\n  \"signedName\": \"CRUD Investor\",\n  \"signatureIp\": \"127.0.0.1\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Partnership agreement is SIGNED', function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('SIGNED');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -2751,7 +2900,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudContractId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudContractId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -2872,7 +3024,7 @@
       "description": "Creates and reads/updates data only. Nothing is deleted; rows stay in MySQL after the run.",
       "item": [
         {
-          "name": "Create (CRUD lane)",
+          "name": "Create (CRUD lane, investor signs)",
           "request": {
             "method": "POST",
             "header": [
@@ -2884,7 +3036,7 @@
             "url": "{{baseUrl}}/contract-signatures/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{crudUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Signer\",\n  \"signatureImageUri\": \"https://example.com/crud.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-02-01T10:00:00\"\n}"
+              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Signer\",\n  \"signatureImageUri\": \"https://example.com/crud.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-02-01T10:00:00\"\n}"
             }
           },
           "event": [
@@ -2897,7 +3049,74 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudContractSignatureId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudContractSignatureId', data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign Idea Owner (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/contract-signatures/sign/{{crudContractId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"IDEA_OWNER\",\n  \"typedName\": \"CRUD Owner Signer\",\n  \"signatureImageUri\": \"https://example.com/crud-owner.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Moyasar Webhook (CRUD lane)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payments/webhook/moyasar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{crudMoyasarPaymentId}}\",\n  \"status\": \"paid\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('Status is 200', function () {",
+                  "    pm.expect(pm.response.code, 'server said: ' + (body.message || pm.response.text())).to.eql(200);",
+                  "});",
+                  "pm.test('CRUD contract activated', function () {",
+                  "    pm.expect(body.contractStatus).to.eql('ACTIVE');",
+                  "});"
                 ]
               }
             }
@@ -2994,7 +3213,7 @@
             "url": "{{baseUrl}}/contract-signatures/update/{{crudContractSignatureId}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{crudUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Signer Updated\",\n  \"signatureImageUri\": \"https://example.com/crud.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-02-01T10:00:00\"\n}"
+              "raw": "{\n  \"contractId\": {{crudContractId}},\n  \"signerId\": {{seedUserId}},\n  \"signerRole\": \"INVESTOR\",\n  \"typedName\": \"CRUD Signer Updated\",\n  \"signatureImageUri\": \"https://example.com/crud.png\",\n  \"ipAddress\": \"127.0.0.1\",\n  \"otpVerified\": true,\n  \"termsAccepted\": true,\n  \"signedAt\": \"2026-02-01T10:00:00\"\n}"
             }
           },
           "event": [
@@ -3043,7 +3262,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudProjectUpdateId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudProjectUpdateId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3198,7 +3420,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudSubscriptionPaymentId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudSubscriptionPaymentId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3230,7 +3455,10 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "const data = pm.response.json();",
-                  "pm.collectionVariables.set('crudSubscriptionId', data.id);"
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 201 && data.id != null) {",
+                  "    pm.collectionVariables.set('crudSubscriptionId', data.id);",
+                  "}"
                 ]
               }
             }
@@ -3373,10 +3601,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Admin logged in', () => pm.response.to.have.status(200));",
-                  "const login = pm.response.json();",
-                  "pm.test('The account is an admin', () => pm.expect(login.user.role).to.eql('ADMIN'));",
-                  "pm.collectionVariables.set('adminToken', login.accessToken);"
+                  "pm.test('adminPassword is filled in (Variables tab: copy ADMIN_PASSWORD from your .env)', function () {",
+                  "    pm.expect(pm.variables.get('adminPassword') || '').to.not.equal('');",
+                  "});",
+                  "const body = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "pm.test('Admin logged in', function () {",
+                  "    pm.expect(pm.response.code, 'server said: ' + (body.message || pm.response.text())).to.eql(200);",
+                  "});",
+                  "const login = body;",
+                  "pm.test('The account is an admin', () => pm.expect((login.user || {}).role).to.eql('ADMIN'));",
+                  "// Only save when it worked, so a failure doesn't wipe the value later requests use",
+                  "if (pm.response.code === 200 && login.accessToken != null) {",
+                  "    pm.collectionVariables.set('adminToken', login.accessToken);",
+                  "}"
                 ]
               }
             }
