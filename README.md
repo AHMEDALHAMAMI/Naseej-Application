@@ -46,7 +46,6 @@ Naseej lets neighborhood residents request the shops and services they're missin
 - **Residents** post requests by text or voice in their own dialect, join existing requests for free as founding members, and see demand on a neighborhood map. A member counts only after email and residence verification.
 - **Idea owners** get AI screening before publishing and an AI-drafted business model they can edit by chat.
 - **Investors** search by neighborhood, capital or project name, read a short AI feasibility study, unlock opportunities through Moyasar or a success partnership, and sign contracts inside the platform.
-- **Landlords** list vacant shops that appear inside nearby opportunities.
 - **Everyone** gets WhatsApp and email alerts when a request completes, an idea is adopted or a business opens.
 
 ## 🛠️ Tech Stack
@@ -131,7 +130,6 @@ Login is stateless with JWT access and refresh tokens. Users sign up with Google
 | `PENDING` | Google user before choosing a membership |
 | `RESIDENT` | Post ideas, join as a founding member, sign as idea owner |
 | `INVESTOR` | Search, unlock and adopt opportunities, sign contracts |
-| `LANDLORD` | List vacant shops |
 | `ADMIN` | Manage users and opportunities, receive a copy of every contract |
 
 ## 💰 Revenue Model
@@ -143,7 +141,6 @@ Residents and idea owners use Naseej for free. Prices below are proposals for te
 | Opportunity access fee | Investor | 1,500 SAR + VAT per opportunity |
 | Success partnership | Investor who doesn't pay upfront | 5% of net profit for 3 years after opening |
 | Investor subscription | Active investors | 299 or 999 SAR per month |
-| Vacant shop listing | Landlords | 199 SAR per month per shop |
 
 ## 📁 Project Structure
 
@@ -196,7 +193,6 @@ n8n.webhook.url=${N8N_WEBHOOK_URL}
 | Resident | `TODO` | `TODO` | Founding member of that idea |
 | Investor | `TODO` | `TODO` | Nafath verified |
 | Investor | `TODO` | `TODO` | Not verified, can't access opportunities |
-| Landlord | `TODO` | `TODO` | Has a vacant shop listed |
 
 </details>
 
