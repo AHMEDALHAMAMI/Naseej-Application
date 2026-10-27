@@ -14,7 +14,6 @@
 ![n8n](https://img.shields.io/badge/n8n-EA4B71?logo=n8n&logoColor=white)
 ![Moyasar](https://img.shields.io/badge/Moyasar-Payments-1D4ED8)
 ![Google Places](https://img.shields.io/badge/Google_Places-4285F4?logo=googlemaps&logoColor=white)
-![WhatsApp](https://img.shields.io/badge/WhatsApp-25D366?logo=whatsapp&logoColor=white)
 ![Gmail](https://img.shields.io/badge/Gmail-EA4335?logo=gmail&logoColor=white)
 
 </div>
@@ -67,7 +66,6 @@ Naseej lets neighborhood residents request the shops and services they're missin
 | <img src="https://cdn.simpleicons.org/google" width="18"> **Google OAuth2** | Sign-in | `oauth2Login()` signs the user in. New users are created with the `PENDING` role, sent to the membership page, then issued a JWT. |
 | 💳 **Moyasar** | Payments and refunds | Moyasar's ready payment form handles Apple Pay, mada and cards, so card data never reaches our server. An opportunity is unlocked only after Moyasar's webhook confirms the payment, and refunds go through the Refund API. |
 | <img src="https://cdn.simpleicons.org/n8n" width="18"> **n8n** | Automation | Spring Boot and Moyasar trigger n8n workflows through webhooks for screening, alerts, contracts, deadlines and digests. |
-| <img src="https://cdn.simpleicons.org/whatsapp" width="18"> **WhatsApp** | Alerts | Sent by n8n: request completed, idea adopted, contract ready to sign, business opened. |
 | <img src="https://cdn.simpleicons.org/gmail" width="18"> **Gmail** | OTP codes and contracts | Connected in n8n through an OAuth2 credential from the platform's official account, so emails arrive from "Naseej" and not from a person. |
 | 🪪 **Nafath** | Investor verification | Investors must verify their identity through Nafath before they can access opportunities. |
 
@@ -282,6 +280,123 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | GET / POST | `/unlock/checkout/{ideaId}`, `/unlock/owner-terms/{ideaId}`, `/unlock/owner-checkout/{ideaId}`, `/unlock/owner-confirm/{ideaId}` | investor | Moyasar payment form checkout, and the paid launch of the investor's own idea (service fee `OWNER_LAUNCH_FEE_SAR`). The investor pages use `/unlock/pay` and `/unlock/adopt` |
 | GET | `/unlock/agreement/{contractId}` | investor, founder, admin | The agreement behind a project |
 | GET / POST / PUT / DELETE | `/admin/users`, `/admin/users/{id}`, `/admin/users/{id}/password`, `/admin/users/{id}/suspend`, `/admin/users/{id}/reactivate` | admin | Member management |
+
+## Waleed Alaql Endpoints
+
+### Admin (2)
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `POST` | `/admin/payments/{id}/refund` | إضافي |
+| `POST` | `/admin/contracts/expire-overdue` | إضافي |
+
+### Contract (9) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/contracts/get-all` | CRUD |
+| `POST` | `/contracts/create` | CRUD |
+| `PUT` | `/contracts/update/{id}` | CRUD |
+| `DELETE` | `/contracts/delete/{id}` | CRUD |
+| `GET` | `/contracts/get/{id}` | CRUD |
+| `POST` | `/contracts/draft` | إضافي |
+| `POST` | `/contracts/sign/{id}` | إضافي |
+| `POST` | `/contracts/terminate/{id}` | إضافي |
+| `POST` | `/contracts/add-update/{id}` | إضافي |
+
+### ContractSignature (7) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/contract-signatures/get-all` | CRUD |
+| `POST` | `/contract-signatures/create` | CRUD |
+| `PUT` | `/contract-signatures/update/{id}` | CRUD |
+| `DELETE` | `/contract-signatures/delete/{id}` | CRUD |
+| `GET` | `/contract-signatures/get/{id}` | CRUD |
+| `POST` | `/contract-signatures/sign/{contractId}` | إضافي |
+| `GET` | `/contract-signatures/check/contract/{contractId}` | إضافي |
+
+### Notification (4)
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/notifications` | إضافي |
+| `GET` | `/notifications/unread-count` | إضافي |
+| `PUT` | `/notifications/read-all` | إضافي |
+| `PUT` | `/notifications/{id}/read` | إضافي |
+
+### PartnershipAgreement (7) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/partnership-agreements/get-all` | CRUD |
+| `POST` | `/partnership-agreements/create` | CRUD |
+| `PUT` | `/partnership-agreements/update/{id}` | CRUD |
+| `DELETE` | `/partnership-agreements/delete/{id}` | CRUD |
+| `GET` | `/partnership-agreements/get/{id}` | CRUD |
+| `POST` | `/partnership-agreements/accept-terms/{id}` | إضافي |
+| `GET` | `/partnership-agreements/check/access/{accessId}` | إضافي |
+
+### Payment (13) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/payments/get-all` | CRUD |
+| `POST` | `/payments/create` | CRUD |
+| `PUT` | `/payments/update/{id}` | CRUD |
+| `DELETE` | `/payments/delete/{id}` | CRUD |
+| `GET` | `/payments/get/{id}` | CRUD |
+| `GET` | `/payments/get-status/{id}` | إضافي |
+| `POST` | `/payments/confirm/{id}` | إضافي |
+| `POST` | `/payments/refund/{id}` | إضافي |
+| `POST` | `/payments/webhook/moyasar` | إضافي |
+| `POST` | `/payments/initiate-moyasar` | إضافي |
+| `POST` | `/payments/sync-moyasar/{id}` | إضافي |
+| `GET` | `/payments/moyasar-callback` | إضافي |
+| `GET` | `/payments/mine` | إضافي |
+
+### Project (8)
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/projects/mine` | إضافي |
+| `GET` | `/projects/stages` | إضافي |
+| `POST` | `/projects/stage/{contractId}` | إضافي |
+| `PUT` | `/projects/{contractId}/benefits` | إضافي |
+| `POST` | `/projects/{contractId}/sign-otp` | إضافي |
+| `POST` | `/projects/{contractId}/sign` | إضافي |
+| `POST` | `/projects/{contractId}/extend` | إضافي |
+| `GET` | `/projects/{contractId}/contract` | إضافي |
+
+### ProjectUpdate (5) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/project-updates/get-all` | CRUD |
+| `POST` | `/project-updates/create` | CRUD |
+| `PUT` | `/project-updates/update/{id}` | CRUD |
+| `DELETE` | `/project-updates/delete/{id}` | CRUD |
+| `GET` | `/project-updates/get/{id}` | CRUD |
+
+### Subscription (3)
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `POST` | `/subscriptions/subscribe` | إضافي |
+| `GET` | `/subscriptions/mine` | إضافي |
+| `PUT` | `/subscriptions/cancel` | إضافي |
+
+### Unlock (7)
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `POST` | `/unlock/pay/{ideaId}` | إضافي |
+| `POST` | `/unlock/checkout/{ideaId}` | إضافي |
+| `POST` | `/unlock/confirm-payment/{ideaId}` | إضافي |
+| `POST` | `/unlock/partnership/{ideaId}` | إضافي |
+| `POST` | `/unlock/owner-checkout/{ideaId}` | إضافي |
+| `POST` | `/unlock/owner-confirm/{ideaId}` | إضافي |
+| `GET` | `/unlock/agreement/{contractId}` | إضافي |
 
 **Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor signs → `ACTIVE` right away, and the 180-day opening deadline starts. The idea owner doesn't sign and gets no discount; they're notified when the contract is active. The investor must sign within 14 days of the purchase. Once, in the last 30 days before the opening deadline, an investor who posted progress in the last 30 days can extend it by 60 days (`POST /projects/{contractId}/extend`); progress can also be posted on the current stage with a note. An investor who adopts their own idea skips the benefits step and signs once. A contract that isn't signed or doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
 
