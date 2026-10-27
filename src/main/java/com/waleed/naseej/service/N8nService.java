@@ -4,6 +4,7 @@ import com.waleed.naseej.enums.OtpPurpose;
 import com.waleed.naseej.exception.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -14,21 +15,36 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Calls n8n webhooks. n8n then sends the email from the platform's Gmail account.
+ * Calls n8n webhooks. n8n then sends the email from the platform's Gmail account
+ * (the OTP workflow is in n8n/naseej-otp-email.workflow.json).
+ * When N8N_WEBHOOK_SECRET is set, every call carries it in the X-Naseej-Secret header, so the webhooks
+ * (Header Auth in n8n) only accept calls from this backend.
  * Other features (idea completed, contracts) can add their own methods here.
  */
 @Slf4j
 @Service
 public class N8nService {
 
+    public static final String SECRET_HEADER = "X-Naseej-Secret";
+
     private final RestClient restClient = RestClient.create();
     private final String otpWebhookUrl;
     private final String eventsWebhookUrl;
+    private final String webhookSecret;
 
     public N8nService(@Value("${n8n.webhook.otp-url:}") String otpWebhookUrl,
-                      @Value("${n8n.webhook.events-url:}") String eventsWebhookUrl) {
+                      @Value("${n8n.webhook.events-url:}") String eventsWebhookUrl,
+                      @Value("${n8n.webhook.secret:}") String webhookSecret) {
         this.otpWebhookUrl = otpWebhookUrl;
         this.eventsWebhookUrl = eventsWebhookUrl;
+        this.webhookSecret = webhookSecret;
+    }
+
+    // Adds the shared secret when one is configured
+    private void secret(HttpHeaders headers) {
+        if (webhookSecret != null && !webhookSecret.isBlank()) {
+            headers.set(SECRET_HEADER, webhookSecret);
+        }
     }
 
     public void sendOtpEmail(String email, String fullName, String code, OtpPurpose purpose, long expiresInMinutes) {
@@ -49,6 +65,7 @@ public class N8nService {
         try {
             restClient.post()
                     .uri(otpWebhookUrl)
+                    .headers(this::secret)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
@@ -78,6 +95,7 @@ public class N8nService {
         try {
             restClient.post()
                     .uri(eventsWebhookUrl)
+                    .headers(this::secret)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
