@@ -5,6 +5,7 @@ import { api, session } from '../api.js';
 import { $, esc, guard, toast, withLoading, errorMessage, applyFieldErrors, icon, logout, t } from '../ui.js';
 import { isAr, setLang } from '../i18n.js';
 import { budgetPicker, fieldsPicker, areasPicker } from '../investor-prefs.js';
+import { requiredPhone, displayPhone } from '../profile-fields.js';
 
 let user = await guard(['INVESTOR']);
 const app = $('#app');
@@ -32,8 +33,8 @@ app.innerHTML = `
       <form id="profile-form" class="stack" style="gap:14px" novalidate>
         <div class="field"><label for="fullName">${esc(t('form.fullName'))}</label>
           <input class="input" id="fullName" name="fullName" autocomplete="name" minlength="3" maxlength="100" value="${esc(user.fullName)}"><span class="error" aria-live="polite"></span></div>
-        <div class="field"><label for="phone">${esc(t('form.mobile'))} <span class="muted">${esc(t('form.optional'))}</span></label>
-          <input class="input" id="phone" name="phone" type="tel" inputmode="numeric" dir="ltr" placeholder="9665XXXXXXXX" value="${esc(user.phone || '')}"><span class="error" aria-live="polite"></span></div>
+        <div class="field"><label for="phone">${esc(t('form.mobile'))}</label>
+          <input class="input" id="phone" name="phone" type="tel" inputmode="numeric" maxlength="10" pattern="05[0-9]{8}" dir="ltr" placeholder="${esc(t('signup.phonePh'))}" value="${esc(displayPhone(user.phone))}"><span class="hint">${esc(t('signup.phoneHint'))}</span><span class="error" aria-live="polite"></span></div>
         <div class="field"><label for="email">${esc(t('formInv.email'))}</label>
           <input class="input" id="email" value="${esc(user.email)}" readonly dir="ltr"></div>
         <button class="btn btn-secondary" type="submit" style="align-self:flex-start" data-loading="${esc(t('commonInv.saving'))}">${esc(t('acct.saveProfile'))}</button>
@@ -145,9 +146,15 @@ $('#profile-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const f = e.currentTarget;
   applyFieldErrors(f, null);
-  const body = { fullName: f.fullName.value.trim() };
-  const phone = f.phone.value.trim();
-  if (phone) body.phone = phone;
+  // The mobile number is required: 05 then 8 digits
+  const { phone, error: phoneError } = requiredPhone(f.phone.value);
+  if (phoneError) {
+    f.phone.setAttribute('aria-invalid', 'true');
+    f.phone.closest('.field').querySelector('.error').textContent = t(phoneError);
+    f.phone.focus();
+    return;
+  }
+  const body = { fullName: f.fullName.value.trim(), phone };
   withLoading(f.querySelector('[type="submit"]'), async () => {
     try {
       user = session.setUser(await api.put('auth/me', body)).user;

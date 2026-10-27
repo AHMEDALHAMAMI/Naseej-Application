@@ -1612,7 +1612,7 @@ export const SERVER_MESSAGES = {
   '^This member has (.+) on the platform, so the account can\'t be deleted\. Suspend it instead$': 'لدى هذا العضو سجل في المنصة ($1)، لذا لا يمكن حذف الحساب. أوقفه بدلًا من ذلك',
   'Membership must be RESIDENT, INVESTOR, ADMIN or PENDING': 'العضوية يجب أن تكون ساكنًا أو مستثمرًا أو مشرفًا أو بلا عضوية',
   'Phone must be in the format 05XXXXXXXX': 'رقم الجوال يبدأ بـ 05 وبعده 8 أرقام',
-  'Mobile number is required for residents': 'رقم الجوال مطلوب للسكان',
+  'Mobile number is required': 'رقم الجوال مطلوب',
   'Choose the membership': 'اختر نوع العضوية',
   'Type what you are looking for': 'اكتب ما تبحث عنه',
   "Payment confirmed. The opportunity is yours": "تأكد الدفع، والفرصة صارت لك",

@@ -38,8 +38,6 @@ function show(next, { focus = true } = {}) {
   $('[data-final]', form).hidden = step !== lastStep();
   // Investors send the form from the details step, so its own Back / Next row gives way to the final one
   $('[data-step="1"] .step-actions', form).hidden = isInvestor();
-  // The mobile number is required for residents, optional for investors
-  $('[data-phone-optional]', form).hidden = !isInvestor();
   // The map is created when its step first shows (a hidden map can't measure itself)
   if (step === 2 && !isInvestor() && !picker) picker = addressPicker($('#home-picker'), { labelPlaceholder: t('addr.labelPh') });
   if (step === 2 && picker) setTimeout(() => picker.map.invalidateSize(), 50);
@@ -55,9 +53,8 @@ function go(next) {
 window.addEventListener('popstate', (e) => show(e.state?.step ?? 0));
 history.replaceState({ step: 0 }, '', location.pathname + location.search);
 
-// Residents must give a mobile number (05 then 8 digits); investors may leave it empty
+// Everyone gives a mobile number: 05 then 8 digits
 function phoneProblem() {
-  if (isInvestor()) return normalizePhone(form.phone.value) === false ? 'signup.phoneInvalid' : null;
   return requiredPhone(form.phone.value).error || null;
 }
 
@@ -73,10 +70,7 @@ function checkDetails() {
 }
 
 // The steps follow the account type
-$$('input[name="role"]', form).forEach((r) => r.addEventListener('change', () => {
-  $('#stepper').innerHTML = stepper(labels(), step);
-  $('[data-phone-optional]', form).hidden = !isInvestor();
-}));
+$$('input[name="role"]', form).forEach((r) => r.addEventListener('change', () => { $('#stepper').innerHTML = stepper(labels(), step); }));
 
 $$('[data-next]', form).forEach((b) => b.addEventListener('click', () => {
   if (step === 1 && !checkDetails()) return;

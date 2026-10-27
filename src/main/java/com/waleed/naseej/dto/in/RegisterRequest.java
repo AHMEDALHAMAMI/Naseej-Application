@@ -38,11 +38,11 @@ public class RegisterRequest {
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Password must contain letters and numbers")
     private String password;
 
-    // Saudi mobile: 05XXXXXXXX (9665XXXXXXXX also accepted). Required for residents, optional for investors
+    // Saudi mobile: 05XXXXXXXX (9665XXXXXXXX also accepted). Required for residents and investors
     @Pattern(regexp = PhoneNumbers.REGEX, message = PhoneNumbers.MESSAGE)
     private String phone;
 
-    // Required for residents, optional for investors
+    // Required for residents and investors
     private Integer neighborhoodId;
 
     // Only RESIDENT or INVESTOR are accepted at sign-up

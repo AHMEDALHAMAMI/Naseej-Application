@@ -26,7 +26,7 @@ public class ProfileUpdateRequest {
     @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
     private String fullName;
 
-    // Saudi mobile 05XXXXXXXX (9665XXXXXXXX also accepted); an empty string removes it (not allowed for residents)
+    // Saudi mobile 05XXXXXXXX (9665XXXXXXXX also accepted); an empty string removes it (not allowed for residents and investors)
     @Pattern(regexp = PhoneNumbers.REGEX_OR_EMPTY, message = PhoneNumbers.MESSAGE)
     private String phone;
 

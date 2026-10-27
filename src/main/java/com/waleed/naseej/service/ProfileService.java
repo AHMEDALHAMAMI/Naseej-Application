@@ -43,8 +43,8 @@ public class ProfileService {
         }
         if (request.getPhone() != null) {
             String phone = PhoneNumbers.normalize(request.getPhone());
-            if (phone == null && user.getRole() == Role.RESIDENT) {
-                throw new BadRequestException("Mobile number is required for residents");
+            if (phone == null && (user.getRole() == Role.RESIDENT || user.getRole() == Role.INVESTOR)) {
+                throw new BadRequestException("Mobile number is required");
             }
             if (phone != null && !phone.equals(user.getPhone()) && userRepository.existsByPhone(phone)) {
                 throw new DuplicateResourceException("Phone is already registered");

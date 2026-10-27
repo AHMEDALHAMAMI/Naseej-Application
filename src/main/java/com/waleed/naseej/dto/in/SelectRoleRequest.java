@@ -27,10 +27,10 @@ public class SelectRoleRequest {
     @NotNull(message = "Role is required (RESIDENT or INVESTOR)")
     private Role role;
 
-    // Required when choosing RESIDENT
+    // Required for residents and investors
     private Integer neighborhoodId;
 
-    // Saudi mobile: 05XXXXXXXX (9665XXXXXXXX also accepted). Required when choosing RESIDENT
+    // Saudi mobile: 05XXXXXXXX (9665XXXXXXXX also accepted). Required for residents and investors
     @Pattern(regexp = PhoneNumbers.REGEX, message = PhoneNumbers.MESSAGE)
     private String phone;
 

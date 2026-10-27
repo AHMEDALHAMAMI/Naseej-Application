@@ -43,8 +43,8 @@ wireTabs(app, {
 function renderProfile(u) {
   const panel = $('#panel-profile');
   const google = u.authProvider === 'GOOGLE';
-  // Residents must keep a mobile number (05 then 8 digits); for others it's optional
-  const phoneRequired = u.role === 'RESIDENT';
+  // Residents and investors must keep a mobile number (05 then 8 digits); for admins it's optional
+  const phoneRequired = u.role === 'RESIDENT' || u.role === 'INVESTOR';
   panel.innerHTML = `
     <div class="stack account-form" style="gap:24px">
       <form class="card stack" id="profile-form" novalidate>

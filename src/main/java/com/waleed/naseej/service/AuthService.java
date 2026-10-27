@@ -83,7 +83,7 @@ public class AuthService {
             throw new DuplicateResourceException("Email is already registered");
         }
         String phone = PhoneNumbers.normalize(request.getPhone());
-        requirePhoneForResident(request.getRole(), phone);
+        requirePhone(request.getRole(), phone);
         if (phone != null && userRepository.existsByPhone(phone)) {
             throw new DuplicateResourceException("Phone is already registered");
         }
@@ -114,10 +114,10 @@ public class AuthService {
         return new MessageResponse("Account created. Enter the 6-digit code we sent to " + email);
     }
 
-    /** Residents must give a mobile number (05XXXXXXXX); investors may leave it empty. */
-    private static void requirePhoneForResident(Role role, String phone) {
-        if (role == Role.RESIDENT && phone == null) {
-            throw new BadRequestException("Mobile number is required for residents");
+    /** Residents and investors must give a mobile number (05XXXXXXXX). */
+    private static void requirePhone(Role role, String phone) {
+        if ((role == Role.RESIDENT || role == Role.INVESTOR) && phone == null) {
+            throw new BadRequestException("Mobile number is required");
         }
     }
 
@@ -337,7 +337,7 @@ public class AuthService {
         validateInvestorProfile(request.getRole(), request.getCrNumber(), budget, request.getInvestmentFields());
 
         String phone = PhoneNumbers.normalize(request.getPhone());
-        requirePhoneForResident(request.getRole(), phone != null ? phone : user.getPhone());
+        requirePhone(request.getRole(), phone != null ? phone : user.getPhone());
         if (phone != null && !phone.equals(user.getPhone())) {
             if (userRepository.existsByPhone(phone)) {
                 throw new DuplicateResourceException("Phone is already registered");
