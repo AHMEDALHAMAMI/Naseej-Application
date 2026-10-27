@@ -78,7 +78,7 @@ public class AdminUserService {
         if (userRepository.existsByEmail(email)) {
             throw new DuplicateResourceException("Email is already registered");
         }
-        String phone = blankToNull(request.getPhone());
+        String phone = PhoneNumbers.normalize(request.getPhone());
         if (phone != null && userRepository.existsByPhone(phone)) {
             throw new DuplicateResourceException("Phone is already registered");
         }
@@ -110,7 +110,7 @@ public class AdminUserService {
             }
             ensureAnotherActiveAdmin(user);
         }
-        String phone = blankToNull(request.getPhone());
+        String phone = PhoneNumbers.normalize(request.getPhone());
         if (phone != null && !phone.equals(user.getPhone()) && userRepository.existsByPhone(phone)) {
             throw new DuplicateResourceException("Phone is already registered");
         }

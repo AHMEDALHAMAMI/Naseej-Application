@@ -2,7 +2,6 @@ package com.waleed.naseej.dto.out;
 
 import com.waleed.naseej.enums.AccessType;
 import com.waleed.naseej.enums.ContractStatus;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,14 +42,10 @@ public class ProjectResponse {
     private Boolean canPostUpdate;
     private LocalDateTime nextUpdateAllowedAt;
 
-    // ---------- Contract: benefits and signatures (DRAFT → INVESTOR_SIGNED → ACTIVE) ----------
-    private BigDecimal ideaOwnerDiscount;
-    private String benefitsNote;
-    private Boolean benefitsSet;
+    // ---------- Contract: the investor's signature (DRAFT → ACTIVE; the idea owner doesn't sign) ----------
     private Boolean investorSigned;
-    private Boolean founderSigned;
     private LocalDate openingDeadline;
-    // Until both parties sign: the last day to sign before the idea goes back to other investors
+    // Until the investor signs: the last day to sign before the idea goes back to other investors
     private LocalDate signingDeadline;
     // The one extension of the opening deadline: used already, can be asked for now, or when it opens
     private Boolean extended;
@@ -58,8 +53,7 @@ public class ProjectResponse {
     private LocalDate extensionOpensOn;
     // Why the investor can't extend yet although the window is open (e.g. no recent progress update)
     private String extensionBlockedReason;
-    // SET_BENEFITS, INVESTOR_SIGN, FOUNDER_SIGN, WAITING_PAYMENT, IN_PROGRESS, OPENED or ENDED
+    // INVESTOR_SIGN, WAITING_PAYMENT, IN_PROGRESS, OPENED or ENDED
     private String nextStep;
-    private Boolean canSetBenefits;
     private Boolean canSign;
 }

@@ -1,6 +1,5 @@
 package com.waleed.naseej.controller;
 
-import com.waleed.naseej.dto.in.ContractBenefitsRequest;
 import com.waleed.naseej.dto.in.ProjectStageRequest;
 import com.waleed.naseej.dto.in.SignContractRequest;
 import com.waleed.naseej.dto.out.MessageResponse;
@@ -44,14 +43,7 @@ public class ProjectController {
         return projectService.addStage(user, contractId, request);
     }
 
-    // ----- Contract: benefits → investor signs → founder signs → ACTIVE (→ one extension) -----
-
-    @PutMapping("/{contractId}/benefits")
-    public ProjectResponse setBenefits(@AuthenticationPrincipal User user,
-                                       @PathVariable Integer contractId,
-                                       @Valid @RequestBody ContractBenefitsRequest request) {
-        return contractFlowService.setBenefits(user, contractId, request);
-    }
+    // ----- Contract: purchase → investor signs → ACTIVE (→ one extension). The idea owner doesn't sign -----
 
     @PostMapping("/{contractId}/sign-otp")
     public MessageResponse sendSignOtp(@AuthenticationPrincipal User user, @PathVariable Integer contractId) {

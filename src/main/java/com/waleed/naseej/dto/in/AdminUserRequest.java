@@ -5,6 +5,7 @@ import com.waleed.naseej.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import com.waleed.naseej.service.PhoneNumbers;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -34,7 +35,7 @@ public class AdminUserRequest {
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Password must contain letters and numbers")
     private String password;
 
-    @Pattern(regexp = "^(9665\\d{8})?$", message = "Phone must be in the format 9665XXXXXXXX")
+    @Pattern(regexp = PhoneNumbers.REGEX_OR_EMPTY, message = PhoneNumbers.MESSAGE)
     private String phone;
 
     @NotNull(message = "Choose the membership")
@@ -43,7 +44,7 @@ public class AdminUserRequest {
     // Required for residents
     private Integer neighborhoodId;
 
-    @Pattern(regexp = "^(\\d{10})?$", message = "Commercial registration number must be 10 digits")
+    @Pattern(regexp = "^(7\\d{9})?$", message = "Commercial registration number must be 10 digits starting with 7")
     private String crNumber;
 
     // Investors only; PENDING when empty

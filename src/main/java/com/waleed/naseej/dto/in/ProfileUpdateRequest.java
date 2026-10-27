@@ -1,5 +1,6 @@
 package com.waleed.naseej.dto.in;
 
+import com.waleed.naseej.service.PhoneNumbers;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -25,8 +26,8 @@ public class ProfileUpdateRequest {
     @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
     private String fullName;
 
-    // Saudi mobile format 9665XXXXXXXX; an empty string removes it
-    @Pattern(regexp = "^$|^9665\\d{8}$", message = "Phone must be in the format 9665XXXXXXXX")
+    // Saudi mobile 05XXXXXXXX (9665XXXXXXXX also accepted); an empty string removes it (not allowed for residents)
+    @Pattern(regexp = PhoneNumbers.REGEX_OR_EMPTY, message = PhoneNumbers.MESSAGE)
     private String phone;
 
     @Pattern(regexp = "^(ar|en)$", message = "Language must be ar or en")
@@ -37,7 +38,7 @@ public class ProfileUpdateRequest {
     @Size(max = 120, message = "Company name must be at most 120 characters")
     private String companyName;
 
-    @Pattern(regexp = "^\\d{10}$", message = "Commercial registration number must be 10 digits")
+    @Pattern(regexp = "^7\\d{9}$", message = "Commercial registration number must be 10 digits starting with 7")
     private String crNumber;
 
     // Budget range in SAR. Send budgetMin with budgetMax, or with budgetNoMax = true for "and above"

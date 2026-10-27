@@ -145,6 +145,7 @@ export const icon = {
   back: '<svg class="flip-rtl" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
   map: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6.5v13.5L9 17.5l6 2.5 6-2.5V4L15 6.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg>',
   lock: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  share: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg>',
   google: '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C41.4 35.3 44 30 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>',
 };
 
@@ -266,6 +267,49 @@ export function modal({ title, body, confirmText = t('common.confirm'), cancelTe
     document.body.appendChild(back);
     (back.querySelector('input, textarea, select') || ok).focus();
   });
+}
+
+// ---------- Sharing an idea ----------
+
+/** The full link of an idea's page (a neighbor who isn't logged in signs in and comes back to it). */
+export function ideaUrl(id) {
+  return new URL(`idea.html?id=${encodeURIComponent(id)}`, location.href).href;
+}
+
+/**
+ * Shares an idea's page link: the phone's share sheet (WhatsApp, messages…) when there is one,
+ * otherwise the link is copied; if copying isn't allowed, the link is shown to copy by hand.
+ */
+export async function shareIdea(idea) {
+  const url = ideaUrl(idea.id);
+  const text = t('share.text', { title: idea.title });
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: idea.title, text, url });
+      return;
+    } catch (err) {
+      if (err?.name === 'AbortError') return; // closed the share sheet
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    toast(t('share.copied'), 'success');
+  } catch {
+    await modal({
+      title: t('share.title'),
+      body: `<p class="muted">${esc(t('share.copyHint'))}</p><input class="input" readonly dir="ltr" value="${esc(url)}" aria-label="${esc(t('share.title'))}">`,
+      confirmText: t('share.done'),
+    });
+  }
+}
+
+/** The share button markup; wire it with wireShareButton. */
+export function shareButton(extraClass = 'btn-secondary') {
+  return `<button type="button" class="btn ${extraClass}" data-share>${icon.share} ${esc(t('share.button'))}</button>`;
+}
+
+export function wireShareButton(root, idea) {
+  root.querySelectorAll('[data-share]').forEach((b) => b.addEventListener('click', () => shareIdea(idea)));
 }
 
 // ---------- Session / guard / header ----------
@@ -421,6 +465,7 @@ export function notifText(n) {
   if (n.type === 'PROJECT_STAGE') return t('notif.stage', { title, stage: stageLabel(n.detail) });
   if (n.type === 'CONTRACT_TO_SIGN') return t('notif.signContract', { title });
   if (n.type === 'INVESTOR_REVIEWED') return t(n.detail === 'VERIFIED' ? 'notif.verified' : 'notif.rejected');
+  if (n.type === 'CONTRACT_SIGNED' && n.detail === 'OWNER_ACTIVE') return t('notif.contractActiveOwner', { title });
   if (n.type === 'CONTRACT_SIGNED') return t(n.detail === 'ACTIVE' ? 'notif.contractActive' : 'notif.ownerSigned', { title });
   if (n.type === 'CONTRACT_EXTENDED') return t('notif.extended', { title, date: n.detail ? fmt.date(n.detail) : '' });
   return t('notif.generic', { title });

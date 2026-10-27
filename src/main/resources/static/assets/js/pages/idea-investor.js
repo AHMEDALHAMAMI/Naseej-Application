@@ -68,7 +68,7 @@ function render(idea) {
     const loc = lastLocation();
     if (isResident && loc) {
       L.marker([loc.lat, loc.lng], { icon: meIcon(), interactive: false, keyboard: false }).addTo(map);
-      const circle = L.circle([loc.lat, loc.lng], { radius: (idea.votingRadiusKm || 2) * 1000, color: '#2F5444', weight: 1.5, fillOpacity: 0.06, dashArray: '6 6' }).addTo(map);
+      const circle = L.circle([loc.lat, loc.lng], { radius: (idea.votingRadiusKm || 8) * 1000, color: '#2F5444', weight: 1.5, fillOpacity: 0.06, dashArray: '6 6' }).addTo(map);
       map.fitBounds(circle.getBounds().extend([idea.latitude, idea.longitude]), { padding: [20, 20] });
     }
   } else {

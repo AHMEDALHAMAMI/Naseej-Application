@@ -61,7 +61,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DiscoverService {
 
     // A resident can vote only for ideas this close to them
-    public static final double VOTING_RADIUS_KM = 2.0;
+    public static final double VOTING_RADIUS_KM = 8.0;
 
     // The resident map shows ideas up to this distance (outside the radius they are view-only)
     private static final double MAP_RADIUS_KM = 10.0;
@@ -505,7 +505,7 @@ public class DiscoverService {
         Address from = eligibleAddress(addresses, idea);
         if (from == null) {
             double nearestKm = AddressService.distanceKm(AddressService.nearest(addresses, point), point);
-            throw new BadRequestException("You can vote only for ideas within " + VOTING_RADIUS_KM
+            throw new BadRequestException("You can vote only for ideas within " + (int) VOTING_RADIUS_KM
                     + " km of your saved addresses. This one is " + LocationService.round2(nearestKm) + " km away");
         }
 

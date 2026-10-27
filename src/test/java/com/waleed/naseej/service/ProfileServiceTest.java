@@ -35,7 +35,7 @@ class ProfileServiceTest {
 
     @BeforeEach
     void setUp() {
-        investor = User.builder().id(3).role(Role.INVESTOR).crNumber("1010101010")
+        investor = User.builder().id(3).role(Role.INVESTOR).crNumber("7010101010")
                 .investorStatus(InvestorStatus.VERIFIED).investorReviewedAt(LocalDateTime.now()).build();
         when(userRepository.findById(3)).thenReturn(Optional.of(investor));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -43,14 +43,14 @@ class ProfileServiceTest {
 
     @Test
     void newCrSendsAVerifiedInvestorBackToReview() {
-        profileService.update(investor, ProfileUpdateRequest.builder().crNumber("2020202020").build());
+        profileService.update(investor, ProfileUpdateRequest.builder().crNumber("7020202020").build());
         assertEquals(InvestorStatus.PENDING, investor.getInvestorStatus());
         assertNull(investor.getInvestorReviewedAt());
     }
 
     @Test
     void sameCrKeepsTheVerification() {
-        profileService.update(investor, ProfileUpdateRequest.builder().crNumber("1010101010").companyName("Nakheel Co").build());
+        profileService.update(investor, ProfileUpdateRequest.builder().crNumber("7010101010").companyName("Nakheel Co").build());
         assertEquals(InvestorStatus.VERIFIED, investor.getInvestorStatus());
         assertEquals("Nakheel Co", investor.getCompanyName());
     }

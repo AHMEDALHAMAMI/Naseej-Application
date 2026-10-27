@@ -1,6 +1,7 @@
 package com.waleed.naseej.dto.in;
 
 import jakarta.validation.constraints.Max;
+import com.waleed.naseej.service.PhoneNumbers;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -25,7 +26,7 @@ public class UpdateProfileRequest {
     @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
     private String fullName;
 
-    @Pattern(regexp = "^9665\\d{8}$", message = "Phone must be in the format 9665XXXXXXXX")
+    @Pattern(regexp = PhoneNumbers.REGEX, message = PhoneNumbers.MESSAGE)
     private String phone;
 
     private Boolean whatsappOptIn;
@@ -34,7 +35,7 @@ public class UpdateProfileRequest {
     private Integer neighborhoodId;
 
     // ---------- Investors only. A new CR number sends the account back to admin review ----------
-    @Pattern(regexp = "^\\d{10}$", message = "Commercial registration number must be 10 digits")
+    @Pattern(regexp = "^7\\d{9}$", message = "Commercial registration number must be 10 digits starting with 7")
     private String crNumber;
 
     // An empty string clears the choice. CUSTOM uses budgetMin / budgetMax

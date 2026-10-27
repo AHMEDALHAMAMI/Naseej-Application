@@ -1,10 +1,9 @@
-// The contract after unlocking or adopting: its own flow, one step at a time.
-// 1 benefits (investor) → 2 investor signs → 3 idea owner signs (both within 14 days) → 4 active (180 days to open,
-// extendable once by 60 days near the deadline).
-// Until the investor signs, they can go back from signing to the benefits (back button or the step name).
-// Signing = typed name + drawn signature + a code emailed to the signer. Calm, plain wording.
+// The contract after buying (unlocking or adopting) an idea: its own flow, three steps.
+// 1 purchase (done) → 2 the investor signs (within 14 days) → 3 active (180 days to open, extendable once by 60 days
+// near the deadline). The idea owner doesn't sign and gets no discount; they can read the contract and follow along.
+// Signing = typed name + drawn signature + a code emailed to the investor. Calm, plain wording.
 import { api } from '../api.js';
-import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, applyFieldErrors, cityLabel, placeLabel, modal, t } from '../ui.js';
+import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, applyFieldErrors, placeLabel, modal, t } from '../ui.js';
 import { serverText, tn } from '../i18n.js';
 import { stepper } from '../components.js';
 
@@ -14,8 +13,6 @@ const app = $('#app');
 if (!id) location.replace('projects.html');
 
 let project;
-// The investor went back from signing to change the benefits (nothing is saved until they press save)
-let editing = false;
 
 async function load() {
   try {
@@ -38,25 +35,19 @@ async function load() {
 function stepState() {
   const p = project;
   const active = p.contractStatus === 'ACTIVE' || p.nextStep === 'IN_PROGRESS' || p.nextStep === 'OPENED';
-  // The two signatures are named from the reader's side
+  // The signature is named from the reader's side
   const owner = p.myRole !== 'INVESTOR';
   return [
-    { key: 'ctr.s1', done: p.benefitsSet },
-    { key: owner ? 'ctr.s2Owner' : 'ctr.s2', done: p.investorSigned },
-    { key: owner ? 'ctr.s3Owner' : 'ctr.s3', done: p.founderSigned },
-    { key: 'ctr.s4', done: active },
+    { key: 'ctr.s1', done: true },
+    { key: owner ? 'ctr.s2Owner' : 'ctr.s2', done: p.investorSigned || active },
+    { key: 'ctr.s3', done: active },
   ];
 }
 
-// The investor can go back to the benefits while the contract is still a draft they haven't signed
-const canGoBack = () => project.myRole === 'INVESTOR' && project.canSetBenefits && project.benefitsSet;
-
 function render() {
   const p = project;
-  if (!canGoBack()) editing = false;
   const steps = stepState();
-  const firstOpen = steps.findIndex((s) => !s.done);
-  const current = editing ? 0 : firstOpen;
+  const current = steps.findIndex((s) => !s.done);
   document.title = `${p.ideaTitle} — ${t('title.contract')}`;
   app.innerHTML = `
     <a class="btn btn-ghost btn-sm" href="projects.html" style="padding-inline-start:0">${icon.back} ${esc(t('nav.myProjects'))}</a>
@@ -68,40 +59,29 @@ function render() {
       </div>
       <button type="button" class="btn btn-secondary btn-sm" id="read-full">${esc(t('ctr.readFull'))}</button>
     </div>
-    ${stepper(steps.map((s) => t(s.key)), current === -1 ? steps.length - 1 : current, { buttons: [canGoBack() && !editing] })}
+    ${stepper(steps.map((s) => t(s.key)), current === -1 ? steps.length - 1 : current)}
     <div class="contract-body" id="body"></div>`;
   $('#read-full').addEventListener('click', openDocument);
-  app.querySelector('[data-step="0"]')?.addEventListener('click', () => goTo(true));
   body();
-}
-
-// Between the benefits and the signing step, without leaving the page
-function goTo(edit) {
-  editing = edit;
-  render();
-  $('#body').querySelector('input')?.focus({ preventScroll: true });
 }
 
 function body() {
   const p = project;
-  const investor = p.myRole === 'INVESTOR';
   const box = $('#body');
   const step = p.nextStep;
 
-  if (investor && (step === 'SET_BENEFITS' || editing)) return benefitsForm(box);
   if (p.canSign) return signForm(box);
-  if (step === 'FOUNDER_SIGN') return info(box, 'ctr.waitingTitle', 'ctr.waitingText', 'amber', signDeadline());
   if (step === 'WAITING_PAYMENT') return info(box, 'ctr.paymentTitle', 'ctr.paymentText', 'amber', signDeadline());
   if (step === 'IN_PROGRESS') return active(box);
   if (step === 'OPENED') return info(box, 'ctr.openedTitle', null, 'solid', `<a class="btn" href="projects.html">${esc(t('nav.myProjects'))}</a>`);
   if (step === 'ENDED') return info(box, 'ctr.endedTitle', null, 'red');
-  // The idea owner waits while the investor prepares the contract
-  return info(box, 'ctr.waitTitle', 'ctr.investorFirst', 'amber', benefitsSummary() + signDeadline());
+  // The idea owner waits while the investor signs; nothing for them to sign
+  return info(box, 'ctr.waitTitle', 'ctr.investorFirst', 'amber', signDeadline());
 }
 
 const daysUntil = (date) => Math.ceil((new Date(`${date}T23:59:59`) - new Date()) / 86400000);
 
-// Until both parties sign: the last day to sign (14 days after the adoption)
+// Until the investor signs: the last day to sign (14 days after the purchase)
 function signDeadline() {
   const p = project;
   if (!p.signingDeadline) return '';
@@ -119,16 +99,6 @@ function info(box, titleKey, textKey, tone, extra = '') {
     </section>`;
 }
 
-function benefitsSummary() {
-  const p = project;
-  // An investor launching their own idea has no benefits step (nobody else to give them to)
-  if (!p.benefitsSet || p.accessType === 'OWNER') return '';
-  return `<dl class="dl benefits-dl">
-    <dt>${esc(t('ctr.ownerGets'))}</dt><dd>${esc(t('ctr.discount', { n: Number(p.ideaOwnerDiscount) }))}</dd>
-    ${p.benefitsNote ? `<dt>${esc(t('ctr.note'))}</dt><dd>${esc(p.benefitsNote)}</dd>` : ''}
-  </dl>`;
-}
-
 function active(box) {
   const p = project;
   const days = p.openingDeadline ? daysUntil(p.openingDeadline) : null;
@@ -136,7 +106,6 @@ function active(box) {
     <section class="card stack contract-card" style="gap:12px">
       <span class="badge badge-solid" style="align-self:flex-start">${esc(t('ctr.activeTitle'))}</span>
       ${p.openingDeadline ? `<p><strong>${esc(t('ctr.deadline', { date: fmt.date(p.openingDeadline) }))}</strong>${p.extended ? ` <span class="badge badge-sand">${esc(t('proj.extendedTag'))}</span>` : ''}${days != null ? ` · <span class="muted">${esc(days >= 0 ? t('proj.daysLeft', { d: tn(days, 'count.days') }) : t('proj.deadlinePassed'))}</span>` : ''}</p>` : ''}
-      ${benefitsSummary()}
       ${extension()}
       <a class="btn" href="projects.html" style="align-self:flex-start">${esc(t('ctr.goProjects'))}</a>
     </section>`;
@@ -183,60 +152,15 @@ async function extend() {
   }
 }
 
-// ---------- 1. Benefits ----------
-
-function benefitsForm(box) {
-  const p = project;
-  box.innerHTML = `
-    <section class="card stack contract-card" style="gap:16px" aria-labelledby="ben-h">
-      ${editing ? `<button type="button" class="btn btn-ghost btn-sm" id="back-sign" style="align-self:flex-start;padding-inline-start:0">${icon.back} ${esc(t('ctr.backToSign'))}</button>` : ''}
-      <div class="stack" style="gap:4px"><h2 id="ben-h">${esc(t('ctr.benefitsTitle'))}</h2><p class="small muted">${esc(t('ctr.benefitsText'))}</p></div>
-      ${editing ? '' : signDeadline()}
-      <form id="benefits" class="stack" style="gap:14px" novalidate>
-        <div class="field"><label for="ideaOwnerDiscount">${esc(t('ctr.ownerDiscount'))}</label>
-          <input class="input" id="ideaOwnerDiscount" name="ideaOwnerDiscount" inputmode="decimal" dir="ltr" placeholder="15" value="${p.benefitsSet ? (p.ideaOwnerDiscount ?? '') : ''}" style="max-width:220px"><span class="hint">${esc(t('ctr.ownerHint'))}</span><span class="error" aria-live="polite"></span></div>
-        <div class="field"><label for="benefitsNote">${esc(t('ctr.note'))} <span class="muted">${esc(t('form.optional'))}</span></label>
-          <input class="input" id="benefitsNote" name="benefitsNote" maxlength="500" placeholder="${esc(t('ctr.notePh'))}" value="${esc(p.benefitsNote || '')}"><span class="error" aria-live="polite"></span></div>
-        <div class="row" style="justify-content:space-between">
-          <span class="small muted">${esc(t('ctr.benefitsLocked'))}</span>
-          <button class="btn" type="submit" data-loading="${esc(t('commonInv.saving'))}">${esc(t('ctr.saveBenefits'))}</button>
-        </div>
-      </form>
-    </section>`;
-  $('#back-sign')?.addEventListener('click', () => goTo(false));
-  $('#benefits').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const f = e.currentTarget;
-    applyFieldErrors(f, null);
-    const num = (v) => { const clean = String(v).replace(/[^\d.]/g, ''); return clean === '' ? null : Number(clean); };
-    const bodyData = {
-      ideaOwnerDiscount: num(f.ideaOwnerDiscount.value),
-      benefitsNote: f.benefitsNote.value.trim() || null,
-    };
-    withLoading(f.querySelector('[type="submit"]'), async () => {
-      try {
-        project = await api.put(`projects/${id}/benefits`, bodyData);
-        editing = false;
-        render();
-      } catch (err) {
-        if (!applyFieldErrors(f, err)) toast(errorMessage(err), 'error');
-      }
-    });
-  });
-}
-
-// ---------- 2/3. Signing ----------
+// ---------- 2. Signing (the investor) ----------
 
 function signForm(box) {
   const p = project;
-  const investor = p.myRole === 'INVESTOR';
   box.innerHTML = `
     <section class="card stack contract-card" style="gap:18px" aria-labelledby="sign-h">
-      ${canGoBack() ? `<button type="button" class="btn btn-ghost btn-sm" id="back-benefits" style="align-self:flex-start;padding-inline-start:0">${icon.back} ${esc(t('ctr.backToBenefits'))}</button>` : ''}
-      <h2 id="sign-h">${esc(t(investor ? 'ctr.signTitle' : 'ctr.founderTurn'))}</h2>
+      <h2 id="sign-h">${esc(t('ctr.signTitle'))}</h2>
+      <p class="small muted">${esc(t('ctr.signActivates'))}</p>
       ${signDeadline()}
-      ${investor ? '' : `<span class="small" style="font-weight:600">${esc(t('ctr.founderBenefits'))}</span>`}
-      ${benefitsSummary()}
       <div class="surface-sand stack" style="gap:8px">
         <strong class="small">${esc(t('ctr.terms'))}</strong>
         <ul class="ticks small">
@@ -263,7 +187,6 @@ function signForm(box) {
       </form>
     </section>`;
 
-  $('#back-benefits')?.addEventListener('click', () => goTo(true));
   const pad = signaturePad($('#pad'));
   $('#clear-pad').addEventListener('click', pad.clear);
 
@@ -310,7 +233,7 @@ function signForm(box) {
           code,
         });
         clearInterval(timer);
-        toast(t('ctr.signed'), 'success');
+        toast(t(project.nextStep === 'IN_PROGRESS' ? 'ctr.signedActive' : 'ctr.signed'), 'success');
         render();
       } catch (err) {
         if (!applyFieldErrors(f, err)) toast(errorMessage(err), 'error');

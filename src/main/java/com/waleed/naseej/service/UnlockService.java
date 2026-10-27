@@ -262,7 +262,7 @@ public class UnlockService {
         ensureCanUnlock(investor, idea, true);
         Payment payment = paidPayment(investor, idea, request, PaymentPurpose.OPPORTUNITY_ACCESS);
         return grant(investor, idea, AccessType.PAID, payment,
-                "Payment confirmed. The opportunity is yours. Next: set the idea owner's benefits and sign the contract in My projects");
+                "Payment confirmed. The opportunity is yours. Next: sign the contract in My projects");
     }
 
     /**
@@ -323,7 +323,7 @@ public class UnlockService {
 
         UnlockResultResponse result = grant(investor, idea, AccessType.PARTNERSHIP, null,
                 "Partnership signed. The idea owner gets " + PARTNERSHIP_PERCENT.stripTrailingZeros().toPlainString()
-                        + "% of the net profit. Next: set the idea owner's benefits and sign the contract in My projects");
+                        + "% of the net profit. Next: sign the contract in My projects");
         OpportunityAccess access = opportunityAccessRepository.findById(result.getAccessId()).orElseThrow();
 
         LocalDate start = LocalDate.now();
@@ -571,8 +571,8 @@ public class UnlockService {
     // ---------- Shared ----------
 
     /**
-     * Access + a DRAFT contract. The investor then sets the idea owner's benefits and both parties sign
-     * (ContractFlowService) within 14 days; the contract becomes ACTIVE, and the 180 days start, after the last signature.
+     * Access + a DRAFT contract. The investor then signs it (ContractFlowService) within 14 days; the contract becomes
+     * ACTIVE, and the 180 days start, as soon as the investor signs. The idea owner doesn't sign.
      */
     private UnlockResultResponse grant(User investor, Idea idea, AccessType type, Payment payment, String message) {
         OpportunityAccess access = opportunityAccessRepository.save(OpportunityAccess.builder()
@@ -589,9 +589,7 @@ public class UnlockService {
                 .ideaOwner(idea.getOwner())
                 .access(access)
                 .ideaOwnerDiscount(BigDecimal.ZERO)
-                // An investor launching their own idea has no one else to give benefits to: that step is skipped
-                .benefitsSetAt(type == AccessType.OWNER ? LocalDateTime.now() : null)
-                // Until both parties sign, the contract holds the idea for 14 days only; the 180 days to open
+                // Until the investor signs, the contract holds the idea for 14 days only; the 180 days to open
                 // start when it becomes ACTIVE
                 .signingDeadline(LocalDate.now().plusDays(ContractFlowService.SIGNING_DEADLINE_DAYS))
                 .status(ContractStatus.DRAFT)

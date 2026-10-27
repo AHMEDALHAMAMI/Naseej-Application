@@ -5,7 +5,7 @@ import { $, $$, homeFor, withLoading, applyFieldErrors, errorMessage, toast, ini
 import { langButton, lang } from '../i18n.js';
 import { stepper } from '../components.js';
 import { addressPicker } from '../address-picker.js';
-import { normalizePhone, showFieldError, clearFieldErrors } from '../profile-fields.js';
+import { normalizePhone, requiredPhone, showFieldError, clearFieldErrors } from '../profile-fields.js';
 
 $('#lang-slot').innerHTML = langButton();
 initPage();
@@ -32,6 +32,8 @@ function show(next, { focus = true } = {}) {
     s.hidden = Number(s.dataset.step) !== step || (forRole && forRole !== role());
   });
   $('[data-final]', form).hidden = step !== 1;
+  // The mobile number is required for residents, optional for investors
+  $('[data-phone-optional]', form).hidden = role() === 'RESIDENT';
   if (step === 1 && role() === 'RESIDENT' && !picker) picker = addressPicker($('#home-picker'));
   if (step === 1 && picker) setTimeout(() => picker.map.invalidateSize(), 50);
   if (focus) form.querySelector(`[data-step="${step}"]:not([hidden]) h1`)?.focus();
@@ -51,8 +53,15 @@ form.addEventListener('submit', (e) => {
   e.preventDefault();
   if (step !== 1) return;
   clearFieldErrors(form);
-  const phone = normalizePhone(form.phone.value);
-  if (phone === false) { showFieldError(form, 'phone', t('signup.phoneInvalid')); return; }
+  let phone;
+  if (role() === 'RESIDENT') {
+    const check = requiredPhone(form.phone.value);
+    if (check.error) { showFieldError(form, 'phone', t(check.error)); return; }
+    phone = check.phone;
+  } else {
+    phone = normalizePhone(form.phone.value);
+    if (phone === false) { showFieldError(form, 'phone', t('signup.phoneInvalid')); return; }
+  }
   const body = { role: role(), phone, preferredLanguage: lang };
   if (role() === 'RESIDENT') {
     if (!picker.validate()) return;

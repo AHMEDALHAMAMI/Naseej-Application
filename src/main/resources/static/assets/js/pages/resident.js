@@ -1,10 +1,10 @@
-// Resident home: map centered on a saved home address with the 2 km voting radius (never the device's location).
+// Resident home: map centered on a saved home address with the 8 km voting radius (never the device's location).
 // Residents with two homes switch between them. Pins show titles only; vote counts are never shown to residents.
 import { api } from '../api.js';
 import { $, $$, esc, fmt, guard, icon, toast, withLoading, errorMessage, statusBadge, emptyState, skeletonCards, categoryLabel, lifeTrack, isolate, t } from '../ui.js';
 import { createMap, pinIcon, meIcon, keyboardMarker, cardPopup } from '../maps.js';
 
-const VOTING_RADIUS_KM = 2;
+const VOTING_RADIUS_KM = 8;
 const user = await guard(['RESIDENT']);
 
 const app = $('#app');
@@ -201,7 +201,7 @@ async function vote(id, btn) {
   focusCard(id);
 }
 
-// The chosen home (with its 2 km circle) and, faintly, the other home
+// The chosen home (with its 8 km circle) and, faintly, the other home
 function drawHomes() {
   homeLayer.clearLayers();
   addresses.forEach((a) => {

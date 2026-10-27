@@ -157,18 +157,18 @@ class AddressServiceTest {
     @Test
     void movingAwayWithdrawsVotesOnIdeasStillCollecting() {
         Address a = home(NOW.minusHours(1));
-        // An idea 300 m from home: in range now, about 3 km away after moving 3.3 km east
+        // An idea 300 m from home: in range now, about 10 km away (outside the 8 km radius) after moving 10.4 km east
         Idea near = Idea.builder().id(5).title("Pharmacy").status(IdeaStatus.PUBLISHED)
                 .latitude(LAT).longitude(46.6570).neighborhood(hood).build();
         Vote vote = Vote.builder().id(9).user(resident).idea(near).build();
         when(voteRepository.findByUserIdAndIdeaStatus(7, IdeaStatus.PUBLISHED)).thenReturn(List.of(vote));
 
         AddressChangePreviewResponse preview = service.preview(resident,
-                AddressPreviewRequest.builder().addressId(a.getId()).latitude(LAT).longitude(46.6870).build());
+                AddressPreviewRequest.builder().addressId(a.getId()).latitude(LAT).longitude(46.7570).build());
         assertEquals(1, preview.getWithdrawnVotes().size());
         assertEquals(5, preview.getWithdrawnVotes().get(0).getIdeaId());
 
-        service.update(resident, a.getId(), pin(LAT, 46.6870));
+        service.update(resident, a.getId(), pin(LAT, 46.7570));
         verify(voteRepository).deleteAll(List.of(vote));
     }
 

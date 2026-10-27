@@ -4,7 +4,7 @@
 // Residents place the idea within 5 km of a saved home; investors can place it anywhere in Saudi Arabia.
 // What the person typed is kept (sessionStorage) when they go back, switch language or reload.
 import { api } from '../api.js';
-import { $, $$, esc, fmt, guard, icon, toast, withLoading, applyFieldErrors, errorMessage, CATEGORIES, categoryLabel, modal, params, isolate, animateBars, t } from '../ui.js';
+import { $, $$, esc, fmt, guard, icon, toast, withLoading, applyFieldErrors, errorMessage, CATEGORIES, categoryLabel, modal, params, isolate, animateBars, shareButton, wireShareButton, t } from '../ui.js';
 import { serverText } from '../i18n.js';
 import { createMap, locate, pinIcon, RIYADH, SAUDI_BOUNDS, CITIES } from '../maps.js';
 import { stepper, aiBlock, scoreMeter, wirePopovers, catTile, actionBar } from '../components.js';
@@ -581,14 +581,17 @@ function publishedView(idea) {
       <h2 class="flow-q" tabindex="-1" id="done-h">${esc(t('prop.publishedTitle'))}</h2>
       <p class="muted">${esc(isInvestor ? t('prop.publishedInv') : t('prop.liveNote'))}</p>
       ${notices(idea)}
+      ${!isInvestor ? `<p class="small muted">${esc(t('prop.shareNote'))}</p>` : ''}
       <div class="next-steps">
-        <a class="btn" href="idea.html?id=${idea.id}">${esc(t('prop.openPage'))}</a>
+        ${!isInvestor ? shareButton('') : ''}
+        <a class="btn ${isInvestor ? '' : 'btn-secondary'}" href="idea.html?id=${idea.id}">${esc(t('prop.openPage'))}</a>
         ${idea.canAdopt ? `<button type="button" class="btn btn-secondary" id="adopt">${esc(t('prop.adoptNow'))}</button>` : ''}
         ${isInvestor && !idea.canAdopt && idea.investorStatus !== 'VERIFIED' ? `<span class="badge badge-amber">${esc(t('prop.adoptAfter'))}</span>` : ''}
         <a class="btn btn-ghost" href="propose.html?new=1">${esc(t('prop.another'))}</a>
       </div>
     </div>`;
   $('#done-h').focus();
+  wireShareButton(stage, idea);
   // An investor adopts the idea they proposed right away, with no fee (the investor experience):
   // next they sign the contract
   $('#adopt')?.addEventListener('click', async () => {

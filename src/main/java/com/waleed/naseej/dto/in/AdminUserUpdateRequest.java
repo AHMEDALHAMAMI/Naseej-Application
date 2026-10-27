@@ -4,6 +4,7 @@ import com.waleed.naseej.enums.InvestorStatus;
 import com.waleed.naseej.enums.Role;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import com.waleed.naseej.service.PhoneNumbers;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -24,7 +25,7 @@ public class AdminUserUpdateRequest {
     @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
     private String fullName;
 
-    @Pattern(regexp = "^(9665\\d{8})?$", message = "Phone must be in the format 9665XXXXXXXX")
+    @Pattern(regexp = PhoneNumbers.REGEX_OR_EMPTY, message = PhoneNumbers.MESSAGE)
     private String phone;
 
     @NotNull(message = "Choose the membership")
@@ -32,7 +33,7 @@ public class AdminUserUpdateRequest {
 
     private Integer neighborhoodId;
 
-    @Pattern(regexp = "^(\\d{10})?$", message = "Commercial registration number must be 10 digits")
+    @Pattern(regexp = "^(7\\d{9})?$", message = "Commercial registration number must be 10 digits starting with 7")
     private String crNumber;
 
     private InvestorStatus investorStatus;

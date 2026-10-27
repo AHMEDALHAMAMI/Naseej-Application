@@ -42,7 +42,10 @@ public class ProfileService {
             user.setFullName(request.getFullName().trim());
         }
         if (request.getPhone() != null) {
-            String phone = request.getPhone().isBlank() ? null : request.getPhone();
+            String phone = PhoneNumbers.normalize(request.getPhone());
+            if (phone == null && user.getRole() == Role.RESIDENT) {
+                throw new BadRequestException("Mobile number is required for residents");
+            }
             if (phone != null && !phone.equals(user.getPhone()) && userRepository.existsByPhone(phone)) {
                 throw new DuplicateResourceException("Phone is already registered");
             }

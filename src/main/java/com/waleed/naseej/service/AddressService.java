@@ -29,12 +29,12 @@ import java.util.List;
 
 /**
  * Saved addresses and the rules that keep voting honest:
- * - residents keep 1–2 addresses (one primary) and vote for ideas within 2 km of any of them; investors may keep
+ * - residents keep 1–2 addresses (one primary) and vote for ideas within 8 km (VOTING_RADIUS_KM) of any of them; investors may keep
  *   one office address that is never used for voting
  * - a new address can be moved freely for 24 hours; after that, adding an address or moving a pin more than 100 m
  *   is "a change", allowed once every 30 days (smaller moves are accuracy fixes and always allowed)
  * - label, National Address fields, choosing the primary and deleting the second address are always free
- * - after a move or delete, votes on ideas still collecting votes that are no longer within 2 km of any address are
+ * - after a move or delete, votes on ideas still collecting votes that are no longer within 8 km of any address are
  *   withdrawn; votes on ideas that already reached their target stay
  * Accounts from before addresses existed get one from their saved point (or their neighborhood center, flagged so
  * they confirm the pin before voting).

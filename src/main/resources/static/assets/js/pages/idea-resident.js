@@ -1,7 +1,7 @@
 // Resident, founder and admin view of the idea page (loaded by idea.js). The server decides what each viewer may see:
 // residents never get vote counts or the business model; the founder and investors do.
 import { api } from '../api.js';
-import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, statusBadge, progressBar, animateBars, label, categoryLabel, ideaName, lifeTrack, isolate, t } from '../ui.js';
+import { $, esc, fmt, guard, icon, params, toast, withLoading, errorMessage, statusBadge, progressBar, animateBars, label, categoryLabel, ideaName, lifeTrack, isolate, shareButton, wireShareButton, t } from '../ui.js';
 import { aiBlock, scoreMeter, wirePopovers, earlyStart } from '../components.js';
 import { serverText } from '../i18n.js';
 import { createMap, pinIcon, meIcon, approxCircle } from '../maps.js';
@@ -77,7 +77,7 @@ function render(idea) {
     const home = isResident ? homes.find((a) => a.id === idea.voteAddressId) : null;
     if (home) {
       L.marker([home.latitude, home.longitude], { icon: meIcon(), interactive: false, keyboard: false }).addTo(map);
-      const circle = L.circle([home.latitude, home.longitude], { radius: (idea.votingRadiusKm || 2) * 1000, color: '#2F5444', weight: 1.5, fillOpacity: 0.06, dashArray: '6 6' }).addTo(map);
+      const circle = L.circle([home.latitude, home.longitude], { radius: (idea.votingRadiusKm || 8) * 1000, color: '#2F5444', weight: 1.5, fillOpacity: 0.06, dashArray: '6 6' }).addTo(map);
       map.fitBounds(circle.getBounds().extend([idea.latitude, idea.longitude]), { padding: [20, 20] });
     }
   } else {
@@ -173,7 +173,7 @@ function homeName(addressId, labelText) {
 function voteCard(idea) {
   let body;
   if (idea.founder) {
-    body = `<p class="muted">${esc(t('idea.youProposed'))}</p>`;
+    body = `<p class="muted">${esc(t('idea.youProposed'))}</p>${idea.status === 'PUBLISHED' ? shareButton('btn-block') : ''}`;
   } else if (idea.voted) {
     body = `<div class="notice notice-info">${icon.check}<span>${esc(t('idea.youVoted'))}</span></div>`;
   } else if (idea.canVote) {
@@ -295,6 +295,7 @@ function mapCard(idea) {
 }
 
 function wire(idea) {
+  wireShareButton(app, idea);
   $('#vote')?.addEventListener('click', (e) => withLoading(e.currentTarget, async () => {
     try {
       const updated = await api.post(`discover/vote/${idea.id}`);

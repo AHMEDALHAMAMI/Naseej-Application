@@ -221,7 +221,7 @@ The website lives in `src/main/resources/static` and is served by the same Sprin
 | `investor.html` | investors | **For you**: the list and the map side by side. *Your fit* shows the opportunities that match the investor's preferences (ready-to-unlock first); *All* shows every opportunity with field and budget filters. Zoomed out, the map groups pins by city |
 | `ask.html` | investors | **Ask AI**: a question in plain words → the filters the AI understood → matching opportunities |
 | `unlock.html` | investors | One payment (Moyasar, AI-priced; lower before the votes complete) or 5% success partnership (at 100% of the votes); asks for the CR here if it's missing |
-| `contract.html` | investors, founders | The contract after unlocking/adopting, step by step: benefits → investor signs → idea owner signs → active |
+| `contract.html` | investors, founders | The contract after unlocking/adopting, in three steps: purchase → investor signs → active (the idea owner doesn't sign) |
 | `projects.html` | investors, founders | Investors (`projects-investor.js`): two tabs, projects (status, deadline, progress) and their ideas. Residents (`projects-resident.js`): their ideas and drafts, and the projects that came from them |
 | `account.html` | everyone | **Account** (from the avatar menu). Investors (`account-investor.js`): details, investment preferences, CR verification, WhatsApp alerts, language. Residents (`account-resident.js`): profile, password and up to two saved home addresses |
 | `agreement.html` | investors, founders | A readable copy of a project's agreement |
@@ -263,9 +263,8 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | PUT | `/discover/idea/{id}/business-model/chat` | founder | Change the business model in your own words (Claude rewrites it) |
 | PUT | `/auth/me` | logged in | Edit profile; a new CR number sends an investor back to admin review. Investors also send `investmentBudget` (a preset or `CUSTOM` with `budgetMin` / `budgetMax`), `investmentFields`, `investmentFieldsOther` (own words; the AI matches it to idea categories) and `investmentAreas` (neighborhood ids). An empty string clears a field |
 | POST | `/explore/ask` | investor | `{ "question": "…" }` → the filters the AI read (city, neighborhood, category, capital, ready to open) and the matching opportunities |
-| PUT | `/projects/{contractId}/benefits` | investor | Set the idea owner's discount and other benefits (required before signing; editable until the investor signs) |
-| POST | `/projects/{contractId}/sign-otp` | investor, founder | Email the 6-digit signing code to the party whose turn it is |
-| POST | `/projects/{contractId}/sign` | investor, founder | Sign: typed full name + drawn signature + code; the last signature activates the contract |
+| POST | `/projects/{contractId}/sign-otp` | investor | Email the 6-digit signing code to the investor |
+| POST | `/projects/{contractId}/sign` | investor | Sign: typed full name + drawn signature + code; the contract becomes active right away (the idea owner doesn't sign) |
 | GET | `/projects/{contractId}/contract` | investor, founder | Print-ready contract page (Arabic); "Save as PDF" in the browser |
 | GET | `/payments/mine` | investor | Own payments and invoices |
 | POST | `/subscriptions/subscribe` | investor | Start a BASIC (299) or PRO (999) monthly subscription through Moyasar |
@@ -288,7 +287,7 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | GET | `/unlock/agreement/{contractId}` | investor, founder, admin | The agreement behind a project |
 | GET / POST / PUT / DELETE | `/admin/users`, `/admin/users/{id}`, `/admin/users/{id}/password`, `/admin/users/{id}/suspend`, `/admin/users/{id}/reactivate` | admin | Member management |
 
-**Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor sets the idea owner's benefits (and can go back from the signing step to change them) → the investor signs (`INVESTOR_SIGNED`) → the idea owner signs → `ACTIVE`, and the 180-day opening deadline starts. Both signatures are due within 14 days of the adoption. Once, in the last 30 days before the opening deadline, an investor who posted progress in the last 30 days can extend it by 60 days (`POST /projects/{contractId}/extend`); progress can also be posted on the current stage with a note. An investor who adopts their own idea skips the benefits step and signs once. A contract that isn't signed or doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
+**Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor signs → `ACTIVE` right away, and the 180-day opening deadline starts. The idea owner doesn't sign and gets no discount; they're notified when the contract is active. The investor must sign within 14 days of the purchase. Once, in the last 30 days before the opening deadline, an investor who posted progress in the last 30 days can extend it by 60 days (`POST /projects/{contractId}/extend`); progress can also be posted on the current stage with a note. An investor who adopts their own idea skips the benefits step and signs once. A contract that isn't signed or doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
 
 The raw CRUD and AI endpoints (`/ideas/**`, `/payments/**`, `/contracts/**`, …) take user ids in the request body, so they are now **admin only**; the website uses the endpoints above, which read the user from the token.
 

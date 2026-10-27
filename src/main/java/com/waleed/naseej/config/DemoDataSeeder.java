@@ -75,7 +75,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * The data follows the same rules as the real flow: votes come only from residents of the neighborhood
  * (never the idea's owner), voting stops when the target is reached, and an adopted idea has a paid
- * access, both signatures, the idea owner's benefits and an ACTIVE contract with its 180 days, in that order.
+ * access, the investor's signature and an ACTIVE contract with its 180 days, in that order.
  */
 @Slf4j
 @Component
@@ -468,7 +468,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 .password(hash)
                 .authProvider(AuthProvider.LOCAL)
                 .role(Role.INVESTOR)
-                .crNumber(String.valueOf(1010000000L + number * 12345L))
+                .crNumber(String.valueOf(7000000000L + number * 12345L))
                 .investmentBudget(budget)
                 .investmentFields(fields)
                 .investorStatus(status)
@@ -525,7 +525,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     /**
      * The state the real flow ends in (UnlockService + ContractFlowService): the investor pays the unlock fee,
-     * sets the idea owner's benefits, both parties sign, and the contract becomes ACTIVE with 180 days to open.
+     * signs, and the contract becomes ACTIVE with 180 days to open (the idea owner doesn't sign).
      */
     private void seedAdoption(Idea idea, User investor, Seed s, LocalDateTime confirmed, LocalDateTime now,
                               List<Object[]> updateDates) {
@@ -564,10 +564,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 .investor(investor)
                 .ideaOwner(idea.getOwner())
                 .access(access)
-                // The real flow requires the idea owner's discount or a benefits note
-                .ideaOwnerDiscount(new BigDecimal("15.00"))
-                .benefitsNote("صاحب الفكرة له أولوية الحجز وقت الافتتاح.")
-                .benefitsSetAt(adoptedAt.plusHours(2))
+                .ideaOwnerDiscount(BigDecimal.ZERO)
                 .signingDeadline(adoptedAt.toLocalDate().plusDays(ContractFlowService.SIGNING_DEADLINE_DAYS))
                 .openingDeadline(activatedAt.toLocalDate().plusDays(ContractFlowService.OPENING_DEADLINE_DAYS))
                 .build();
@@ -578,10 +575,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         contract = contractRepository.save(contract);
         contract.setPdfUrl(contextPath + "/projects/" + contract.getId() + "/contract");
 
-        sign(contract, investor, ContractFlowService.ROLE_INVESTOR, adoptedAt.plusHours(3));
-        if (!Objects.equals(investor.getId(), idea.getOwner().getId())) {
-            sign(contract, idea.getOwner(), ContractFlowService.ROLE_IDEA_OWNER, activatedAt);
-        }
+        sign(contract, investor, ContractFlowService.ROLE_INVESTOR, activatedAt);
 
         // One update per stage after "Unlocked", spread from activation until today (or the opening day)
         LocalDateTime end = opened ? openedAt : now.minusHours(6);

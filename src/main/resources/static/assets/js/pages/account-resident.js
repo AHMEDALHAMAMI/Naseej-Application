@@ -9,7 +9,7 @@ import { lang, setLang, serverText } from '../i18n.js';
 import { wireTabs } from '../components.js';
 import { createMap } from '../maps.js';
 import { addressPicker } from '../address-picker.js';
-import { setupInvestorFields, checkInvestor, normalizePhone, displayPhone, showFieldError, clearFieldErrors } from '../profile-fields.js';
+import { setupInvestorFields, checkInvestor, normalizePhone, requiredPhone, displayPhone, showFieldError, clearFieldErrors } from '../profile-fields.js';
 
 const user = await guard(['RESIDENT', 'INVESTOR', 'ADMIN']);
 const isResident = user.role === 'RESIDENT';
@@ -43,6 +43,8 @@ wireTabs(app, {
 function renderProfile(u) {
   const panel = $('#panel-profile');
   const google = u.authProvider === 'GOOGLE';
+  // Residents must keep a mobile number (05 then 8 digits); for others it's optional
+  const phoneRequired = u.role === 'RESIDENT';
   panel.innerHTML = `
     <div class="stack account-form" style="gap:24px">
       <form class="card stack" id="profile-form" novalidate>
@@ -50,8 +52,8 @@ function renderProfile(u) {
           <input class="input" id="p-name" name="fullName" autocomplete="name" maxlength="100" value="${esc(u.fullName)}"><span class="error" aria-live="polite"></span></div>
         <div class="field"><label for="p-email">${esc(t('form.email'))}</label>
           <input class="input" id="p-email" value="${esc(u.email)}" readonly dir="ltr"><span class="hint">${esc(t('acc.emailLocked'))}</span></div>
-        <div class="field"><label for="p-phone"><span>${esc(t('form.mobile'))}</span> <span class="muted">${esc(t('form.optional'))}</span></label>
-          <input class="input" id="p-phone" name="phone" type="tel" inputmode="numeric" dir="ltr" placeholder="${esc(t('signup.phonePh'))}" value="${esc(displayPhone(u.phone))}"><span class="error" aria-live="polite"></span></div>
+        <div class="field"><label for="p-phone">${esc(t('form.mobile'))}${phoneRequired ? '' : ` <span class="muted">${esc(t('form.optional'))}</span>`}</label>
+          <input class="input" id="p-phone" name="phone" type="tel" inputmode="numeric" maxlength="10" pattern="05[0-9]{8}" dir="ltr" placeholder="${esc(t('signup.phonePh'))}" value="${esc(displayPhone(u.phone))}"><span class="hint">${esc(t('signup.phoneHint'))}</span><span class="error" aria-live="polite"></span></div>
         <div class="field"><label for="p-lang">${esc(t('acc.language'))}</label>
           <select class="select" id="p-lang" name="preferredLanguage">
             <option value="ar" lang="ar"${(u.preferredLanguage || lang) === 'ar' ? ' selected' : ''}>العربية</option>
@@ -71,13 +73,14 @@ function renderProfile(u) {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     clearFieldErrors(form);
-    const phone = normalizePhone(form.phone.value);
+    const { phone, error: phoneError } = phoneRequired ? requiredPhone(form.phone.value)
+      : (normalizePhone(form.phone.value) === false ? { error: 'signup.phoneInvalid' } : { phone: normalizePhone(form.phone.value) || '' });
     if (form.fullName.value.trim().length < 3) { showFieldError(form, 'fullName', t('signup.nameInvalid')); return; }
-    if (phone === false) { showFieldError(form, 'phone', t('signup.phoneInvalid')); return; }
+    if (phoneError) { showFieldError(form, 'phone', t(phoneError)); return; }
     const chosenLang = form.preferredLanguage.value;
     withLoading(form.querySelector('[type="submit"]'), async () => {
       try {
-        const saved = await api.put('account/profile', { fullName: form.fullName.value.trim(), phone: phone || '', preferredLanguage: chosenLang });
+        const saved = await api.put('account/profile', { fullName: form.fullName.value.trim(), phone, preferredLanguage: chosenLang });
         session.setUser({ ...session.user(), ...saved });
         toast(t('acc.saved'), 'success');
         if (chosenLang !== lang) setLang(chosenLang);

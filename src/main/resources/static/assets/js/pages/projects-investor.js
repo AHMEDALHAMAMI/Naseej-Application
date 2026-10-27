@@ -56,7 +56,7 @@ if (isInvestor) {
 // ---------- Project card ----------
 
 function statusLine(p) {
-  const key = p.nextStep === 'FOUNDER_SIGN' && p.myRole !== 'INVESTOR' ? 'proj.next.FOUNDER_SIGN.mine' : `proj.next.${p.nextStep}`;
+  const key = `proj.next.${p.nextStep}`;
   const text = t(key);
   return text === key ? '' : text;
 }
@@ -77,7 +77,7 @@ function deadlineHtml(p) {
 }
 
 function projectCard(p) {
-  const needsMe = (p.myRole === 'INVESTOR' && (p.nextStep === 'SET_BENEFITS' || p.nextStep === 'INVESTOR_SIGN')) || p.canSign;
+  const needsMe = (p.myRole === 'INVESTOR' && p.nextStep === 'INVESTOR_SIGN') || p.canSign;
   const running = p.nextStep === 'IN_PROGRESS' || p.nextStep === 'OPENED';
   const stages = p.stages.map((s, i) => `<li class="${i <= p.stageIndex ? 'done' : ''} ${i === p.stageIndex ? 'current' : ''}">${esc(stageLabel(s))}</li>`).join('');
   const updates = [...(p.updates || [])].reverse();

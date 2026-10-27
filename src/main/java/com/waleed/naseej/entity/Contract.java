@@ -39,10 +39,12 @@ public class Contract {
     @JoinColumn(name = "access_id", nullable = false, unique = true)
     private OpportunityAccess access;
 
-    // The idea owner's discount once the project opens, in percent. (The founding members' discount was removed;
-    // FoundingDiscountColumnFix makes its old column optional in databases created before.)
+    // No discount for the idea owner any more: always 0. Kept because existing databases have the column as
+    // NOT NULL. (The founding members' discount was removed too; FoundingDiscountColumnFix makes its old column
+    // optional in databases created before.)
     @Column(name = "idea_owner_discount", nullable = false, precision = 5, scale = 2)
-    private BigDecimal ideaOwnerDiscount;
+    @Builder.Default
+    private BigDecimal ideaOwnerDiscount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -64,7 +66,7 @@ public class Contract {
     @Column(name = "opening_deadline")
     private LocalDate openingDeadline;
 
-    // Until both parties sign, the contract holds the idea only until this day (SIGNING_DEADLINE_DAYS after adoption)
+    // Until the investor signs, the contract holds the idea only until this day (SIGNING_DEADLINE_DAYS after adoption)
     @Column(name = "signing_deadline")
     private LocalDate signingDeadline;
 
@@ -83,14 +85,6 @@ public class Contract {
 
     @Column(name = "opened_at")
     private LocalDateTime openedAt;
-
-    // Benefits the investor commits to beyond the discount, e.g. "the first month free for the idea owner"
-    @Column(name = "benefits_note", length = 500)
-    private String benefitsNote;
-
-    // Set when the investor saves the idea owner's benefits; signing is allowed only after this
-    @Column(name = "benefits_set_at")
-    private LocalDateTime benefitsSetAt;
 
     public void sign(ContractSignature signature) {
         signature.setContract(this);

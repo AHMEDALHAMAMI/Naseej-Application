@@ -82,7 +82,9 @@ public class AuthService {
         if (userRepository.existsByEmail(email)) {
             throw new DuplicateResourceException("Email is already registered");
         }
-        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
+        String phone = PhoneNumbers.normalize(request.getPhone());
+        requirePhoneForResident(request.getRole(), phone);
+        if (phone != null && userRepository.existsByPhone(phone)) {
             throw new DuplicateResourceException("Phone is already registered");
         }
 
@@ -90,7 +92,7 @@ public class AuthService {
                 .fullName(request.getFullName().trim())
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
+                .phone(phone)
                 .authProvider(AuthProvider.LOCAL)
                 .role(request.getRole())
                 .neighborhood(findNeighborhood(neighborhoodId))
@@ -110,6 +112,13 @@ public class AuthService {
 
         otpService.sendOtp(user, OtpPurpose.REGISTER);
         return new MessageResponse("Account created. Enter the 6-digit code we sent to " + email);
+    }
+
+    /** Residents must give a mobile number (05XXXXXXXX); investors may leave it empty. */
+    private static void requirePhoneForResident(Role role, String phone) {
+        if (role == Role.RESIDENT && phone == null) {
+            throw new BadRequestException("Mobile number is required for residents");
+        }
     }
 
     // ---------- OTP ----------
@@ -231,11 +240,12 @@ public class AuthService {
         if (request.getFullName() != null && !request.getFullName().isBlank()) {
             user.setFullName(request.getFullName().trim());
         }
-        if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
-            if (userRepository.existsByPhone(request.getPhone())) {
+        String phone = PhoneNumbers.normalize(request.getPhone());
+        if (phone != null && !phone.equals(user.getPhone())) {
+            if (userRepository.existsByPhone(phone)) {
                 throw new DuplicateResourceException("Phone is already registered");
             }
-            user.setPhone(request.getPhone());
+            user.setPhone(phone);
         }
         if (request.getWhatsappOptIn() != null) {
             user.setWhatsappOptIn(request.getWhatsappOptIn());
@@ -326,11 +336,13 @@ public class AuthService {
         String budget = budgetBucket(request.getInvestmentBudget(), request.getBudgetMin(), request.getBudgetMax());
         validateInvestorProfile(request.getRole(), request.getCrNumber(), budget, request.getInvestmentFields());
 
-        if (request.getPhone() != null && !request.getPhone().equals(user.getPhone())) {
-            if (userRepository.existsByPhone(request.getPhone())) {
+        String phone = PhoneNumbers.normalize(request.getPhone());
+        requirePhoneForResident(request.getRole(), phone != null ? phone : user.getPhone());
+        if (phone != null && !phone.equals(user.getPhone())) {
+            if (userRepository.existsByPhone(phone)) {
                 throw new DuplicateResourceException("Phone is already registered");
             }
-            user.setPhone(request.getPhone());
+            user.setPhone(phone);
         }
         if (neighborhoodId != null) {
             user.setNeighborhood(findNeighborhood(neighborhoodId));

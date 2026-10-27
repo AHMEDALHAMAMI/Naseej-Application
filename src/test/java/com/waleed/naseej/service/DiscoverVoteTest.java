@@ -83,7 +83,7 @@ class DiscoverVoteTest {
         VoteRequest atTheIdea = VoteRequest.builder().latitude(24.8270).longitude(46.6560).build();
 
         BadRequestException e = assertThrows(BadRequestException.class, () -> discoverService.vote(resident, 5, atTheIdea));
-        assertTrue(e.getMessage().startsWith("You can vote only for ideas within 2.0 km of your saved addresses"));
+        assertTrue(e.getMessage().startsWith("You can vote only for ideas within 8 km of your saved addresses"));
         verify(voteRepository, never()).save(any());
         // The saved location wasn't touched either
         assertEquals(24.40, resident.getLatitude());

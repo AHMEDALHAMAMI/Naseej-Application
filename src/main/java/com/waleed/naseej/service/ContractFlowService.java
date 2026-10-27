@@ -1,6 +1,5 @@
 package com.waleed.naseej.service;
 
-import com.waleed.naseej.dto.in.ContractBenefitsRequest;
 import com.waleed.naseej.dto.in.SignContractRequest;
 import com.waleed.naseej.dto.out.ExpiredContractsResponse;
 import com.waleed.naseej.dto.out.MessageResponse;
@@ -27,8 +26,6 @@ import com.waleed.naseej.repository.IdeaRepository;
 import com.waleed.naseej.repository.PartnershipAgreementRepository;
 import com.waleed.naseej.repository.UserRepository;
 import com.waleed.naseej.repository.VoteRepository;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -46,14 +43,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
 
 /**
- * The partnership contract after an investor adopts an idea, as described in the project document:
- * 1. Adoption creates a DRAFT contract (UnlockService).
- * 2. The investor sets the idea owner's benefits (required; skipped when the investor adopted their own idea).
- * 3. The investor signs (typed name + drawn signature + emailed code) → INVESTOR_SIGNED.
- * 4. The idea owner signs the same way → ACTIVE, and the 180-day opening deadline starts.
- * 5. Once, near the deadline, an investor who keeps posting progress can extend it by 60 days.
- * An investor who adopts their own idea signs once. Contracts not signed within 14 days of the adoption, or
- * not opened in time, are terminated and the idea goes back to the other investors.
+ * The partnership contract after an investor buys (adopts) an idea, in three steps:
+ * 1. The purchase creates a DRAFT contract (UnlockService).
+ * 2. The investor signs (typed name + drawn signature + emailed code).
+ * 3. The contract is ACTIVE right away, once the purchase is settled, and the 180-day opening deadline starts.
+ * The idea owner doesn't sign and gets no discount; they're told when the contract becomes active.
+ * Once, near the deadline, an investor who keeps posting progress can extend it by 60 days.
+ * Contracts not signed within 14 days of the purchase, or not opened in time, are terminated and the idea goes
+ * back to the other investors.
  */
 @Service
 @RequiredArgsConstructor
@@ -69,7 +66,7 @@ public class ContractFlowService {
     // a progress update in the last 30 days (ProjectService.extensionBlock)
     public static final int EXTENSION_WINDOW_DAYS = 30;
     public static final int RECENT_UPDATE_DAYS = 30;
-    // Until both parties sign, an adopted idea is held for 14 days only
+    // Until the investor signs, an adopted idea is held for 14 days only
     public static final int SIGNING_DEADLINE_DAYS = 14;
     private static final List<String> IMAGE_PREFIXES = List.of("data:image/png;base64,", "data:image/jpeg;base64,");
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -88,38 +85,9 @@ public class ContractFlowService {
     @Value("${server.servlet.context-path:}")
     private String contextPath;
 
-    // ---------- 1. Benefits ----------
+    // ---------- 1. Signing (the investor only) ----------
 
-    /**
-     * The investor sets what the idea owner gets once the project opens. Editable (the investor can go back from
-     * the signing step) until the investor signs; locked after that.
-     */
-    public ProjectResponse setBenefits(User currentUser, Integer contractId, ContractBenefitsRequest request) {
-        User investor = getUser(currentUser.getId());
-        Contract contract = getContract(contractId);
-        if (!contract.getInvestor().getId().equals(investor.getId())) {
-            throw new ForbiddenException("Only the project's investor can set the benefits");
-        }
-        if (contract.getStatus() != ContractStatus.DRAFT) {
-            throw new BadRequestException("The benefits are locked once the investor signs the contract");
-        }
-
-        BigDecimal owner = request.getIdeaOwnerDiscount().setScale(2, RoundingMode.HALF_UP);
-        String note = request.getBenefitsNote() == null || request.getBenefitsNote().isBlank()
-                ? null : request.getBenefitsNote().trim();
-        if (owner.signum() == 0 && note == null && !isSelfOwned(contract)) {
-            throw new BadRequestException("Give the idea owner a discount or describe their benefits");
-        }
-
-        contract.setIdeaOwnerDiscount(owner);
-        contract.setBenefitsNote(note);
-        contract.setBenefitsSetAt(LocalDateTime.now());
-        return projectService.toResponseFor(investor, contractRepository.save(contract));
-    }
-
-    // ---------- 2. Signing ----------
-
-    /** Emails the 6-digit code the signer types on the signing page. Only the party whose turn it is gets one. */
+    /** Emails the 6-digit code the investor types on the signing page. */
     public MessageResponse sendSignOtp(User currentUser, Integer contractId) {
         User signer = getUser(currentUser.getId());
         Contract contract = getContract(contractId);
@@ -130,7 +98,8 @@ public class ContractFlowService {
 
     /**
      * Saves the signature with the evidence the document asks for: typed name, drawn signature, time, IP and
-     * the result of the emailed code. Activates the contract when the last required signature arrives.
+     * the result of the emailed code. The contract becomes ACTIVE right away (once the purchase is settled), and the
+     * idea owner is told: they don't sign.
      */
     public ProjectResponse sign(User currentUser, Integer contractId, SignContractRequest request, String ipAddress) {
         User signer = getUser(currentUser.getId());
@@ -160,27 +129,16 @@ public class ContractFlowService {
                 .build();
         contract.sign(signature);
         contractSignatureRepository.save(signature);
-        // The idea owner hears that it's their turn (the bell links straight to the signing page)
-        if (ROLE_INVESTOR.equals(role) && !isSelfOwned(contract)) {
-            notificationService.notify(contract.getIdeaOwner(), NotificationService.CONTRACT_TO_SIGN,
-                    contract.getIdea(), null, "contract.html?id=" + contract.getId());
-        }
 
-        boolean activated = isReadyToActivate(contract);
-        if (activated) {
+        if (isReadyToActivate(contract)) {
             activate(contract);
         } else {
             contractRepository.save(contract);
         }
-        // The investor hears that the idea owner signed, and whether the contract is now active
-        if (ROLE_IDEA_OWNER.equals(role)) {
-            notificationService.notify(contract.getInvestor(), NotificationService.CONTRACT_SIGNED,
-                    contract.getIdea(), activated ? "ACTIVE" : "WAITING", "contract.html?id=" + contract.getId());
-        }
         return projectService.toResponseFor(signer, getContract(contractId));
     }
 
-    // ---------- 3. Contract document ----------
+    // ---------- 2. Contract document ----------
 
     /**
      * The contract as a print-ready HTML page (Arabic, right-to-left) for the two parties.
@@ -196,23 +154,42 @@ public class ContractFlowService {
         return renderContract(contract);
     }
 
-    // ---------- 4. Deadlines: 14 days to sign, 180 days to open ----------
+    // ---------- 3. Deadlines: 14 days to sign, 180 days to open ----------
 
     /**
-     * Terminates every contract that wasn't signed by both parties within SIGNING_DEADLINE_DAYS, or whose opening
+     * The idea owner no longer signs: contracts the investor signed before that change, still waiting for the
+     * owner's signature, become ACTIVE (when the purchase is settled). Runs on startup and before the nightly expiry.
+     * Returns how many were activated.
+     */
+    @Transactional
+    public int activateSignedContracts() {
+        int count = 0;
+        for (Contract contract : contractRepository.findByStatus(ContractStatus.INVESTOR_SIGNED)) {
+            if (isReadyToActivate(contract)) {
+                activate(contract);
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Terminates every contract the investor didn't sign within SIGNING_DEADLINE_DAYS, or whose opening
      * deadline passed without the project opening, and gives the idea back: COMPLETED (open to other investors)
      * when it has its votes, otherwise PUBLISHED.
      * Runs every night (ContractExpiryJob) and can be triggered by the admin or n8n.
      */
     @Transactional
     public ExpiredContractsResponse expireOverdue() {
+        // Contracts the investor already signed under the old flow (waiting for the idea owner) are active now
+        activateSignedContracts();
         LocalDate today = LocalDate.now();
         Map<Integer, Contract> overdue = new LinkedHashMap<>();
         // Not opened in time (contracts made before the signing deadline existed also carry one while unsigned)
         contractRepository.findByStatusInAndOpenedAtIsNullAndOpeningDeadlineBefore(
                         List.of(ContractStatus.DRAFT, ContractStatus.INVESTOR_SIGNED, ContractStatus.ACTIVE), today)
                 .forEach(contract -> overdue.put(contract.getId(), contract));
-        // Not signed by both parties in time
+        // Not signed by the investor in time
         contractRepository.findByStatusInAndSigningDeadlineBefore(
                         List.of(ContractStatus.DRAFT, ContractStatus.INVESTOR_SIGNED), today)
                 .forEach(contract -> overdue.putIfAbsent(contract.getId(), contract));
@@ -255,7 +232,7 @@ public class ContractFlowService {
         return idea;
     }
 
-    // ---------- 5. Extension ----------
+    // ---------- 4. Extension ----------
 
     /**
      * The investor moves the opening deadline EXTENSION_DAYS later, once: in the last EXTENSION_WINDOW_DAYS before
@@ -283,48 +260,28 @@ public class ContractFlowService {
 
     // ---------- Rules ----------
 
-    /** Who the user signs as right now, or why they can't sign. */
+    /** Only the investor signs; returns their role, or why the user can't sign. */
     private String signingRoleOf(Contract contract, User user) {
         boolean isInvestor = contract.getInvestor().getId().equals(user.getId());
         boolean isOwner = contract.getIdeaOwner().getId().equals(user.getId());
         if (!isInvestor && !isOwner) {
             throw new ForbiddenException("You aren't a party to this contract");
         }
+        if (!isInvestor) {
+            throw new BadRequestException("Only the investor signs this contract. You don't need to sign anything");
+        }
         if (contract.getStatus() == ContractStatus.TERMINATED) {
             throw new BadRequestException("This contract has ended");
         }
-        if (contract.getStatus() == ContractStatus.ACTIVE) {
-            throw new BadRequestException("This contract is already signed by both parties");
+        if (contract.getStatus() == ContractStatus.ACTIVE || hasSigned(contract, ROLE_INVESTOR)) {
+            throw new BadRequestException("You have already signed this contract");
         }
-        if (contract.getBenefitsSetAt() == null) {
-            throw new BadRequestException(isInvestor
-                    ? "Set the idea owner's benefits before signing"
-                    : "The investor hasn't set your benefits yet");
-        }
-
-        boolean investorSigned = hasSigned(contract, ROLE_INVESTOR);
-        if (isInvestor && !investorSigned) {
-            return ROLE_INVESTOR;
-        }
-        if (isOwner && !isInvestor) {
-            if (!investorSigned) {
-                throw new BadRequestException("The investor signs first. We'll let you know when it's your turn");
-            }
-            if (!hasSigned(contract, ROLE_IDEA_OWNER)) {
-                return ROLE_IDEA_OWNER;
-            }
-        }
-        throw new BadRequestException("You have already signed this contract");
+        return ROLE_INVESTOR;
     }
 
+    // Active once the investor signed and the purchase is settled; the idea owner doesn't sign
     private boolean isReadyToActivate(Contract contract) {
-        if (contract.getBenefitsSetAt() == null || !hasSigned(contract, ROLE_INVESTOR)) {
-            return false;
-        }
-        if (!isSelfOwned(contract) && !hasSigned(contract, ROLE_IDEA_OWNER)) {
-            return false;
-        }
-        return isAccessSettled(contract.getAccess());
+        return hasSigned(contract, ROLE_INVESTOR) && isAccessSettled(contract.getAccess());
     }
 
     // The access condition from the document: the fee is paid, or the success partnership is signed
@@ -347,6 +304,11 @@ public class ContractFlowService {
         contract.setPdfUrl(contextPath + "/projects/" + contract.getId() + "/contract");
         contractRepository.save(contract);
         n8nService.sendEvent("CONTRACT_ACTIVE", contractEventData(contract));
+        // The idea owner doesn't sign: they hear that an investor bought their idea and the contract is active
+        if (!isSelfOwned(contract)) {
+            notificationService.notify(contract.getIdeaOwner(), NotificationService.CONTRACT_SIGNED,
+                    contract.getIdea(), "OWNER_ACTIVE", "contract.html?id=" + contract.getId());
+        }
     }
 
     private boolean hasSigned(Contract contract, String role) {
@@ -386,8 +348,6 @@ public class ContractFlowService {
         data.put("ideaTitle", idea.getTitle());
         data.put("investor", party(contract.getInvestor()));
         data.put("ideaOwner", party(contract.getIdeaOwner()));
-        data.put("ideaOwnerDiscount", contract.getIdeaOwnerDiscount());
-        data.put("benefitsNote", contract.getBenefitsNote());
         data.put("openingDeadline", contract.getOpeningDeadline() != null ? contract.getOpeningDeadline().toString() : null);
         data.put("signingDeadline", contract.getSigningDeadline() != null ? contract.getSigningDeadline().toString() : null);
         data.put("extended", contract.getExtendedAt() != null);
@@ -463,23 +423,16 @@ public class ContractFlowService {
                 .append(row("طريقة الاطلاع", accessLabel(access)))
                 .append("</table>");
 
-        if (!isSelfOwned(contract)) {
-            html.append("<h2>مزايا صاحب الفكرة</h2><table>")
-                    .append(row("خصم صاحب الفكرة", percent(contract.getIdeaOwnerDiscount())))
-                    .append(row("مزايا أخرى", Objects.toString(contract.getBenefitsNote(), "-")))
-                    .append("</table>");
-        }
-
         html.append("<h2>البنود</h2><table>")
                 .append(row("التزامات المستثمر", "الافتتاح خلال " + OPENING_DEADLINE_DAYS
                         + " يومًا من تفعيل العقد (قابلة للتمديد مرة واحدة " + EXTENSION_DAYS
                         + " يومًا إذا كان المستثمر يحدّث حالة المشروع بانتظام)، "
-                        + (isSelfOwned(contract) ? "" : "وتقديم مزايا صاحب الفكرة المذكورة أعلاه، ونسب الفكرة لصاحبها، ")
+                        + (isSelfOwned(contract) ? "" : "ونسب الفكرة لصاحبها، ")
                         + "وتحديث حالة المشروع في المنصة كل أسبوعين"))
-                .append(row("حقوق صاحب الفكرة", "لقب «صاحب الفكرة» في المشروع، وأعلى مستوى من المزايا عند الافتتاح"))
-                .append(row("التزامات صاحب الفكرة", "عدم عرض الفكرة على مستثمر آخر طوال مدة العقد، والمحافظة على سرية بيانات المشروع"))
-                .append(row("أحكام عامة", "يُفسخ العقد تلقائيًا إذا لم يوقّعه الطرفان خلال " + SIGNING_DEADLINE_DAYS
-                        + " يومًا من التبنّي، أو إذا لم يُفتتح المشروع في المدة، "
+                .append(row("حقوق صاحب الفكرة", "لقب «صاحب الفكرة» في المشروع"))
+                .append(row("أحكام عامة", "يسري العقد بتوقيع المستثمر بعد إتمام الشراء، ولا يلزم توقيع صاحب الفكرة. "
+                        + "ويُفسخ العقد تلقائيًا إذا لم يوقّعه المستثمر خلال " + SIGNING_DEADLINE_DAYS
+                        + " يومًا من الشراء، أو إذا لم يُفتتح المشروع في المدة، "
                         + "ورسوم المنصة حسب طريقة الاطلاع، ولا تُشارك بيانات الأعضاء إلا مجمّعة"));
         boolean activated = contract.getActivatedAt() != null && contract.getOpeningDeadline() != null;
         if (!activated && contract.getSigningDeadline() != null) {
@@ -492,11 +445,11 @@ public class ContractFlowService {
 
         html.append("<h2>التوقيعات</h2>");
         if (signatures.isEmpty()) {
-            html.append("<p class=\"muted\">لم يوقّع أي طرف بعد.</p>");
+            html.append("<p class=\"muted\">لم يوقّع المستثمر بعد.</p>");
         }
         for (ContractSignature signature : signatures) {
             html.append("<div class=\"sig\"><strong>")
-                    .append(esc(ROLE_INVESTOR.equals(signature.getSignerRole()) ? "توقيع المستثمر" : "توقيع صاحب الفكرة"))
+                    .append(esc(ROLE_INVESTOR.equals(signature.getSignerRole()) ? "توقيع المستثمر" : "توقيع صاحب الفكرة (عقد سابق)"))
                     .append("</strong>");
             if (signature.getSignatureImageData() != null) {
                 html.append("<img alt=\"signature\" src=\"").append(esc(signature.getSignatureImageData())).append("\">");
@@ -533,14 +486,10 @@ public class ContractFlowService {
     private static String statusLabel(ContractStatus status) {
         return switch (status) {
             case DRAFT -> "مسودة";
-            case INVESTOR_SIGNED -> "وقّع المستثمر";
+            case INVESTOR_SIGNED -> "وقّع المستثمر، بانتظار تأكيد الشراء";
             case ACTIVE -> "ساري";
             case TERMINATED -> "مفسوخ";
         };
-    }
-
-    private static String percent(BigDecimal value) {
-        return value == null ? "-" : value.stripTrailingZeros().toPlainString() + "%";
     }
 
     private static String row(String label, String value) {

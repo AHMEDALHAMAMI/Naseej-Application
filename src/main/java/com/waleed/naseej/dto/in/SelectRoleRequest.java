@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import com.waleed.naseej.service.PhoneNumbers;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,7 +30,8 @@ public class SelectRoleRequest {
     // Required when choosing RESIDENT
     private Integer neighborhoodId;
 
-    @Pattern(regexp = "^9665\\d{8}$", message = "Phone must be in the format 9665XXXXXXXX")
+    // Saudi mobile: 05XXXXXXXX (9665XXXXXXXX also accepted). Required when choosing RESIDENT
+    @Pattern(regexp = PhoneNumbers.REGEX, message = PhoneNumbers.MESSAGE)
     private String phone;
 
     // ---------- Location from the browser (optional; a resident without a neighborhood gets the nearest one) ----------
@@ -45,7 +47,7 @@ public class SelectRoleRequest {
     // ---------- Investors only, all optional: the CR is added before the first unlock,
     //            budget and fields come from the onboarding questions after sign-up ----------
 
-    @Pattern(regexp = "^\\d{10}$", message = "Commercial registration number must be 10 digits")
+    @Pattern(regexp = "^7\\d{9}$", message = "Commercial registration number must be 10 digits starting with 7")
     private String crNumber;
 
     @Pattern(regexp = "^(UP_TO_300K|FROM_300K_TO_700K|ABOVE_700K)$",

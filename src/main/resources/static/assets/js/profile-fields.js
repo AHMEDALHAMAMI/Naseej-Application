@@ -45,17 +45,33 @@ export function setupInvestorFields(root, value = {}) {
 
 /** Client-side checks that mirror the server rules, so mistakes show before sending. */
 export function checkInvestor(values) {
-  if (!/^\d{10}$/.test(values.crNumber || '')) return ['crNumber', t('inv.crInvalid')];
+  if (!/^7\d{9}$/.test(values.crNumber || '')) return ['crNumber', t('inv.crInvalid')];
   if (!values.investmentFields) return ['investmentFields', t('inv.fieldsRequired')];
   return null;
 }
 
-/** 05XXXXXXXX, 5XXXXXXXX, +9665… or 9665… → 9665XXXXXXXX (what the server stores). Null when empty, false when invalid. */
+/** The only accepted mobile format: 05 then 8 digits (Arabic digits are fine too). */
+export const PHONE_PATTERN = /^05\d{8}$/;
+
+/** 05XXXXXXXX → 9665XXXXXXXX (what the server stores). Null when empty, false when not 05 + 8 digits. */
 export function normalizePhone(raw) {
-  const digits = String(raw || '').replace(/[^\d]/g, '');
+  const digits = String(raw || '')
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06F0))
+    .replace(/[\s-]/g, '');
   if (!digits) return null;
-  const local = digits.replace(/^(00966|966|0)/, '');
-  return /^5\d{8}$/.test(local) ? `966${local}` : false;
+  return PHONE_PATTERN.test(digits) ? `966${digits.slice(1)}` : false;
+}
+
+/**
+ * The mobile check used by the resident forms: required, and 05 then 8 digits.
+ * Returns { phone } in the stored form (9665XXXXXXXX), or { error } with the message's string key.
+ */
+export function requiredPhone(raw) {
+  const phone = normalizePhone(raw);
+  if (phone === null) return { error: 'signup.phoneRequired' };
+  if (phone === false) return { error: 'signup.phoneInvalid' };
+  return { phone };
 }
 
 /** 9665XXXXXXXX → 05XXXXXXXX for showing in a form. */

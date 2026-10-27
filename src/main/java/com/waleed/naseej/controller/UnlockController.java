@@ -64,7 +64,7 @@ public class UnlockController {
         return unlockService.partnership(user, ideaId, request, http.getRemoteAddr());
     }
 
-    /** The investor's own idea, adopted with no fee (set benefits and sign in My projects). */
+    /** The investor's own idea, adopted with no fee (sign the contract in My projects). */
     @PostMapping("/adopt/{ideaId}")
     public UnlockResultResponse adopt(@AuthenticationPrincipal User user, @PathVariable Integer ideaId) {
         return unlockService.adoptOwnIdea(user, ideaId);

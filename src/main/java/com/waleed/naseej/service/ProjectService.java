@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -95,7 +94,7 @@ public class ProjectService {
         return toResponse(contractRepository.findById(contractId).orElseThrow(), "INVESTOR");
     }
 
-    /** The project as the given party sees it (used after setting benefits or signing). */
+    /** The project as the given party sees it (used after signing or extending). */
     public ProjectResponse toResponseFor(User user, Contract contract) {
         boolean investor = contract.getInvestor().getId().equals(user.getId());
         return toResponse(contract, investor ? "INVESTOR" : "FOUNDER");
@@ -107,14 +106,10 @@ public class ProjectService {
         boolean active = contract.getStatus() == ContractStatus.ACTIVE;
         Idea idea = contract.getIdea();
 
-        // Signing progress: an investor who adopted their own idea signs once, for both sides
-        boolean selfOwned = Objects.equals(contract.getInvestor().getId(), contract.getIdeaOwner().getId());
+        // Only the investor signs; the contract is active right after (the idea owner doesn't sign)
         boolean investorSigned = contractSignatureRepository.existsByContractIdAndSignerRole(
                 contract.getId(), ContractFlowService.ROLE_INVESTOR);
-        boolean founderSigned = selfOwned ? investorSigned : contractSignatureRepository.existsByContractIdAndSignerRole(
-                contract.getId(), ContractFlowService.ROLE_IDEA_OWNER);
-        boolean benefitsSet = contract.getBenefitsSetAt() != null;
-        String nextStep = nextStep(contract, benefitsSet, investorSigned, founderSigned);
+        String nextStep = nextStep(contract, investorSigned);
         boolean investorView = "INVESTOR".equals(myRole);
         // The extension: only the investor sees whether they can ask for it
         String extensionBlock = investorView ? extensionBlock(contract, updates) : null;
@@ -145,11 +140,7 @@ public class ProjectService {
                 // The investor can post the next stage any time; there is no waiting period
                 .canPostUpdate("INVESTOR".equals(myRole) && active && index < STAGES.size() - 1)
                 .nextUpdateAllowedAt(null)
-                .ideaOwnerDiscount(contract.getIdeaOwnerDiscount())
-                .benefitsNote(contract.getBenefitsNote())
-                .benefitsSet(benefitsSet)
                 .investorSigned(investorSigned)
-                .founderSigned(founderSigned)
                 .openingDeadline(contract.getOpeningDeadline())
                 .signingDeadline(active || contract.getOpenedAt() != null ? null : contract.getSigningDeadline())
                 .extended(contract.getExtendedAt() != null)
@@ -157,9 +148,7 @@ public class ProjectService {
                 .extensionOpensOn(investorView && running ? extensionOpensOn : null)
                 .extensionBlockedReason(investorView && windowOpen ? extensionBlock : null)
                 .nextStep(nextStep)
-                .canSetBenefits(investorView && !selfOwned && contract.getStatus() == ContractStatus.DRAFT)
-                .canSign((investorView && "INVESTOR_SIGN".equals(nextStep))
-                        || (!investorView && "FOUNDER_SIGN".equals(nextStep)))
+                .canSign(investorView && "INVESTOR_SIGN".equals(nextStep))
                 .build();
     }
 
@@ -198,7 +187,7 @@ public class ProjectService {
     }
 
     // What has to happen next for this contract, so the page knows which button to show
-    private static String nextStep(Contract contract, boolean benefitsSet, boolean investorSigned, boolean founderSigned) {
+    private static String nextStep(Contract contract, boolean investorSigned) {
         if (contract.getStatus() == ContractStatus.TERMINATED) {
             return "ENDED";
         }
@@ -208,13 +197,8 @@ public class ProjectService {
         if (contract.getStatus() == ContractStatus.ACTIVE) {
             return "IN_PROGRESS";
         }
-        if (!benefitsSet) {
-            return "SET_BENEFITS";
-        }
-        if (!investorSigned) {
-            return "INVESTOR_SIGN";
-        }
-        return founderSigned ? "WAITING_PAYMENT" : "FOUNDER_SIGN";
+        // Signed but not active yet: the purchase isn't settled
+        return investorSigned ? "WAITING_PAYMENT" : "INVESTOR_SIGN";
     }
 
     /** Where an adopted idea's project is, e.g. "Fit-out" (index 3 of 7). Empty for ideas nobody adopted. */

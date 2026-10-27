@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import com.waleed.naseej.service.PhoneNumbers;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -37,8 +38,8 @@ public class RegisterRequest {
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Password must contain letters and numbers")
     private String password;
 
-    // Optional, Saudi mobile format: 9665XXXXXXXX
-    @Pattern(regexp = "^9665\\d{8}$", message = "Phone must be in the format 9665XXXXXXXX")
+    // Saudi mobile: 05XXXXXXXX (9665XXXXXXXX also accepted). Required for residents, optional for investors
+    @Pattern(regexp = PhoneNumbers.REGEX, message = PhoneNumbers.MESSAGE)
     private String phone;
 
     // Required for residents, optional for investors
@@ -63,7 +64,7 @@ public class RegisterRequest {
     // ---------- Investors only, all optional: the CR is added before the first unlock,
     //            budget and fields come from the onboarding questions after sign-up ----------
 
-    @Pattern(regexp = "^\\d{10}$", message = "Commercial registration number must be 10 digits")
+    @Pattern(regexp = "^7\\d{9}$", message = "Commercial registration number must be 10 digits starting with 7")
     private String crNumber;
 
     @Pattern(regexp = "^(UP_TO_300K|FROM_300K_TO_700K|ABOVE_700K)$",

@@ -100,7 +100,7 @@ function drawVerify() {
     const f = e.currentTarget;
     applyFieldErrors(f, null);
     const cr = f.crNumber.value.replace(/\D/g, '');
-    if (!/^\d{10}$/.test(cr)) {
+    if (!/^7\d{9}$/.test(cr)) {
       f.crNumber.setAttribute('aria-invalid', 'true');
       f.querySelector('.error').textContent = t('inv.crInvalid');
       f.crNumber.focus();
