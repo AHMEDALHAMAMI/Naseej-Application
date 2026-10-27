@@ -281,122 +281,143 @@ Libraries load from CDNs: Leaflet 1.9.4 (map tiles © OpenStreetMap / CARTO) and
 | GET | `/unlock/agreement/{contractId}` | investor, founder, admin | The agreement behind a project |
 | GET / POST / PUT / DELETE | `/admin/users`, `/admin/users/{id}`, `/admin/users/{id}/password`, `/admin/users/{id}/suspend`, `/admin/users/{id}/reactivate` | admin | Member management |
 
-## Waleed Alaql Endpoints
+# Ahmad Alhamami — العضو 1: الحسابات والمجتمع
 
-### Admin (2)
+**Naseej (نسيج)** · My endpoints in the project
 
-| Method | Endpoint | النوع |
-|---|---|---|
-| `POST` | `/admin/payments/{id}/refund` | إضافي |
-| `POST` | `/admin/contracts/expire-overdue` | إضافي |
+## Summary
 
-### Contract (9) — منها 5 CRUD
+| Controller | Endpoints | CRUD | إضافي |
+|---|:---:|:---:|:---:|
+| Account | 8 | 0 | 8 |
+| Admin | 13 | 0 | 13 |
+| Auth | 11 | 0 | 11 |
+| Explore | 2 | 0 | 2 |
+| FoundingMember | 5 | 5 | 0 |
+| Idea | 5 | 5 | 0 |
+| Neighborhood | 7 | 5 | 2 |
+| Public | 5 | 0 | 5 |
+| Subscription | 5 | 5 | 0 |
+| User | 5 | 5 | 0 |
+| **Total** | **66** | **25** | **41** |
 
-| Method | Endpoint | النوع |
-|---|---|---|
-| `GET` | `/contracts/get-all` | CRUD |
-| `POST` | `/contracts/create` | CRUD |
-| `PUT` | `/contracts/update/{id}` | CRUD |
-| `DELETE` | `/contracts/delete/{id}` | CRUD |
-| `GET` | `/contracts/get/{id}` | CRUD |
-| `POST` | `/contracts/draft` | إضافي |
-| `POST` | `/contracts/sign/{id}` | إضافي |
-| `POST` | `/contracts/terminate/{id}` | إضافي |
-| `POST` | `/contracts/add-update/{id}` | إضافي |
+---
 
-### ContractSignature (7) — منها 5 CRUD
-
-| Method | Endpoint | النوع |
-|---|---|---|
-| `GET` | `/contract-signatures/get-all` | CRUD |
-| `POST` | `/contract-signatures/create` | CRUD |
-| `PUT` | `/contract-signatures/update/{id}` | CRUD |
-| `DELETE` | `/contract-signatures/delete/{id}` | CRUD |
-| `GET` | `/contract-signatures/get/{id}` | CRUD |
-| `POST` | `/contract-signatures/sign/{contractId}` | إضافي |
-| `GET` | `/contract-signatures/check/contract/{contractId}` | إضافي |
-
-### Notification (4)
+## Account (8)
 
 | Method | Endpoint | النوع |
 |---|---|---|
-| `GET` | `/notifications` | إضافي |
-| `GET` | `/notifications/unread-count` | إضافي |
-| `PUT` | `/notifications/read-all` | إضافي |
-| `PUT` | `/notifications/{id}/read` | إضافي |
+| `GET` | `/account/profile` | إضافي |
+| `PUT` | `/account/profile` | إضافي |
+| `GET` | `/account/addresses` | إضافي |
+| `POST` | `/account/addresses` | إضافي |
+| `PUT` | `/account/addresses/{id}` | إضافي |
+| `PUT` | `/account/addresses/{id}/primary` | إضافي |
+| `DELETE` | `/account/addresses/{id}` | إضافي |
+| `POST` | `/account/addresses/preview` | إضافي |
 
-### PartnershipAgreement (7) — منها 5 CRUD
-
-| Method | Endpoint | النوع |
-|---|---|---|
-| `GET` | `/partnership-agreements/get-all` | CRUD |
-| `POST` | `/partnership-agreements/create` | CRUD |
-| `PUT` | `/partnership-agreements/update/{id}` | CRUD |
-| `DELETE` | `/partnership-agreements/delete/{id}` | CRUD |
-| `GET` | `/partnership-agreements/get/{id}` | CRUD |
-| `POST` | `/partnership-agreements/accept-terms/{id}` | إضافي |
-| `GET` | `/partnership-agreements/check/access/{accessId}` | إضافي |
-
-### Payment (13) — منها 5 CRUD
+## Admin (13)
 
 | Method | Endpoint | النوع |
 |---|---|---|
-| `GET` | `/payments/get-all` | CRUD |
-| `POST` | `/payments/create` | CRUD |
-| `PUT` | `/payments/update/{id}` | CRUD |
-| `DELETE` | `/payments/delete/{id}` | CRUD |
-| `GET` | `/payments/get/{id}` | CRUD |
-| `GET` | `/payments/get-status/{id}` | إضافي |
-| `POST` | `/payments/confirm/{id}` | إضافي |
-| `POST` | `/payments/refund/{id}` | إضافي |
-| `POST` | `/payments/webhook/moyasar` | إضافي |
-| `POST` | `/payments/initiate-moyasar` | إضافي |
-| `POST` | `/payments/sync-moyasar/{id}` | إضافي |
-| `GET` | `/payments/moyasar-callback` | إضافي |
-| `GET` | `/payments/mine` | إضافي |
+| `GET` | `/admin/stats` | إضافي |
+| `GET` | `/admin/users` | إضافي |
+| `POST` | `/admin/users` | إضافي |
+| `PUT` | `/admin/users/{id}` | إضافي |
+| `PUT` | `/admin/users/{id}/suspend` | إضافي |
+| `PUT` | `/admin/users/{id}/reactivate` | إضافي |
+| `PUT` | `/admin/users/{id}/password` | إضافي |
+| `DELETE` | `/admin/users/{id}` | إضافي |
+| `GET` | `/admin/investors` | إضافي |
+| `PUT` | `/admin/investors/verify/{id}` | إضافي |
+| `PUT` | `/admin/investors/reject/{id}` | إضافي |
+| `PUT` | `/admin/users/{id}/disable` | إضافي |
+| `PUT` | `/admin/ideas/{id}/hide` | إضافي |
 
-### Project (8)
-
-| Method | Endpoint | النوع |
-|---|---|---|
-| `GET` | `/projects/mine` | إضافي |
-| `GET` | `/projects/stages` | إضافي |
-| `POST` | `/projects/stage/{contractId}` | إضافي |
-| `PUT` | `/projects/{contractId}/benefits` | إضافي |
-| `POST` | `/projects/{contractId}/sign-otp` | إضافي |
-| `POST` | `/projects/{contractId}/sign` | إضافي |
-| `POST` | `/projects/{contractId}/extend` | إضافي |
-| `GET` | `/projects/{contractId}/contract` | إضافي |
-
-### ProjectUpdate (5) — منها 5 CRUD
+## Auth (11)
 
 | Method | Endpoint | النوع |
 |---|---|---|
-| `GET` | `/project-updates/get-all` | CRUD |
-| `POST` | `/project-updates/create` | CRUD |
-| `PUT` | `/project-updates/update/{id}` | CRUD |
-| `DELETE` | `/project-updates/delete/{id}` | CRUD |
-| `GET` | `/project-updates/get/{id}` | CRUD |
+| `POST` | `/auth/register` | إضافي |
+| `POST` | `/auth/verify-otp` | إضافي |
+| `POST` | `/auth/send-otp` | إضافي |
+| `POST` | `/auth/login` | إضافي |
+| `POST` | `/auth/reset-password` | إضافي |
+| `POST` | `/auth/refresh` | إضافي |
+| `PUT` | `/auth/select-role` | إضافي |
+| `GET` | `/auth/me` | إضافي |
+| `PUT` | `/auth/me` | إضافي |
+| `PUT` | `/auth/location` | إضافي |
+| `POST` | `/auth/logout` | إضافي |
 
-### Subscription (3)
-
-| Method | Endpoint | النوع |
-|---|---|---|
-| `POST` | `/subscriptions/subscribe` | إضافي |
-| `GET` | `/subscriptions/mine` | إضافي |
-| `PUT` | `/subscriptions/cancel` | إضافي |
-
-### Unlock (7)
+## Explore (2)
 
 | Method | Endpoint | النوع |
 |---|---|---|
-| `POST` | `/unlock/pay/{ideaId}` | إضافي |
-| `POST` | `/unlock/checkout/{ideaId}` | إضافي |
-| `POST` | `/unlock/confirm-payment/{ideaId}` | إضافي |
-| `POST` | `/unlock/partnership/{ideaId}` | إضافي |
-| `POST` | `/unlock/owner-checkout/{ideaId}` | إضافي |
-| `POST` | `/unlock/owner-confirm/{ideaId}` | إضافي |
-| `GET` | `/unlock/agreement/{contractId}` | إضافي |
+| `GET` | `/explore/cities` | إضافي |
+| `GET` | `/explore/neighborhoods/{city}` | إضافي |
+
+## FoundingMember (5) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/founding-members/get-all` | CRUD |
+| `POST` | `/founding-members/create` | CRUD |
+| `PUT` | `/founding-members/update/{id}` | CRUD |
+| `DELETE` | `/founding-members/delete/{id}` | CRUD |
+| `GET` | `/founding-members/get/{id}` | CRUD |
+
+## Idea (5) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/ideas/get-all` | CRUD |
+| `POST` | `/ideas/create` | CRUD |
+| `PUT` | `/ideas/update/{id}` | CRUD |
+| `DELETE` | `/ideas/delete/{id}` | CRUD |
+| `GET` | `/ideas/get/{id}` | CRUD |
+
+## Neighborhood (7) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/neighborhoods/get-all` | CRUD |
+| `POST` | `/neighborhoods/create` | CRUD |
+| `PUT` | `/neighborhoods/update/{id}` | CRUD |
+| `DELETE` | `/neighborhoods/delete/{id}` | CRUD |
+| `GET` | `/neighborhoods/get/{id}` | CRUD |
+| `GET` | `/neighborhoods/get-by-city/{city}` | إضافي |
+| `GET` | `/neighborhoods/search/{keyword}` | إضافي |
+
+## Public (5)
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/public/stats` | إضافي |
+| `GET` | `/public/ideas-nearby` | إضافي |
+| `GET` | `/public/nearest-neighborhood` | إضافي |
+| `GET` | `/public/search-places` | إضافي |
+| `GET` | `/public/map-config` | إضافي |
+
+## Subscription (5) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/subscriptions/get-all` | CRUD |
+| `POST` | `/subscriptions/create` | CRUD |
+| `PUT` | `/subscriptions/update/{id}` | CRUD |
+| `DELETE` | `/subscriptions/delete/{id}` | CRUD |
+| `GET` | `/subscriptions/get/{id}` | CRUD |
+
+## User (5) — منها 5 CRUD
+
+| Method | Endpoint | النوع |
+|---|---|---|
+| `GET` | `/users/get-all` | CRUD |
+| `POST` | `/users/create` | CRUD |
+| `PUT` | `/users/update/{id}` | CRUD |
+| `DELETE` | `/users/delete/{id}` | CRUD |
+| `GET` | `/users/get/{id}` | CRUD |
 
 **Contract flow after adoption:** unlocking or adopting creates a `DRAFT` contract → the investor signs → `ACTIVE` right away, and the 180-day opening deadline starts. The idea owner doesn't sign and gets no discount; they're notified when the contract is active. The investor must sign within 14 days of the purchase. Once, in the last 30 days before the opening deadline, an investor who posted progress in the last 30 days can extend it by 60 days (`POST /projects/{contractId}/extend`); progress can also be posted on the current stage with a note. An investor who adopts their own idea skips the benefits step and signs once. A contract that isn't signed or doesn't open by its deadline is terminated and the idea goes back to the other investors (`COMPLETED`) or back to voting (`PUBLISHED`).
 
